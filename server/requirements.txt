@@ -1,0 +1,2 @@
+# Backend uses Python standard library only.
+# No package install is required for the current local API bridge.

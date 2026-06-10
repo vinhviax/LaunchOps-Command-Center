@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LaunchOps Command Center</title>
+  <link rel="stylesheet" href="styles.css?v=vng-redesign-20260608">
+  <link rel="stylesheet" href="friendly.css?v=vng-redesign-20260608">
+  <link rel="stylesheet" href="mission-control.css?v=vng-redesign-20260608">
+</head>
+<body class="ui-mode-pro">
+  <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
+    <div class="intro-card">
+      <button id="closeIntroModal" class="intro-close" type="button" aria-label="Đóng giới thiệu">×</button>
+      <div class="intro-content">
+        <span class="section-kicker">Giới thiệu demo</span>
+        <h2 id="introTitle">LaunchOps Command Center là gì?</h2>
+        <p id="introSummary">
+          LaunchOps Command Center là một Super Agent / Trung tâm điều hành Launch giúp team kiểm soát rủi ro trước, trong và sau khi phát hành sự kiện, campaign, tính năng mới hoặc hệ thống nội bộ.
+        </p>
+        <p>
+          Công cụ có thể dùng trực tiếp trên Web UI như bản demo này, hoặc tích hợp thành chatbot trên các kênh làm việc quen thuộc như Zalo, Discord, Telegram, Slack để team gửi brief, hỏi trạng thái launch, xem checklist và nhận cảnh báo rủi ro ngay trong nơi đang làm việc.
+        </p>
+
+        <div class="intro-grid">
+          <div class="intro-section">
+            <h3>Mục tiêu hướng tới</h3>
+            <ul class="intro-list">
+              <li><strong>Không còn launch mù quáng:</strong> team nhìn nhanh launch đã đủ an toàn chưa qua Green / Yellow / Red.</li>
+              <li><strong>Giảm thiếu sót trước launch:</strong> hệ thống nhắc các phần dễ quên như owner, deadline, tracking, dashboard, CS FAQ, rollback plan và tiêu chí dừng.</li>
+              <li><strong>Biến brief thành hành động:</strong> từ một mô tả launch, hệ thống tạo checklist có owner, deadline và trạng thái.</li>
+              <li><strong>Tích lũy bài học vận hành:</strong> lưu lịch sử phân tích, kết quả sau launch và lessons learned để các lần launch sau tốt hơn.</li>
+            </ul>
+          </div>
+
+          <div class="intro-section">
+            <h3>LaunchOps Command Center dùng 6 agent/mode chính</h3>
+            <div class="intro-agent-list">
+              <div class="intro-agent-row">
+                <strong>1. Mission Control Agent</strong>
+                <span>Đọc brief, nhận diện loại launch, điều phối các agent còn lại và giữ toàn bộ flow trong phạm vi LaunchOps.</span>
+              </div>
+              <div class="intro-agent-row">
+                <strong>2. Launch Readiness Agent</strong>
+                <span>Chấm mức sẵn sàng theo bộ tiêu chí rủi ro, trả kết quả Green / Yellow / Red và điểm readiness.</span>
+              </div>
+              <div class="intro-agent-row">
+                <strong>3. Red Team Agent</strong>
+                <span>Phản biện launch từ nhiều góc nhìn như user, kỹ thuật, CS, business và LiveOps để phát hiện rủi ro trước khi chạy.</span>
+              </div>
+              <div class="intro-agent-row">
+                <strong>4. Checklist Agent</strong>
+                <span>Tạo danh sách việc cần làm theo từng mốc trước launch, ngày launch, trong lúc chạy và sau launch, có owner/deadline/status.</span>
+              </div>
+              <div class="intro-agent-row">
+                <strong>5. Post-mortem & Lessons Agent</strong>
+                <span>Gợi ý câu hỏi tổng kết, lưu kết quả thực tế và bài học sau launch để tránh lặp lại lỗi cũ.</span>
+              </div>
+              <div class="intro-agent-row">
+                <strong>6. LaunchOps Assistant / Channel Agent</strong>
+                <span>Chatbot hỗ trợ giải thích, tạo launch, điều hướng trong Web UI và có thể mở rộng sang Zalo, Discord, Telegram hoặc Slack.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="intro-section">
+          <h3>Tác dụng thực tế</h3>
+          <p>
+            LaunchOps Command Center giúp biến một launch brief còn mơ hồ thành quy trình vận hành rõ ràng: có điểm số, có rủi ro, có checklist, có owner và có bài học sau launch.
+          </p>
+        </div>
+
+        <div class="intro-actions">
+          <button id="enterDemoFromIntro" class="primary" type="button">Vào demo</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">V-Team · VinhVNN · GS9</p>
+      <h1>LaunchOps Command Center</h1>
+    </div>
+    <div class="topbar-actions">
+      <span id="analysisSource" class="sync-status">Bản local đã sẵn sàng</span>
+      <div class="role-control pro-only">
+        <label class="launch-operator" for="launchOperator">
+          <span class="role-label">Vai trò <button class="help-button inline role-help" type="button" aria-label="Giải thích vai trò thao tác" data-tooltip="Chọn vai trò để mô phỏng quyền trên bản demo: Human, AI hoặc Admin. Role này quyết định ai được sửa/xóa launch, lưu bài học hoặc duyệt cấu hình.">?</button></span>
+          <select id="launchOperator">
+            <option value="human">Human</option>
+            <option value="ai">AI</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+      </div>
+      <button id="openTemplateConfig" type="button" class="topbar-config-button pro-only">Cấu hình phân loại</button>
+      <button id="newLaunch" type="button" class="primary">Tạo launch mới</button>
+      <div class="mode-switch" role="group" aria-label="Chọn giao diện">
+        <button id="modeFriendlyBtn" type="button" class="mode-btn" data-mode="friendly" aria-pressed="false">Friendly</button>
+        <button id="modeProBtn" type="button" class="mode-btn active" data-mode="pro" aria-pressed="true">Pro</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="appShell" class="app-shell">
+    <aside class="launch-board" aria-label="Launch board">
+      <div class="board-head">
+        <div>
+          <span class="section-kicker">Danh sách theo trạng thái</span>
+        </div>
+      </div>
+      <div class="board-filters" aria-label="Lọc danh sách launch">
+        <label class="board-search" for="launchSearch">
+          <span>Tìm kiếm</span>
+          <input id="launchSearch" type="search" placeholder="Tên hoặc phân loại">
+        </label>
+        <label class="board-status-filter" for="launchStatusFilter">
+          <span>Trạng thái</span>
+          <select id="launchStatusFilter">
+            <option value="all">Tất cả</option>
+            <option value="running">Đang chạy</option>
+            <option value="completed">Đã chạy</option>
+            <option value="upcoming">Sắp chạy</option>
+          </select>
+        </label>
+      </div>
+      <div id="launchGroups" class="launch-groups"></div>
+    </aside>
+
+    <section class="detail-shell" aria-label="Launch detail">
+      <section class="detail-hero">
+        <div class="detail-title-block">
+          <span class="section-kicker">Chi tiết launch</span>
+          <h2 id="detailTitle">Launch detail</h2>
+          <div id="detailSub" class="detail-meta-row">Tạo hoặc chọn launch trước khi phân tích.</div>
+        </div>
+
+        <div class="hero-metrics">
+          <div id="readinessMetric" class="metric score-metric yellow">
+            <span>Mức sẵn sàng <button class="help-button inline" type="button" aria-label="Giải thích mức sẵn sàng" data-tooltip="Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.">?</button></span>
+            <strong id="scoreValue">0/12</strong>
+            <small id="scoreColor">Vàng</small>
+          </div>
+          <div class="metric">
+            <span>Lịch sử <button class="help-button inline" type="button" aria-label="Giải thích lịch sử" data-tooltip="Số lần đã phân tích launch này và số bài học đã lưu sau launch. Dùng để xem lại quyết định cũ.">?</button></span>
+            <div id="launchMemoryStats" class="metric-lines">
+              <strong>0 lần phân tích</strong>
+              <strong>0 bài học</strong>
+            </div>
+            <small>Lưu local</small>
+          </div>
+        </div>
+
+        <div class="detail-actions">
+          <div class="action-button-row">
+            <button id="demoMode" type="button">Demo mode</button>
+            <button id="exportReport" type="button">Export report</button>
+            <button id="saveLaunch" type="button">Lưu launch</button>
+            <button id="analyzeBrief" type="button" class="primary">Chạy phân tích</button>
+            <button class="help-button action-help" type="button" aria-label="Giải thích các nút thao tác launch" data-tooltip="Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.">?</button>
+            <button id="deleteLaunch" type="button" class="danger-button pro-only">Xóa launch</button>
+          </div>
+          <div id="analysisRunStatus" class="analysis-run-status" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="friendlyVisualize" class="friendly-visualize friendly-only" aria-label="LaunchOps Visualize 5 bước">
+        <div class="friendly-viz-head">
+          <div>
+            <span class="friendly-viz-kicker">Friendly mode</span>
+            <h3>Visualize 5 bước trước khi launch</h3>
+          </div>
+          <button id="friendlyVizReplay" class="friendly-viz-replay" type="button">Về bước 1</button>
+        </div>
+
+        <div class="friendly-viz-grid">
+          <aside id="friendlyVizRail" class="friendly-viz-rail" data-state="idle">
+            <div id="friendlyVizAgentName" class="friendly-viz-agent">Sẵn sàng</div>
+            <svg class="friendly-viz-mascot" viewBox="0 0 120 120" role="img" aria-label="Trợ lý LaunchOps">
+              <circle class="viz-acc-fill" cx="60" cy="11" r="5"/>
+              <line class="viz-acc-stroke" x1="60" y1="14" x2="60" y2="26" stroke-width="4" stroke-linecap="round"/>
+              <rect x="24" y="26" width="72" height="64" rx="20" fill="#fff" stroke="#17181a" stroke-width="3.5"/>
+              <circle class="viz-eye" cx="46" cy="54" r="6" fill="#17181a" style="transform-origin:46px 54px"/>
+              <circle class="viz-eye" cx="74" cy="54" r="6" fill="#17181a" style="transform-origin:74px 54px"/>
+              <path class="viz-mouth viz-happy" d="M45 70 Q60 83 75 70" fill="none" stroke="#17181a" stroke-width="4" stroke-linecap="round"/>
+              <line class="viz-mouth viz-flat" x1="50" y1="73" x2="70" y2="73" stroke="#17181a" stroke-width="4" stroke-linecap="round"/>
+              <path class="viz-mouth viz-warn" d="M47 75 Q60 67 73 75" fill="none" stroke="#17181a" stroke-width="4" stroke-linecap="round"/>
+              <circle class="viz-mouth viz-alert" cx="60" cy="75" r="7" fill="none" stroke="#17181a" stroke-width="4"/>
+              <rect class="viz-acc-fill" x="40" y="92" width="40" height="8" rx="4"/>
+            </svg>
+
+            <p id="friendlyVizSpeech" class="friendly-viz-speech">Đang chờ lệnh. Nếu bạn nhập gì, tôi sẽ gắn vào launch đang mở.</p>
+
+            <div class="friendly-viz-verdict">
+              <div id="friendlyVizLights" class="friendly-viz-lights" data-on="idle" aria-hidden="true">
+                <i class="viz-red"></i>
+                <i class="viz-yellow"></i>
+                <i class="viz-green"></i>
+              </div>
+              <div class="friendly-viz-verdict-text">
+                <b id="friendlyVizVerdict">Chưa phân tích</b>
+                <span id="friendlyVizScore">Chưa có điểm</span>
+              </div>
+            </div>
+
+            <div class="friendly-viz-controls">
+              <button id="friendlyVizPrev" type="button">Trước</button>
+              <button id="friendlyVizNext" type="button">Tiếp</button>
+            </div>
+
+            <div id="friendlyVizDots" class="friendly-viz-dots" aria-label="Các bước Visualize">
+              <button type="button" class="friendly-viz-step" data-step="0"><span>1</span><b>Đọc brief</b></button>
+              <button type="button" class="friendly-viz-step" data-step="1"><span>2</span><b>Chấm điểm</b></button>
+              <button type="button" class="friendly-viz-step" data-step="2"><span>3</span><b>Phản biện</b></button>
+              <button type="button" class="friendly-viz-step" data-step="3"><span>4</span><b>Việc cần làm</b></button>
+              <button type="button" class="friendly-viz-step" data-step="4"><span>5</span><b>Bài học</b></button>
+            </div>
+          </aside>
+
+          <section id="friendlyVizStage" class="friendly-viz-stage" aria-live="polite">
+            <article class="friendly-viz-scene active" data-step="0">
+              <div class="friendly-viz-brief">
+                <div class="friendly-viz-scan"></div>
+                <h4 id="friendlyVizBriefTitle">Chưa chọn launch</h4>
+                <p id="friendlyVizBriefGoal">Chọn một launch ở danh sách bên trái, kiểm tra brief, rồi bấm "Chạy phân tích".</p>
+                <p id="friendlyVizBriefMissing" class="friendly-viz-miss">Agent sẽ đọc phần còn thiếu sau khi có kết quả.</p>
+              </div>
+              <div class="friendly-chat" aria-label="Chat cấu hình launch trong Friendly mode">
+                <div class="friendly-chat-head">
+                  <div>
+                    <b>Chat với Mission Control</b>
+                    <span>Chọn nhanh hoặc gõ từng ý để tạo/sửa launch.</span>
+                  </div>
+                  <div id="friendlyChatSummary" class="friendly-chat-summary"></div>
+                </div>
+                <div id="friendlyChatMessages" class="friendly-chat-messages" aria-live="polite"></div>
+                <div id="friendlyChatQuickActions" class="friendly-chat-actions" aria-label="Thao tác nhanh"></div>
+              </div>
+              <p id="friendlyVizTyped" class="friendly-viz-typed">Gợi ý tiếp theo: chọn thao tác hoặc gõ trực tiếp cho Mission Control.</p>
+              <form id="friendlyChatForm" class="friendly-chat-form friendly-chat-dock">
+                <textarea id="friendlyChatInput" rows="1" autocomplete="off" placeholder="Gõ câu trả lời hoặc dán brief ở đây"></textarea>
+                <button id="friendlyChatSend" type="submit">Gửi</button>
+              </form>
+              <div class="friendly-viz-proxy-fields" hidden>
+                <input id="friendlyLaunchName" type="text" autocomplete="off">
+                <select id="friendlyLaunchType"></select>
+                <select id="friendlyLaunchStatus">
+                  <option value="upcoming">Sắp chạy</option>
+                  <option value="running">Đang chạy</option>
+                  <option value="completed">Đã chạy</option>
+                </select>
+                <input id="friendlyLaunchOwner" type="text" autocomplete="off">
+                <input id="friendlyLaunchTargetDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
+                <input id="friendlyLaunchEndDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
+                <textarea id="friendlyBriefInput" spellcheck="false"></textarea>
+                <button id="friendlyLoadBadBrief" type="button">Nạp Brief Mẫu</button>
+                <button id="friendlySaveLaunch" type="button">Lưu launch</button>
+                <button id="friendlyAnalyzeBrief" type="button">Chạy phân tích</button>
+              </div>
+            </article>
+
+            <article class="friendly-viz-scene" data-step="1">
+              <h3 class="friendly-viz-title">Mức độ sẵn sàng</h3>
+              <div class="friendly-viz-ready">
+                <div class="friendly-viz-gauge">
+                  <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
+                    <circle cx="70" cy="70" r="60" fill="none" stroke="#e6e6e0" stroke-width="11"/>
+                    <circle id="friendlyVizArc" cx="70" cy="70" r="60" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="377"/>
+                  </svg>
+                  <div>
+                    <b id="friendlyVizGaugeNumber">0</b>
+                    <span id="friendlyVizGaugeMax">/ 12</span>
+                  </div>
+                </div>
+                <div id="friendlyVizRiskBars" class="friendly-viz-bars"></div>
+                <div class="friendly-viz-score-detail">
+                  <div class="friendly-viz-score-line">
+                    <b id="friendlyVizScoreDecision">Chưa phân tích</b>
+                    <span id="friendlyVizScoreGate">Chưa có kết luận</span>
+                  </div>
+                  <p id="friendlyVizScoreReason">Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.</p>
+                  <div id="friendlyVizScoreTopRisks" class="friendly-viz-score-risks"></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="friendly-viz-scene" data-step="2">
+              <h3 class="friendly-viz-title">Năm góc nhìn phản biện</h3>
+              <div id="friendlyVizVoices" class="friendly-viz-voices"></div>
+            </article>
+
+            <article class="friendly-viz-scene" data-step="3">
+              <h3 class="friendly-viz-title">Việc cần làm trước khi launch</h3>
+              <div id="friendlyVizTasks" class="friendly-viz-tasks"></div>
+            </article>
+
+            <article class="friendly-viz-scene" data-step="4">
+              <h3 class="friendly-viz-title">Lưu quyết định và bài học</h3>
+              <div class="friendly-viz-done">
+                <div id="friendlyVizMemo" class="friendly-viz-memo">Kết quả phân tích đã sẵn sàng để team xử lý.</div>
+                <p id="friendlyVizLessonText">Bài học, rủi ro và quyết định sẽ được lưu lại để lần launch sau an toàn hơn.</p>
+              </div>
+              <div class="friendly-lesson-chat" aria-label="Chat lưu kết quả và bài học trong Friendly mode">
+                <div class="friendly-lesson-head">
+                  <div>
+                    <b>Chat sau launch</b>
+                    <span id="friendlyLessonStatusText">Nhập kết quả sau launch trước, sau đó Agent mới đề xuất bài học.</span>
+                  </div>
+                  <span id="friendlyLessonGate" class="friendly-lesson-gate">Chưa sẵn sàng</span>
+                </div>
+                <div id="friendlyLessonMessages" class="friendly-chat-messages friendly-lesson-messages" aria-live="polite"></div>
+                <div id="friendlyLessonSuggestions" class="friendly-lesson-suggestions" aria-live="polite"></div>
+                <div id="friendlyLessonActions" class="friendly-chat-actions">
+                  <button type="button" data-friendly-action="post-result">Nhập kết quả sau launch</button>
+                  <button type="button" data-friendly-action="post-review">Phân tích sau launch</button>
+                  <button type="button" data-friendly-action="lesson">Thêm bài học</button>
+                  <button type="button" data-friendly-action="save-lesson">Lưu kết quả / bài học</button>
+                </div>
+                <form id="friendlyLessonChatForm" class="friendly-chat-form friendly-lesson-form">
+                  <textarea id="friendlyLessonChatInput" rows="1" autocomplete="off" placeholder="Nhập kết quả sau launch ở đây"></textarea>
+                  <button type="submit">Gửi</button>
+                </form>
+                <div class="friendly-viz-proxy-fields" hidden>
+                  <textarea id="friendlyPostResultInput" spellcheck="false"></textarea>
+                  <select id="friendlyPostResultStatus">
+                    <option value="completed">Đã chạy</option>
+                    <option value="running">Đang chạy</option>
+                    <option value="upcoming">Sắp chạy</option>
+                  </select>
+                  <textarea id="friendlyLessonInput" spellcheck="false"></textarea>
+                  <button id="friendlySaveLesson" type="button">Lưu kết quả / bài học</button>
+                </div>
+              </div>
+            </article>
+
+          </section>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Launch detail tabs">
+        <button type="button" class="tab active" data-view="briefView">Tóm tắt</button>
+        <button type="button" class="tab" data-view="redTeam">Phân tích</button>
+        <button type="button" class="tab" data-view="checklist">Việc cần làm</button>
+        <button type="button" class="tab" data-view="history">Lịch sử</button>
+        <button type="button" class="tab" data-view="lessons">Bài học</button>
+      </nav>
+
+      <section id="briefView" class="view active">
+        <div class="content-card">
+          <div class="card-head">
+            <div>
+              <div class="title-row">
+                <h3>Thông tin launch</h3>
+                <button class="help-button" type="button" aria-label="Giải thích thông tin launch" data-tooltip="Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày nào và đang ở trạng thái nào.">?</button>
+              </div>
+            </div>
+            <button id="loadBadBrief" type="button">Nạp Brief Mẫu</button>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Tên launch <button class="help-button inline" type="button" aria-label="Giải thích tên launch" data-tooltip="Tên ngắn để phân biệt launch này với các launch khác, ví dụ Lucky Wheel Weekend.">?</button></span>
+              <input id="launchName" type="text" autocomplete="off">
+            </label>
+            <label class="field">
+              <span>Phân loại <button class="help-button inline" type="button" aria-label="Giải thích phân loại" data-tooltip="Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, internal tool hoặc hotfix.">?</button></span>
+              <select id="launchType">
+                <option value="Game event">Sự kiện game</option>
+                <option value="Campaign marketing">Chiến dịch marketing</option>
+                <option value="Feature release">Ra mắt tính năng</option>
+                <option value="Production system release">Release hệ thống production</option>
+                <option value="Internal tool">Công cụ nội bộ</option>
+                <option value="Ops/process change">Thay đổi quy trình vận hành</option>
+                <option value="Partnership/commercial launch">Hợp tác / thương mại</option>
+                <option value="Emergency hotfix">Hotfix khẩn cấp</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Trạng thái <button class="help-button inline" type="button" aria-label="Giải thích trạng thái launch" data-tooltip="Sắp chạy: còn chuẩn bị. Đang chạy: đang active hoặc sát giờ. Đã chạy: dùng để lưu kết quả và bài học.">?</button></span>
+              <select id="launchStatus">
+                <option value="upcoming">Sắp chạy</option>
+                <option value="running">Đang chạy</option>
+                <option value="completed">Đã chạy</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Người phụ trách <button class="help-button inline" type="button" aria-label="Giải thích người phụ trách" data-tooltip="Người hoặc team chịu trách nhiệm chính cho launch. Có thể là PM LiveOps, Tech Lead, CS Lead hoặc Business Owner.">?</button></span>
+              <input id="launchOwner" type="text" autocomplete="off">
+            </label>
+            <label class="field">
+              <span>Start Launch <button class="help-button inline" type="button" aria-label="Giải thích Start Launch" data-tooltip="Ngày bắt đầu launch. Bấm biểu tượng lịch trong ô ngày để chọn nhanh.">?</button></span>
+              <div class="date-input-wrap">
+                <input id="launchTargetDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
+                <button id="launchTargetDatePicker" class="date-picker-button" type="button" aria-label="Chọn Start Launch" title="Chọn ngày">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <path d="M3 10h18"></path>
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  </svg>
+                </button>
+                <input id="launchTargetDateNative" class="native-date-input" type="date" tabindex="-1" aria-hidden="true">
+              </div>
+            </label>
+            <label class="field">
+              <span>End Launch <button class="help-button inline" type="button" aria-label="Giải thích End Launch" data-tooltip="Ngày kết thúc hoặc ngày dự kiến tổng kết launch. Bấm biểu tượng lịch trong ô ngày để chọn nhanh.">?</button></span>
+              <div class="date-input-wrap">
+                <input id="launchEndDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
+                <button id="launchEndDatePicker" class="date-picker-button" type="button" aria-label="Chọn End Launch" title="Chọn ngày">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <path d="M3 10h18"></path>
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  </svg>
+                </button>
+                <input id="launchEndDateNative" class="native-date-input" type="date" tabindex="-1" aria-hidden="true">
+              </div>
+            </label>
+          </div>
+
+          <div class="brief-guide">
+            <div>
+              <strong>Brief nên nhập gì?</strong>
+              <p id="briefGuideDescription">Viết như một bản mô tả launch thật. Không cần văn hay, nhưng cần đủ dữ liệu để Agent chấm rủi ro.</p>
+            </div>
+            <ul id="briefGuideItems"></ul>
+          </div>
+
+          <label class="field brief-field">
+            <span>Nội dung brief <button class="help-button inline" type="button" aria-label="Giải thích nội dung brief" data-tooltip="Dán brief thô vào đây. Nếu chưa biết viết gì, bấm Nạp Brief Mẫu để xem ví dụ một brief còn thiếu dữ liệu.">?</button></span>
+            <textarea id="briefInput" spellcheck="false" aria-label="Launch brief input"></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section id="redTeam" class="view">
+        <div class="analysis-layout">
+          <article id="scoreCard" class="decision-card yellow">
+            <span class="section-kicker">Kết luận <button class="help-button inline" type="button" aria-label="Giải thích kết luận" data-tooltip="Kết luận tổng hợp cho biết launch nên chạy, giữ lại để sửa hay dừng. Dựa trên tổng điểm và các rủi ro thiếu dữ liệu.">?</button></span>
+            <div class="decision-main">
+              <div id="scoreDial" class="score-dial" style="--score-percent: 0%">
+                <span>Score</span>
+                <strong id="scoreDialValue">0/12</strong>
+              </div>
+              <div>
+                <h3 id="decisionTitle">Chưa có phân tích</h3>
+                <p id="scoreReason">Chọn launch, kiểm tra brief rồi bấm Chạy phân tích.</p>
+                <div class="decision-tags">
+                  <span id="launchGate" class="gate-pill yellow">Chưa phân tích</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="next-action-card">
+            <span class="section-kicker">Việc cần làm tiếp <button class="help-button inline" type="button" aria-label="Giải thích việc cần làm tiếp" data-tooltip="3 việc ưu tiên nhất cần xử lý trước khi launch. Đây là phần để team biết sửa gì trước, không phải toàn bộ checklist.">?</button></span>
+            <h3>3 việc cần xử lý trước</h3>
+            <ul id="topRisks"></ul>
+          </article>
+        </div>
+
+        <div class="content-card">
+          <div class="card-head">
+            <div>
+              <div class="title-row">
+                <h3>Các góc nhìn phản biện</h3>
+                <button class="help-button" type="button" aria-label="Giải thích phản biện rủi ro" data-tooltip="Nhóm phản biện giả lập nhiều góc nhìn như người dùng bức xúc, người tìm cách lách luật, CS, kỹ thuật và kinh doanh để bắt rủi ro trước launch.">?</button>
+              </div>
+            </div>
+          </div>
+          <div id="redTeamCards" class="cards"></div>
+        </div>
+
+        <div class="content-card">
+          <div class="card-head">
+            <div>
+              <span class="section-kicker">Điểm readiness</span>
+              <div class="title-row">
+                <h3>Điểm theo nhóm rủi ro</h3>
+                <button class="help-button" type="button" aria-label="Giải thích nhóm rủi ro" data-tooltip="Mỗi nhóm được chấm 0-2 điểm. Mục này giúp biết brief thiếu phần nào và cần bổ sung gì để đạt 2/2.">?</button>
+              </div>
+            </div>
+          </div>
+          <div class="risk-guide">
+            <div>
+              <strong>Cách đọc điểm</strong>
+              <p>Mỗi nhóm tối đa 2 điểm. Điểm càng thấp nghĩa là brief càng thiếu dữ liệu để team ra quyết định launch.</p>
+            </div>
+            <div class="score-guide">
+              <span><strong>0/2</strong> Chưa đủ dữ liệu</span>
+              <span><strong>1/2</strong> Có nhắc tới nhưng chưa giao việc được</span>
+              <span><strong>2/2</strong> Đủ rõ để chịu trách nhiệm</span>
+            </div>
+          </div>
+          <div id="riskBreakdown" class="risk-grid"></div>
+        </div>
+
+        <div id="launchSnapshot" class="snapshot-grid"></div>
+      </section>
+
+      <section id="checklist" class="view">
+        <div class="content-card">
+          <div class="card-head">
+            <div>
+              <div class="title-row">
+                <h3>Danh sách việc cần làm</h3>
+                <button class="help-button" type="button" aria-label="Giải thích danh sách việc cần làm" data-tooltip="Checklist biến phân tích thành việc cụ thể: làm gì, ai phụ trách, hạn nào, trạng thái ra sao và mức rủi ro thế nào.">?</button>
+              </div>
+            </div>
+          </div>
+          <div id="checklistRows" class="timeline-board"></div>
+        </div>
+      </section>
+
+      <section id="history" class="view">
+        <div class="content-card">
+          <div class="card-head">
+            <div>
+              <div class="title-row">
+                <h3>Các lần đã phân tích</h3>
+                <button class="help-button" type="button" aria-label="Giải thích lịch sử phân tích" data-tooltip="Mỗi lần bấm Chạy phân tích sẽ lưu một bản ghi. Bấm Mở lại để xem kết quả cũ và so sánh với lần mới.">?</button>
+              </div>
+            </div>
+          </div>
+          <div id="analysisHistory" class="history-list"></div>
+        </div>
+      </section>
+
+      <section id="lessons" class="view">
+        <div class="content-card lesson-draft-card">
+          <div class="card-head">
+            <div>
+              <div class="title-row">
+                <h3>Câu hỏi sau launch</h3>
+                <button class="help-button" type="button" aria-label="Giải thích câu hỏi sau launch" data-tooltip="Sau khi launch xong, dùng phần này để ghi kết quả thật và bài học. Lần sau Agent có thể dùng lại bài học này.">?</button>
+              </div>
+            </div>
+          </div>
+          <div id="postmortemDraft" class="draft"></div>
+        </div>
+        <div class="content-card suggestion-card">
+          <div class="card-head">
+            <div>
+              <span class="section-kicker">Đề xuất cải tiến</span>
+              <div class="title-row">
+                <h3>AI đề xuất cập nhật template</h3>
+                <button class="help-button" type="button" aria-label="Giải thích AI đề xuất cập nhật template" data-tooltip="AI đọc lịch sử phân tích và bài học đã lưu để đề xuất sửa template. AI chỉ đề xuất, admin phải duyệt trước khi áp dụng.">?</button>
+              </div>
+            </div>
+          </div>
+          <div id="lessonSuggestions" class="suggestion-list"></div>
+        </div>
+        <div id="lessonsPanel" class="lessons-panel"></div>
+      </section>
+
+      <section id="templateConfig" class="view">
+        <div class="content-card config-hero">
+          <div class="card-head">
+            <div>
+              <span class="section-kicker">Cấu hình phân loại</span>
+              <div class="title-row">
+                <h3>Cách Agent đánh giá từng phân loại</h3>
+                <button class="help-button" type="button" aria-label="Giải thích cấu hình phân loại" data-tooltip="Mỗi phân loại launch dùng một bộ luật đánh giá. Bạn có thể đổi tên phân loại, chọn template gốc, rồi chỉnh nhóm rủi ro, phản biện, checklist và câu hỏi bài học.">?</button>
+              </div>
+            </div>
+            <div class="template-actions">
+              <button id="resetTemplate" type="button">Nạp mẫu chuẩn</button>
+              <button id="saveTemplate" type="button" class="primary">Lưu cấu hình chung</button>
+            </div>
+          </div>
+
+          <div class="template-control-grid">
+            <label class="field">
+              <span>Người đang thao tác <button class="help-button inline" type="button" aria-label="Giải thích người đang thao tác" data-tooltip="Bản demo này mô phỏng quyền chỉnh sửa ở frontend. Khi lên production, danh sách này phải nối với đăng nhập thật hoặc quyền admin backend.">?</button></span>
+              <select id="templateOperator"></select>
+            </label>
+            <div id="templatePermissionState" class="permission-state"></div>
+          </div>
+
+          <div class="template-summary">
+            <div class="template-selector-card">
+              <span>Phân loại đang cấu hình</span>
+              <select id="templateSelector" aria-label="Chọn template đang dùng"></select>
+              <strong id="templateName">Template mặc định</strong>
+            </div>
+            <div class="template-stat">
+              <span>Điểm tối đa</span>
+              <strong id="templateMaxScore">12</strong>
+            </div>
+            <div class="template-stat">
+              <span>Nhóm rủi ro</span>
+              <strong id="templateRiskCount">6</strong>
+            </div>
+            <div class="template-stat">
+              <span>Góc phản biện</span>
+              <strong id="templatePersonaCount">5</strong>
+            </div>
+          </div>
+        </div>
+
+        <nav class="config-tabs" aria-label="Cấu hình phân loại">
+          <button type="button" class="config-tab active" data-config-tab="catalog">Phân loại</button>
+          <button type="button" class="config-tab" data-config-tab="risk">Rủi ro</button>
+          <button type="button" class="config-tab" data-config-tab="persona">Phản biện</button>
+          <button type="button" class="config-tab" data-config-tab="checklist">Checklist</button>
+          <button type="button" class="config-tab" data-config-tab="lesson">Bài học</button>
+          <button type="button" class="config-tab" data-config-tab="admin">Quyền & lịch sử</button>
+        </nav>
+
+        <div class="config-grid">
+          <div id="templateManager" class="config-workbench">
+            <section class="content-card config-section template-catalog-section config-pane active" data-config-panel="catalog">
+              <div class="card-head compact">
+                <div>
+                  <span class="section-kicker">Cấu hình chung</span>
+                  <h3>Phân loại & template gốc</h3>
+                </div>
+              </div>
+              <div class="template-catalog-grid">
+                <div class="catalog-explainer">
+                  <strong>Cách hiểu nhanh</strong>
+                  <p><b>Phân loại</b> là loại launch người dùng chọn, ví dụ Sự kiện game hoặc Ra mắt tính năng. <b>Template</b> là bộ luật đánh giá mà phân loại đó dùng. Một template có thể dùng lại cho nhiều phân loại.</p>
+                </div>
+                <div class="catalog-panel">
+                  <div class="catalog-panel-head">
+                    <div>
+                      <span class="section-kicker">Template</span>
+                      <p>Template là bộ luật đánh giá. Tạo template mới khi bạn muốn một bộ luật khác hẳn các mẫu có sẵn.</p>
+                    </div>
+                    <button id="addBaseTemplate" type="button">Thêm template</button>
+                  </div>
+                  <div id="templateNameEditor" class="catalog-list"></div>
+                </div>
+                <div class="catalog-panel">
+                  <div class="catalog-panel-head">
+                    <div>
+                      <span class="section-kicker">Phân loại launch</span>
+                      <p>Phân loại là lựa chọn bên ngoài form launch. Mỗi phân loại sẽ trỏ tới một template để Agent biết dùng bộ luật nào.</p>
+                    </div>
+                    <button id="addLaunchType" type="button">Thêm phân loại</button>
+                  </div>
+                  <div id="classificationEditor" class="catalog-list"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-card config-section config-pane" data-config-panel="risk">
+              <div class="card-head compact">
+                <div>
+                  <span class="section-kicker">Khung rủi ro</span>
+                  <h3>Nhóm rủi ro</h3>
+                </div>
+                <button id="addRiskGroup" type="button">Thêm nhóm</button>
+              </div>
+              <div class="score-explainer">
+                <strong>Cách hiểu điểm tối đa</strong>
+                <p>Mỗi nhóm rủi ro có một điểm tối đa riêng. Tổng readiness bằng tổng điểm của tất cả nhóm rủi ro, không cố định 12. Agent dựa vào tiêu chí đạt điểm, từ khóa demo local và nội dung brief để chấm từ 0 đến điểm tối đa của nhóm đó.</p>
+              </div>
+              <div id="riskGroupEditor" class="template-card-grid"></div>
+            </section>
+
+            <section class="content-card config-section config-pane" data-config-panel="persona">
+              <div class="card-head compact">
+                <div>
+                  <span class="section-kicker">Nhóm phản biện</span>
+                  <h3>Góc phản biện</h3>
+                </div>
+                <button id="addPersona" type="button">Thêm người phản biện</button>
+              </div>
+              <div id="personaEditor" class="template-card-grid persona-grid"></div>
+            </section>
+
+            <section class="content-card config-section config-pane" data-config-panel="checklist">
+              <div class="card-head compact">
+                <div>
+                  <span class="section-kicker">Thực thi</span>
+                  <h3>Checklist mẫu</h3>
+                </div>
+                <button id="addChecklistItem" type="button">Thêm việc</button>
+              </div>
+              <div id="checklistEditor" class="template-list-editor"></div>
+            </section>
+
+            <section class="content-card config-section config-pane" data-config-panel="lesson">
+              <div class="card-head compact">
+                <div>
+                  <span class="section-kicker">Bài học</span>
+                  <h3>Câu hỏi bài học</h3>
+                </div>
+                <button id="addLessonBlock" type="button">Thêm block</button>
+              </div>
+              <div id="lessonEditor" class="template-card-grid"></div>
+            </section>
+
+            <section class="content-card config-section config-pane" data-config-panel="admin">
+              <div class="config-info-grid">
+                <div>
+                  <div class="card-head compact">
+                    <div>
+                      <span class="section-kicker">Quyền cấu hình</span>
+                      <h3>Admin list</h3>
+                    </div>
+                  </div>
+                  <div id="templateAdminList" class="admin-list"></div>
+                </div>
+
+                <div class="format-guide inline-guide">
+                  <span class="section-kicker">Format dữ liệu</span>
+                  <h3>Cấu hình là gì?</h3>
+                  <p>Cấu hình là một template JSON gồm 4 phần. Người dùng thường không cần thấy JSON; form sẽ tự đổi thành đúng format cho Agent.</p>
+                  <div class="format-block">
+                    <strong>1. Nhóm rủi ro</strong>
+                    <code>label, maxScore, requirements, checks, missing</code>
+                  </div>
+                  <div class="format-block">
+                    <strong>2. Góc phản biện</strong>
+                    <code>vai trò, lo ngại, dấu hiệu, cách xử lý</code>
+                  </div>
+                  <div class="format-block">
+                    <strong>3. Checklist mẫu</strong>
+                    <code>task, owner, deadline, status, priority</code>
+                  </div>
+                  <div class="format-block">
+                    <strong>4. Bài học</strong>
+                    <code>title, items[]</code>
+                  </div>
+                </div>
+
+                <div class="format-guide inline-guide version-guide">
+                  <span class="section-kicker">Version history</span>
+                  <h3>Lịch sử template</h3>
+                  <p>Mỗi lần admin lưu cấu hình, app tạo một snapshot version cho phân loại đang cấu hình.</p>
+                  <div id="templateVersionHistory" class="version-list"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <aside id="assistantPanel" class="assistant-panel" aria-label="Trợ lý LaunchOps" aria-hidden="true">
+    <div class="assistant-head">
+      <div>
+        <span class="section-kicker">Trợ lý trong web</span>
+        <strong>LaunchOps Assistant</strong>
+      </div>
+      <button id="closeAssistant" type="button" aria-label="Đóng trợ lý">×</button>
+    </div>
+    <div id="assistantMessages" class="assistant-messages" aria-live="polite"></div>
+    <form id="assistantForm" class="assistant-form">
+      <textarea id="assistantInput" autocomplete="off" rows="1" placeholder="Hỏi hoặc dán brief trong LaunchOps"></textarea>
+      <button type="submit">Gửi</button>
+    </form>
+  </aside>
+  <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
+
+  <script src="config.js?v=assistant-wizard-20260607a"></script>
+  <script src="app.js?v=assistant-wizard-20260607a"></script>
+  <script src="friendly-ui.js?v=brief-writer-20260609c"></script>
+</body>
+</html>
