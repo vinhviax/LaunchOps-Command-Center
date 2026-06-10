@@ -69,11 +69,5 @@ Project ?? ???c ??ng g?i s?n Docker.
     ```
 2.  **Kh?i ch?y Custom Runtime**:
     ```bash
-    bash .agents/skills/agentbase/scripts/runtime.sh create \
-      --name launchops-command-center \
-      --image vcr.vngcloud.vn/[repoName]/launchops-command-center:v1 \
-      --from-cr \
-      --flavor runtime-s2-general-2x4 \
-      --min-replicas 1 --max-replicas 1 \
-      --env-file .env
+    bash .agents/skills/agentbase/scripts/runtime.sh create       --name launchops-command-center       --image vcr.vngcloud.vn/[repoName]/launchops-command-center:v1       --from-cr       --flavor runtime-s2-general-2x4       --min-replicas 1 --max-replicas 1       --env-file .env
     ```
