@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from db import find_lessons, get_product_snapshot, get_type_profile, list_launch_types
+
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", os.getenv("LAUNCHOPS_BACKEND_PORT", "8080")))
@@ -351,50 +353,235 @@ def fallback_result(reason: str) -> dict[str, Any]:
     return {
         "source": "fallback",
         "warning": reason,
+        "trace": [],
         "decision": {
             "color": "Yellow",
             "score": 8,
             "maxScore": 12,
-            "title": "ChÆ°a nÃªn launch ngay",
-            "reason": "Äang dÃ¹ng fallback local vÃ¬ API chÆ°a sáºµn sÃ ng hoáº·c tráº£ lá»—i.",
+            "title": "Ch?a n?n launch ngay",
+            "reason": "?ang d?ng fallback local v? API ch?a s?n s?ng ho?c tr? l?i.",
         },
         "riskBreakdown": [
-            {"label": "Má»¥c tiÃªu vÃ  scope", "score": 1, "maxScore": 2, "missing": "Má»¥c tiÃªu, Ä‘á»‘i tÆ°á»£ng hoáº·c scope cÃ²n mÆ¡ há»“."},
-            {"label": "Owner vÃ  deadline", "score": 1, "maxScore": 2, "missing": "ChÆ°a tháº¥y owner/deadline rÃµ cho cÃ¡c nhÃ³m."},
-            {"label": "Tech readiness", "score": 2, "maxScore": 2, "missing": "á»”n cho demo brief."},
-            {"label": "User impact", "score": 2, "maxScore": 2, "missing": "á»”n cho demo brief."},
-            {"label": "Business vÃ  reward", "score": 1, "maxScore": 2, "missing": "Reward, tá»· lá»‡ hoáº·c ngÃ¢n sÃ¡ch chÆ°a Ä‘á»§ guardrail."},
-            {"label": "Learning vÃ  post-mortem", "score": 1, "maxScore": 2, "missing": "ChÆ°a cÃ³ káº¿ hoáº¡ch há»c láº¡i sau launch."},
+            {"label": "M?c ti?u v? scope", "score": 1, "maxScore": 2, "missing": "M?c ti?u, ??i t??ng ho?c scope c?n m? h?."},
+            {"label": "Owner v? deadline", "score": 1, "maxScore": 2, "missing": "Ch?a th?y owner/deadline r? cho c?c nh?m."},
+            {"label": "Tech readiness", "score": 2, "maxScore": 2, "missing": "?n cho demo brief."},
+            {"label": "User impact", "score": 2, "maxScore": 2, "missing": "?n cho demo brief."},
+            {"label": "Business v? reward", "score": 1, "maxScore": 2, "missing": "Reward, t? l? ho?c ng?n s?ch ch?a ?? guardrail."},
+            {"label": "Learning v? post-mortem", "score": 1, "maxScore": 2, "missing": "Ch?a c? k? ho?ch h?c l?i sau launch."},
         ],
         "topRisks": [
-            "Má»¥c tiÃªu, Ä‘á»‘i tÆ°á»£ng hoáº·c scope cÃ²n mÆ¡ há»“.",
-            "ChÆ°a tháº¥y owner/deadline rÃµ cho cÃ¡c nhÃ³m.",
-            "Reward, tá»· lá»‡ hoáº·c ngÃ¢n sÃ¡ch chÆ°a Ä‘á»§ guardrail.",
+            "M?c ti?u, ??i t??ng ho?c scope c?n m? h?.",
+            "Ch?a th?y owner/deadline r? cho c?c nh?m.",
+            "Reward, t? l? ho?c ng?n s?ch ch?a ?? guardrail.",
         ],
         "redTeam": [
             {
                 "persona": "Angry user",
-                "worry": "NgÆ°á»i chÆ¡i bá»‹ lá»—i quay thÆ°á»Ÿng hoáº·c khÃ´ng nháº­n quÃ  sáº½ phÃ n nÃ n nhanh.",
-                "evidence": "Brief chÆ°a cÃ³ FAQ vÃ  cÃ¡ch xá»­ lÃ½ náº¿u khÃ´ng nháº­n pháº§n thÆ°á»Ÿng.",
-                "fix": "Táº¡o CS FAQ, thÃ´ng Ä‘iá»‡p in-game, vÃ  rule bá»“i thÆ°á»ng náº¿u há»‡ thá»‘ng lá»—i.",
+                "worry": "Ng??i ch?i b? l?i quay th??ng ho?c kh?ng nh?n qu? s? ph?n n?n nhanh.",
+                "evidence": "Brief ch?a c? FAQ v? c?ch x? l? n?u kh?ng nh?n ph?n th??ng.",
+                "fix": "T?o CS FAQ, th?ng ?i?p in-game, v? rule b?i th??ng n?u h? th?ng l?i.",
             },
             {
                 "persona": "Exploit hunter",
-                "worry": "NgÆ°á»i chÆ¡i cÃ³ thá»ƒ tÃ¬m cÃ¡ch farm lÆ°á»£t quay hoáº·c lá»£i dá»¥ng Ä‘iá»u kiá»‡n náº¡p.",
-                "evidence": "Brief ghi táº¥t cáº£ ngÆ°á»i chÆ¡i nhÆ°ng chÆ°a rÃµ Ä‘iá»u kiá»‡n ngÆ°á»i má»›i/cÅ© vÃ  giá»›i háº¡n.",
-                "fix": "Chá»‘t Ä‘iá»u kiá»‡n tham gia, giá»›i háº¡n lÆ°á»£t má»—i ngÃ y, vÃ  log báº¥t thÆ°á»ng.",
+                "worry": "Ng??i ch?i c? th? t?m c?ch farm l??t quay ho?c l?i d?ng ?i?u ki?n n?p.",
+                "evidence": "Brief ghi t?t c? ng??i ch?i nh?ng ch?a r? ?i?u ki?n ng??i m?i/c? v? gi?i h?n.",
+                "fix": "Ch?t ?i?u ki?n tham gia, gi?i h?n l??t m?i ng?y, v? log b?t th??ng.",
+            },
+            {
+                "persona": "CS lead",
+                "worry": "CS thi?u macro v? t?nh hu?ng escalation s? x? l? ch?m.",
+                "evidence": "Ch?a c? b? c?u tr? l?i chu?n cho ticket ph?t sinh.",
+                "fix": "Vi?t CS macro, ph?n c?p ticket v? timeline ph?n h?i.",
+            },
+            {
+                "persona": "Tech on-call",
+                "worry": "Kh?ng c? rollback/feature flag th? l?i production kh? c?u.",
+                "evidence": "Kh?ng th?y rollback plan hay alerting r?.",
+                "fix": "Th?m feature flag, rollback trigger v? monitor t?i thi?u.",
+            },
+            {
+                "persona": "Business owner",
+                "worry": "Campaign t?t nh?ng kh?ng ?o ???c ROI th? kh? duy?t.",
+                "evidence": "Brief ch?a g?n KPI sau launch ho?c guardrail ng?n s?ch.",
+                "fix": "Ch?t KPI, ng?n s?ch, v? ti?u ch? success tr??c launch.",
             },
         ],
         "checklist": [
-            {"task": "Chá»‘t scope, Ä‘á»‘i tÆ°á»£ng, KPI thÃ nh cÃ´ng", "owner": "PM LiveOps", "deadline": "T-2 ngÃ y", "status": "Todo", "priority": "High"},
-            {"task": "Viáº¿t CS FAQ vÃ  macro tráº£ lá»i", "owner": "CS Lead", "deadline": "T-1 ngÃ y", "status": "Todo", "priority": "High"},
+            {"task": "Ch?t scope, ??i t??ng, KPI th?nh c?ng", "owner": "PM LiveOps", "deadline": "T-2 ng?y", "status": "Todo", "priority": "High"},
+            {"task": "Vi?t CS FAQ v? macro tr? l?i", "owner": "CS Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
+            {"task": "Chu?n b? rollback plan v? feature flag", "owner": "Tech Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
+            {"task": "Ch?t ng?n s?ch, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+            {"task": "T?o monitoring dashboard sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+            {"task": "Review legal/compliance copy", "owner": "Legal/Compliance", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
+            {"task": "Brief n?i b? cho team v?n h?nh", "owner": "Ops", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
+            {"task": "Post-launch recap v? lesson learned", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
         ],
         "postmortem": [
-            {"title": "CÃ¢u há»i sau launch", "items": ["Má»¥c tiÃªu ban Ä‘áº§u cÃ³ Ä‘áº¡t khÃ´ng?", "Rá»§i ro nÃ o Ä‘Ã£ Ä‘Æ°á»£c báº¯t Ä‘Ãºng trÆ°á»›c launch?"]},
-            {"title": "Metrics cáº§n Ä‘iá»n", "items": ["DAU / login rate", "Sá»‘ ticket CS vÃ  loáº¡i ticket"]},
+            {"title": "C?u h?i sau launch", "items": ["M?c ti?u ban ??u c? ??t kh?ng?", "R?i ro n?o ?? ???c b?t ??ng tr??c launch?", "?i?m n?o c?n th?m guardrail?"]},
+            {"title": "Metrics c?n ?i?n", "items": ["DAU / login rate", "S? ticket CS v? lo?i ticket", "ROI / conversion"]},
+            {"title": "Action items", "items": ["Ch?t lesson t?t nh?t", "??a lesson v?o template l?n sau", "C?p nh?t checklist g?c"]},
         ],
     }
 
+
+def _base_trace(mode: str, reason: str) -> list[dict[str, Any]]:
+    return [{"agent": mode, "status": "ok", "reason": reason, "source": "rule"}]
+
+
+def build_default_template() -> dict[str, Any]:
+    return {
+        "name": "Default LaunchOps Template",
+        "type": "generic",
+        "riskGroups": [
+            {"label": "M?c ti?u v? scope", "maxScore": 2},
+            {"label": "Owner v? deadline", "maxScore": 2},
+            {"label": "Tech readiness", "maxScore": 2},
+            {"label": "User impact", "maxScore": 2},
+            {"label": "Business v? reward", "maxScore": 2},
+            {"label": "Learning v? post-mortem", "maxScore": 2},
+        ],
+        "redTeamPersonas": ["Angry user", "Exploit hunter", "CS lead", "Tech on-call", "Business owner"],
+        "checklistExamples": ["Ch?t scope", "Vi?t FAQ", "Chu?n b? rollback", "Theo d?i KPI"],
+        "postmortemBlocks": ["C?u h?i sau launch", "Metrics c?n ?i?n", "Action items"],
+        "maxScore": 12,
+    }
+
+
+def normalize_template(launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    launch_context = launch_context or {}
+    template = launch_context.get("template") if isinstance(launch_context.get("template"), dict) else {}
+    profile = launch_context.get("typeProfile") if isinstance(launch_context.get("typeProfile"), dict) else {}
+    if template:
+        return template
+    if profile:
+        return profile
+    return build_default_template()
+
+
+
+def infer_launch_type(brief: str, launch_context: dict[str, Any] | None = None) -> str:
+    launch_context = launch_context or {}
+    explicit_type = str(launch_context.get("type") or "").strip().lower()
+    known_types = {"game_event_h5", "marketing", "webshop_promotion"}
+    if explicit_type in known_types:
+        return explicit_type
+    brief_text = f"{launch_context.get('brief', '')}\n{brief}".lower()
+    if any(keyword in brief_text for keyword in ['webshop', 'nap goi', 'nạp', 'promotion web', 'shop', 'top-up']):
+        return 'webshop_promotion'
+    if any(keyword in brief_text for keyword in ['marketing', 'campaign', 'ads', 'utm', 'acquisition']):
+        return 'marketing'
+    return 'game_event_h5'
+
+
+def build_product_context(brief: str, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    launch_context = launch_context or {}
+    launch_type = infer_launch_type(brief, launch_context)
+    game_id = str(launch_context.get('gameId') or launch_context.get('game_id') or 'demo_game')
+    snapshot = get_product_snapshot(game_id, launch_type)
+    lessons = find_lessons(brief, launch_type, game_id=game_id, limit=3)
+    return {
+        'gameId': game_id,
+        'launchType': launch_type,
+        'typeProfile': get_type_profile(launch_type) or build_default_template(),
+        'availableTypes': list_launch_types(),
+        'snapshot': snapshot,
+        'lessons': lessons,
+        'productHealth': {
+            'status': 'watch' if launch_type == 'game_event_h5' else 'info',
+            'findings': (snapshot or {}).get('hotFindings', [])[:3] if snapshot else [],
+        },
+    }
+
+def readiness_agent(brief: str, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    template = normalize_template(launch_context)
+    if truthy_env("LAUNCHOPS_LLM_ENABLED"):
+        result = call_llm(brief, {**(launch_context or {}), "template": template}, "readiness")
+    else:
+        result = fallback_result("Readiness agent rule-based.")
+        result["trace"] = _base_trace("readiness", "rule-based readiness")
+    result = apply_deterministic_readiness(result, brief, {**(launch_context or {}), "template": template})
+    result["trace"].append({"agent": "readiness", "status": "ok", "score": result["decision"]["score"], "color": result["decision"]["color"], "llm": public_llm_config("readiness")})
+    return result
+
+def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    template = normalize_template(launch_context)
+    brief = str((launch_context or {}).get("brief") or "")
+    if truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
+        llm_result = call_llm(brief, launch_context, "redteam")
+        if isinstance(llm_result.get("redTeam"), list) and len(llm_result["redTeam"]) >= 5:
+            result["redTeam"] = llm_result["redTeam"][:5]
+            result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "source": "llm", "llm": public_llm_config("redteam")})
+            return result
+    personas = template.get("redTeamPersonas") if isinstance(template.get("redTeamPersonas"), list) else []
+    if len(personas) < 5:
+        personas = build_default_template()["redTeamPersonas"]
+    red_team = []
+    for persona in personas[:5]:
+        red_team.append({
+            "persona": persona,
+            "worry": f"{persona} lo brief c?n h?ng guardrail.",
+            "evidence": "D?a tr?n riskBreakdown v? n?i dung brief.",
+            "fix": "B? sung guardrail, owner v? rollback plan.",
+        })
+    result["redTeam"] = red_team
+    result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "cards": len(red_team), "llm": public_llm_config("redteam")})
+    return result
+
+def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    brief = str((launch_context or {}).get("brief") or "")
+    if truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
+        llm_result = call_llm(brief, launch_context, "checklist")
+        if isinstance(llm_result.get("checklist"), list) and len(llm_result["checklist"]) >= 5:
+            result["checklist"] = llm_result["checklist"]
+            result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "source": "llm", "llm": public_llm_config("checklist")})
+            return result
+    result["checklist"] = [
+        {"task": "Ch?t scope, ??i t??ng, KPI th?nh c?ng", "owner": "PM LiveOps", "deadline": "T-2 ng?y", "status": "Todo", "priority": "High"},
+        {"task": "Vi?t CS FAQ v? macro tr? l?i", "owner": "CS Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
+        {"task": "Chu?n b? rollback plan v? feature flag", "owner": "Tech Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
+        {"task": "Ki?m tra ng?n s?ch, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+        {"task": "Theo d?i KPI sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+        {"task": "Review copy n?i b?", "owner": "Ops", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
+        {"task": "Chu?n b? escalation path", "owner": "CS Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
+        {"task": "Post-launch recap", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+    ]
+    result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "tasks": len(result["checklist"]), "llm": public_llm_config("checklist")})
+    return result
+
+def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    brief = str((launch_context or {}).get("brief") or "")
+    if truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
+        llm_result = call_llm(brief, launch_context, "postmortem")
+        if isinstance(llm_result.get("postmortem"), list) and len(llm_result["postmortem"]) >= 3:
+            result["postmortem"] = llm_result["postmortem"]
+            result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "source": "llm", "llm": public_llm_config("postmortem")})
+            return result
+    result["postmortem"] = [
+        {"title": "C?u h?i sau launch", "items": ["M?c ti?u ban ??u c? ??t kh?ng?", "R?i ro n?o ?? ???c b?t ??ng tr??c launch?", "?i?m n?o c?n th?m guardrail?"]},
+        {"title": "Metrics c?n ?i?n", "items": ["DAU / login rate", "S? ticket CS v? lo?i ticket", "ROI / conversion"]},
+        {"title": "Action items", "items": ["Ch?t lesson t?t nh?t", "??a lesson v?o template l?n sau", "C?p nh?t checklist g?c"]},
+    ]
+    result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "blocks": len(result["postmortem"]), "llm": public_llm_config("postmortem")})
+    return result
+
+def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    launch_context = launch_context or {}
+    product_context = build_product_context(brief, launch_context)
+    launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
+    result = readiness_agent(brief, launch_context)
+    result["productContext"] = product_context
+    result = red_team_agent(result, launch_context)
+    result = checklist_agent(result, launch_context)
+    result = postmortem_agent(result, launch_context)
+    result["agentsTrace"] = result.get("trace", [])
+    result["source"] = result.get("source", "rule")
+    result["llmRouting"] = {
+        "readiness": public_llm_config("readiness"),
+        "redteam": public_llm_config("redteam"),
+        "checklist": public_llm_config("checklist"),
+        "postmortem": public_llm_config("postmortem"),
+    }
+    return result
 
 def write_backend_log(message: str) -> None:
     log_path = Path(__file__).resolve().parent / "backend.log"
@@ -574,6 +761,15 @@ GROUP_KEYWORD_ALIASES = {
     "support": ["faq", "support", "cs", "truyen thong", "thong diep", "kenh ho tro"],
     "risk": ["risk", "rui ro", "rollback", "fallback", "pause", "guardrail", "nguong dung", "dashboard", "monitoring", "refund"],
     "learning": ["lesson", "postmortem", "post-mortem", "post campaign", "post-campaign", "metric", "bao cao", "report"],
+    "tech": ["tech", "technical", "qa", "test", "rollback", "feature flag", "monitoring", "crash", "api"],
+    "user": ["user", "nguoi choi", "impact", "cs", "ticket", "faq", "thong bao", "message"],
+    "business": ["business", "reward", "budget", "ngan sach", "roi", "revenue", "kpi", "conversion"],
+    "product_health": ["dau", "crash", "ticket", "payment", "latency", "product", "health"],
+    "abuse": ["exploit", "abuse", "fraud", "farm", "limit", "guardrail"],
+    "payment": ["payment", "nap", "order", "fulfillment", "refund", "reconcile"],
+    "inventory": ["inventory", "pricing", "stock", "package", "bundle"],
+    "channel": ["channel", "ads", "utm", "creative", "landing"],
+    "audience": ["audience", "message", "persona", "segment", "target"],
 }
 
 CRITICAL_NEGATIVE_KEYS = {"support", "risk", "learning", "rollback", "monitoring", "security", "user"}
@@ -596,8 +792,26 @@ def group_key(group: dict[str, Any]) -> str:
         return "owner"
     if "trien khai" in label or "ke hoach" in label or "execution" in label:
         return "execution"
-    if "ho tro" in label or "support" in label or "truyen thong" in label or "user" in label:
+    if "tech" in label or "technical" in label or "san sang" in label:
+        return "tech"
+    if "user" in label or "impact" in label or "nguoi choi" in label:
+        return "user"
+    if "business" in label or "reward" in label or "budget" in label or "roi" in label:
+        return "business"
+    if "product" in label or "health" in label:
+        return "product_health"
+    if "exploit" in label or "abuse" in label or "fraud" in label:
+        return "abuse"
+    if "cs" in label or "van hanh" in label or "support" in label or "truyen thong" in label:
         return "support"
+    if "payment" in label or "fulfillment" in label:
+        return "payment"
+    if "inventory" in label or "pricing" in label:
+        return "inventory"
+    if "channel" in label:
+        return "channel"
+    if "audience" in label or "message" in label:
+        return "audience"
     if "rui ro" in label or "risk" in label or "rollback" in label or "quay lai" in label:
         return "risk"
     if "hoc" in label or "learning" in label or "post" in label:
@@ -735,26 +949,96 @@ def apply_deterministic_readiness(result: dict[str, Any], brief: str, launch_con
     return result
 
 
-def call_llm(brief: str, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
-    api_key = os.getenv("LLM_API_KEY", "").strip()
-    base_url = os.getenv("LLM_BASE_URL", "").strip()
-    model = os.getenv("LLM_MODEL", "").strip()
+def truthy_env(name: str, default: str = "") -> bool:
+    value = os.getenv(name, default).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+def first_env(*names: str) -> str:
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return ""
+
+def llm_timeout_seconds() -> int:
+    raw = first_env("LAUNCHOPS_LLM_TIMEOUT_SECONDS", "LAUNCHOPS_TIMEOUT_SECONDS", "LLM_TIMEOUT_SECONDS") or "60"
     try:
-        timeout = int(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
+        return int(raw)
     except ValueError:
-        timeout = 60
+        return 60
+
+def normalize_agent_step(agent_step: str | None) -> str:
+    normalized = re.sub(r"[^A-Z0-9]+", "_", str(agent_step or "default").upper()).strip("_")
+    return normalized or "DEFAULT"
+
+def llm_config_for_step(agent_step: str | None = None) -> dict[str, str]:
+    step = normalize_agent_step(agent_step)
+    provider = first_env(f"LAUNCHOPS_PROVIDER_{step}", "LAUNCHOPS_PROVIDER_DEFAULT") or "agentbase"
+    provider_key = normalize_agent_step(provider)
+    api_key = first_env(
+        f"LAUNCHOPS_{provider_key}_API_KEY",
+        "LAUNCHOPS_AGENTBASE_API_KEY",
+        "LAUNCHOPS_AIP_API_KEY",
+        "LAUNCHOPS_LLM_API_KEY",
+        "LLM_API_KEY",
+    )
+    base_url = first_env(
+        f"LAUNCHOPS_{provider_key}_BASE_URL",
+        "LAUNCHOPS_AGENTBASE_BASE_URL",
+        "LAUNCHOPS_AIP_BASE_URL",
+        "LAUNCHOPS_LLM_BASE_URL",
+        "LLM_BASE_URL",
+    )
+    model = first_env(
+        f"LAUNCHOPS_MODEL_{step}",
+        f"LAUNCHOPS_{provider_key}_MODEL_{step}",
+        f"LAUNCHOPS_{provider_key}_MODEL",
+        "LAUNCHOPS_MODEL_DEFAULT",
+        "LAUNCHOPS_LLM_MODEL",
+        "LLM_MODEL",
+    )
+    return {
+        "provider": provider,
+        "providerKey": provider_key.lower(),
+        "model": model,
+        "baseUrl": base_url,
+        "apiKey": api_key,
+        "timeoutSeconds": str(llm_timeout_seconds()),
+    }
+
+def public_llm_config(agent_step: str | None = None) -> dict[str, Any]:
+    config = llm_config_for_step(agent_step)
+    return {
+        "provider": config["provider"],
+        "model": config["model"] or "not_configured",
+        "baseUrlConfigured": bool(config["baseUrl"]),
+        "apiKeyConfigured": bool(config["apiKey"]),
+        "timeoutSeconds": int(config["timeoutSeconds"]),
+    }
+
+def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_step: str | None = None) -> dict[str, Any]:
+    config = llm_config_for_step(agent_step)
+    api_key = config["apiKey"]
+    base_url = config["baseUrl"]
+    model = config["model"]
+    timeout = int(config["timeoutSeconds"])
+    step_name = str(agent_step or "default")
 
     if not api_key or not base_url or not model:
-        return apply_deterministic_readiness(
-            fallback_result("Thiáº¿u LLM_API_KEY, LLM_BASE_URL hoáº·c LLM_MODEL trong .env."),
+        result = apply_deterministic_readiness(
+            fallback_result(
+                f"Thi?u c?u h?nh LLM cho {step_name}: c?n base URL, API key v? model trong bi?n LAUNCHOPS_*."
+            ),
             brief,
             launch_context,
         )
+        result.setdefault("trace", []).append({"agent": step_name, "status": "fallback", "llm": public_llm_config(agent_step)})
+        return result
 
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "Báº¡n chá»‰ tráº£ vá» JSON há»£p lá»‡ theo schema ngÆ°á»i dÃ¹ng yÃªu cáº§u."},
+            {"role": "system", "content": "B?n ch? tr? v? JSON h?p l? theo schema ng??i d?ng y?u c?u."},
             {"role": "user", "content": build_prompt(brief, launch_context)},
         ],
         "temperature": 0,
@@ -779,6 +1063,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None) -> dict[s
         content = data["choices"][0]["message"]["content"]
         parsed = extract_json(content)
         parsed["source"] = "llm"
+        parsed.setdefault("trace", []).append({"agent": step_name, "status": "ok", "llm": public_llm_config(agent_step)})
         return apply_deterministic_readiness(parsed, brief, launch_context)
 
     executor = ThreadPoolExecutor(max_workers=1)
@@ -786,32 +1071,31 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None) -> dict[s
     try:
         return future.result(timeout=timeout + 5)
     except FutureTimeoutError:
-        write_backend_log(f"LLM call failed: Timeout after {timeout + 5}s")
+        write_backend_log(f"LLM call failed for {step_name}: Timeout after {timeout + 5}s")
         return apply_deterministic_readiness(
-            fallback_result(f"API khÃ´ng tráº£ trong {timeout + 5} giÃ¢y. Demo dÃ¹ng fallback Ä‘á»ƒ khÃ´ng treo UI."),
+            fallback_result(f"API kh?ng tr? trong {timeout + 5} gi?y cho {step_name}. Demo d?ng fallback ?? kh?ng treo UI."),
             brief,
             launch_context,
         )
     except Exception as exc:
         status_code = getattr(exc, "code", None)
         if status_code:
-            write_backend_log(f"LLM call failed: HTTPError {status_code}")
+            write_backend_log(f"LLM call failed for {step_name}: HTTPError {status_code}")
             return apply_deterministic_readiness(
                 fallback_result(
-                    f"API tráº£ HTTPError {status_code}. Kiá»ƒm tra LLM_BASE_URL, LLM_MODEL hoáº·c quyá»n cá»§a API key."
+                    f"API tr? HTTPError {status_code} cho {step_name}. Ki?m tra base URL, model ho?c quy?n API key."
                 ),
                 brief,
                 launch_context,
             )
-        write_backend_log(f"LLM call failed: {type(exc).__name__}")
+        write_backend_log(f"LLM call failed for {step_name}: {type(exc).__name__}")
         return apply_deterministic_readiness(
-            fallback_result(f"API lá»—i hoáº·c JSON khÃ´ng há»£p lá»‡: {type(exc).__name__}."),
+            fallback_result(f"API l?i ho?c JSON kh?ng h?p l? cho {step_name}: {type(exc).__name__}."),
             brief,
             launch_context,
         )
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
-
 
 def assistant_fallback_reply(message: str, context: dict[str, Any] | None = None, local_reply: str = "") -> str:
     text = str(message or "").strip()
@@ -835,13 +1119,11 @@ def assistant_fallback_reply(message: str, context: dict[str, Any] | None = None
 
 
 def call_assistant(message: str, context: dict[str, Any] | None = None, local_reply: str = "") -> dict[str, Any]:
-    api_key = os.getenv("LLM_API_KEY", "").strip()
-    base_url = os.getenv("LLM_BASE_URL", "").strip()
-    model = os.getenv("LLM_MODEL", "").strip()
-    try:
-        timeout = int(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
-    except ValueError:
-        timeout = 60
+    config = llm_config_for_step("assistant")
+    api_key = config["apiKey"]
+    base_url = config["baseUrl"]
+    model = config["model"]
+    timeout = int(config["timeoutSeconds"])
 
     if not api_key or not base_url or not model:
         return {"reply": assistant_fallback_reply(message, context, local_reply), "source": "fallback"}
@@ -940,6 +1222,22 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             json_response(self, 200, {"ok": True, "service": "launchops-local-backend"})
             return
 
+        if path == "/api/types":
+            json_response(self, 200, {"ok": True, "types": list_launch_types()})
+            return
+
+        if len(parts) == 4 and parts[:2] == ["api", "product"] and parts[3] == "snapshot":
+            # /api/product/<gameId>/snapshot?type=<launch_type>
+            from urllib.parse import parse_qs
+            query = parse_qs(urlparse(self.path).query)
+            launch_type = str((query.get('type') or [None])[0] or 'game_event_h5')
+            snapshot = get_product_snapshot(parts[2], launch_type)
+            if snapshot is None:
+                json_response(self, 404, {"ok": False, "error": "Snapshot not found"})
+                return
+            json_response(self, 200, {"ok": True, "gameId": parts[2], "launchType": launch_type, "snapshot": snapshot})
+            return
+
         if path == "/api/launches":
             launches = list_launches()
             json_response(self, 200, {"ok": True, "launches": [summarize_launch(item) for item in launches]})
@@ -969,7 +1267,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                result = call_llm(brief, payload.get("launch") if isinstance(payload.get("launch"), dict) else None)
+                result = orchestrate_launchops_analysis(brief, payload.get("launch") if isinstance(payload.get("launch"), dict) else None)
                 json_response(self, 200, {"ok": True, "result": result})
             except Exception as exc:
                 write_backend_log(f"Analyze handler crashed: {type(exc).__name__}")
@@ -982,6 +1280,19 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                         "result": fallback_result(f"Backend lá»—i nhÆ°ng Ä‘Ã£ fallback: {type(exc).__name__}."),
                     },
                 )
+            return
+
+        if path == "/api/product-context":
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            brief = str(payload.get("brief", "")).strip()
+            if not brief:
+                json_response(self, 400, {"ok": False, "error": "Missing brief"})
+                return
+            launch_context = payload.get("launch") if isinstance(payload.get("launch"), dict) else {}
+            context = build_product_context(brief, launch_context)
+            json_response(self, 200, {"ok": True, "productContext": context})
             return
 
         if path == "/api/assistant":
@@ -1043,7 +1354,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             launch["brief"] = brief
 
             try:
-                result = call_llm(brief, launch)
+                result = orchestrate_launchops_analysis(brief, launch)
                 launch = append_analysis(launch, result, brief)
                 json_response(
                     self,
@@ -1118,4 +1429,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
