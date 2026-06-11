@@ -84,3 +84,12 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - [x] Live `/mcp` test passed from public runtime endpoint.
 - [ ] Configure OpenClaw native MCP client with `http://localhost:18081/launchops-server-111734/launchops_server_mcp`.
 - [ ] Verify Route A end-to-end: OpenClaw -> localhost:18081 sidecar -> MCP Gateway -> Custom Agent `/mcp`.
+
+## 2026-06-11 - Runtime v7 / Route B Zalo Bot reply
+
+- [x] Added `send_zalo_message()` for Route B.
+- [x] Added `ZALO_BOT_TOKEN` to `.env.example`.
+- [x] Built/pushed `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v7`.
+- [x] Updated AgentBase Custom Agent runtime DEFAULT endpoint to version 7.
+- [x] Verified `/webhooks/zalo` returns 200 with reply JSON.
+- [ ] Configure runtime env `ZALO_BOT_TOKEN` when Human has real Zalo Bot token, then verify outbound Zalo delivery.
