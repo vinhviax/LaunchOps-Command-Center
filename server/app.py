@@ -1196,7 +1196,9 @@ Chá»‰ tráº£ vá» JSON há»£p lá»‡:
 
 class LaunchOpsHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
-        sys.stderr.write("%s - %s\n" % (self.address_string(), format % args))
+        log_str = "%s - %s" % (self.address_string(), format % args)
+        sys.stderr.write(log_str + "\n")
+        write_backend_log(log_str)
 
     def do_OPTIONS(self) -> None:
         json_response(self, 200, {"ok": True})
@@ -1220,6 +1222,94 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
 
         if path in ("/health", "/api/health"):
             json_response(self, 200, {"ok": True, "service": "launchops-local-backend"})
+            return
+
+        if path == "/tools":
+            json_response(self, 200, {
+                "tools": [
+                    {
+                        "name": "list_launches",
+                        "description": "Liệt kê danh sách các Launch Workspace hiện có.",
+                        "inputSchema": {"type": "object", "properties": {}}
+                    },
+                    {
+                        "name": "get_launch",
+                        "description": "Xem chi tiết thông tin và kết quả phân tích của một Launch Workspace.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {"launchId": {"type": "string", "description": "ID của launch"}},
+                            "required": ["launchId"]
+                        }
+                    },
+                    {
+                        "name": "create_launch",
+                        "description": "Tạo mới một Launch Workspace để theo dõi.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Tên dự án Launch"},
+                                "brief": {"type": "string", "description": "Mô tả ngắn gọn hoặc đầy đủ brief"},
+                                "type": {"type": "string", "description": "Phân loại launch (game_event_h5, marketing, webshop_promotion)"},
+                                "owner": {"type": "string", "description": "Người phụ trách"}
+                            },
+                            "required": ["name"]
+                        }
+                    },
+                    {
+                        "name": "update_launch",
+                        "description": "Cập nhật thông tin cơ bản cho một Launch Workspace.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "launchId": {"type": "string", "description": "ID của launch"},
+                                "name": {"type": "string"},
+                                "brief": {"type": "string"},
+                                "owner": {"type": "string"},
+                                "status": {"type": "string", "description": "upcoming, running, completed"}
+                            },
+                            "required": ["launchId"]
+                        }
+                    },
+                    {
+                        "name": "analyze_launch_brief",
+                        "description": "Phân tích Launch Brief chuyên sâu để chấm điểm sẵn sàng, phản biện bằng Red Team, tạo checklist hành động và post-mortem.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "brief": {"type": "string", "description": "Nội dung văn bản launch brief."},
+                                "launchId": {"type": "string", "description": "ID của launch (nếu có để cập nhật kết quả phân tích vào file launch)"}
+                            },
+                            "required": ["brief"]
+                        }
+                    },
+                    {
+                        "name": "save_postmortem_result",
+                        "description": "Lưu kết quả chạy thực tế, trạng thái và bài học kinh nghiệm (lessons learned) sau khi Launch hoàn tất.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "launchId": {"type": "string", "description": "ID của launch"},
+                                "status": {"type": "string", "description": "Trạng thái mới, thường là completed"},
+                                "postLaunchResult": {"type": "string", "description": "Kết quả thực tế sau khi launch"},
+                                "lesson": {"type": "string", "description": "Bài học kinh nghiệm rút ra"}
+                            },
+                            "required": ["launchId"]
+                        }
+                    },
+                    {
+                        "name": "call_launchops_assistant",
+                        "description": "Hội thoại tự do với AI Assistant về LaunchOps để hỏi đáp, tư vấn hoặc hỗ trợ điều hướng workspace.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {"type": "string", "description": "Nội dung câu hỏi của người dùng."},
+                                "launchId": {"type": "string", "description": "ID của launch hiện tại nếu có"}
+                            },
+                            "required": ["message"]
+                        }
+                    }
+                ]
+            })
             return
 
         if path == "/api/types":
@@ -1256,6 +1346,142 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         path = urlparse(self.path).path
         parts = [part for part in path.split("/") if part]
+
+        if path == "/tools/call":
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            tool_name = str(payload.get("name", "")).strip()
+            args = payload.get("arguments") if isinstance(payload.get("arguments"), dict) else {}
+            
+            try:
+                mcp_text = ""
+                if tool_name == "list_launches":
+                    launches = list_launches()
+                    if not launches:
+                        mcp_text = "Hiện chưa có Launch Workspace nào."
+                    else:
+                        mcp_text = "Danh sách Launch Workspaces:\n"
+                        for l in launches:
+                            mcp_text += f"- ID: {l.get('id')} | Tên: {l.get('name')} | Status: {l.get('status')} | Owner: {l.get('owner')}\n"
+                
+                elif tool_name == "get_launch":
+                    launch_id = str(args.get("launchId", ""))
+                    launch = get_launch(launch_id)
+                    if not launch:
+                        mcp_text = f"Không tìm thấy Launch ID: {launch_id}"
+                    else:
+                        mcp_text = f"Chi tiết Launch: {launch.get('name')} ({launch.get('id')})\n"
+                        mcp_text += f"- Trạng thái: {launch.get('status')}\n- Owner: {launch.get('owner')}\n"
+                        mcp_text += f"- Target Date: {launch.get('targetDate')}\n"
+                        mcp_text += f"- Brief:\n{launch.get('brief')}\n"
+                        if launch.get("analyses"):
+                            latest = launch["analyses"][-1]["result"]
+                            mcp_text += f"\nKết quả phân tích gần nhất:\n"
+                            mcp_text += f"- Điểm số: {latest['decision']['color']} ({latest['decision']['score']}/{latest['decision']['maxScore']})\n"
+                            mcp_text += f"- Kết luận: {latest['decision']['title']}\n"
+                
+                elif tool_name == "create_launch":
+                    name = str(args.get("name", ""))
+                    if not name:
+                        raise ValueError("Thiếu tên launch (name).")
+                    launch_data = {
+                        "name": name,
+                        "brief": str(args.get("brief", "")),
+                        "type": str(args.get("type", "game_event_h5")),
+                        "owner": str(args.get("owner", ""))
+                    }
+                    launch = save_launch_payload(launch_data)
+                    mcp_text = f"Đã tạo Launch mới:\n- ID: {launch.get('id')}\n- Tên: {launch.get('name')}"
+                
+                elif tool_name == "update_launch":
+                    launch_id = str(args.get("launchId", ""))
+                    if not launch_id:
+                        raise ValueError("Thiếu launchId.")
+                    launch = get_launch(launch_id)
+                    if not launch:
+                        mcp_text = f"Không tìm thấy Launch ID: {launch_id}"
+                    else:
+                        for k in ["name", "brief", "owner", "status"]:
+                            if k in args:
+                                launch[k] = args[k]
+                        launch = save_launch_payload(launch, existing_id=launch_id)
+                        mcp_text = f"Đã cập nhật Launch {launch_id} thành công.\n- Trạng thái: {launch.get('status')}"
+                
+                elif tool_name == "analyze_launch_brief":
+                    brief = str(args.get("brief", "")).strip()
+                    launch_id = str(args.get("launchId", "")).strip()
+                    if not brief:
+                        raise ValueError("Thiếu brief để phân tích.")
+                    
+                    launch_ctx = None
+                    if launch_id:
+                        launch = get_launch(launch_id)
+                        if launch:
+                            launch_ctx = launch
+                            if not launch.get("brief") or launch.get("brief") != brief:
+                                launch["brief"] = brief
+                                launch = save_launch_payload(launch, existing_id=launch_id)
+                    
+                    result = orchestrate_launchops_analysis(brief, launch_ctx)
+                    if launch_id and launch_ctx:
+                        append_analysis(launch_ctx, result, brief)
+                    
+                    mcp_text = f"Kết quả phân tích LaunchOps Command Center:\n" \
+                               f"- Trạng thái sẵn sàng: {result['decision']['color']} ({result['decision']['score']}/{result['decision']['maxScore']} điểm)\n" \
+                               f"- Kết luận: {result['decision']['title']}\n" \
+                               f"- Chi tiết lý do: {result['decision']['reason']}\n\n" \
+                               f"Top Rủi ro lớn nhất:\n"
+                    for r in result.get("topRisks", []):
+                        mcp_text += f"  * {r}\n"
+                    
+                    mcp_text += f"\nRed Team phản biện (5 Persona):\n"
+                    for c in result.get("redTeam", []):
+                        mcp_text += f"  * [{c['persona']}]: Lo ngại: {c['worry']} | Chứng cớ: {c['evidence']} | Đề xuất sửa: {c['fix']}\n"
+                    
+                    mcp_text += f"\nChecklist việc cần làm (Chủ sở hữu & Hạn chót):\n"
+                    for t in result.get("checklist", []):
+                        mcp_text += f"  * {t['task']} | Owner: {t['owner']} | Deadline: {t['deadline']} | Trạng thái: {t['status']}\n"
+                
+                elif tool_name == "save_postmortem_result":
+                    launch_id = str(args.get("launchId", ""))
+                    if not launch_id:
+                        raise ValueError("Thiếu launchId.")
+                    launch = get_launch(launch_id)
+                    if not launch:
+                        mcp_text = f"Không tìm thấy Launch ID: {launch_id}"
+                    else:
+                        launch = save_post_result(launch, args)
+                        mcp_text = f"Đã lưu kết quả Post-Mortem cho Launch {launch_id}.\n- Trạng thái: {launch.get('status')}\n- Kết quả: {launch.get('postLaunchResult')}"
+                        if args.get("lesson"):
+                            mcp_text += f"\n- Bài học kinh nghiệm: {args.get('lesson')}"
+
+                elif tool_name == "call_launchops_assistant":
+                    message = str(args.get("message", ""))
+                    launch_id = str(args.get("launchId", ""))
+                    launch_ctx = None
+                    if launch_id:
+                        launch_ctx = get_launch(launch_id)
+                    
+                    res = call_assistant(message, launch_ctx)
+                    mcp_text = res.get("reply", "Không có phản hồi từ Assistant.")
+
+                else:
+                    mcp_text = f"Không hỗ trợ tool: {tool_name}"
+                    json_response(self, 400, {"ok": False, "error": mcp_text})
+                    return
+
+                json_response(self, 200, {
+                    "content": [{"type": "text", "text": mcp_text}],
+                    "isError": False
+                })
+            except Exception as exc:
+                write_backend_log(f"MCP tool call {tool_name} crashed: {type(exc).__name__}")
+                json_response(self, 200, {
+                    "content": [{"type": "text", "text": f"Lỗi gọi tool {tool_name}: {str(exc)}"}],
+                    "isError": True
+                })
+            return
 
         if path in ("/analyze", "/api/analyze", "/invocations"):
             payload = self.read_json_payload()

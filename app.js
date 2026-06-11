@@ -1638,6 +1638,48 @@ function renderLocalAnalysis(sourceLabel = "Rule-based local preview") {
   renderApiAnalysis(buildLocalAnalysisResult(briefText), sourceLabel);
 }
 
+
+function renderRagInsights(result) {
+  const ragBox = document.getElementById("ragInsights");
+  const ragContent = document.getElementById("ragContent");
+  if (!ragBox || !ragContent) return;
+
+  const productContext = result?.productContext || {};
+  const lessons = result?.lessonMatches || productContext.lessons || [];
+  const snapshot = result?.snapshotContext || productContext.snapshot || null;
+  const hits = result?.memoryHits || productContext.lessons || [];
+
+  if (!lessons.length && !snapshot && !hits.length) {
+    ragBox.style.display = "none";
+    return;
+  }
+
+  ragBox.style.display = "block";
+  let html = "";
+  
+  if (snapshot) {
+    html += <strong>D? li?u snapshot m?i nh?t:</strong><ul>;
+    if (snapshot.hotFindings && snapshot.hotFindings.length) {
+      snapshot.hotFindings.forEach(f => html += <li></li>);
+    } else if (snapshot.topIssue) {
+      html += <li>Top issue: </li>;
+    }
+    html += </ul>;
+  }
+  
+  if (lessons.length) {
+    html += <strong>B?i h?c kinh nghi?m t? ??ng kh?p:</strong><ul>;
+    lessons.forEach(l => {
+      const sev = l.severity ? <span style="font-weight:bold;color:red">[]</span>  : "";
+      html += <li><b></b>: </li>;
+    });
+    html += </ul>;
+  }
+  
+  if (!html) html = "<em>C? d? li?u n?n nh?ng kh?ng hi?n th? chi ti?t.</em>";
+  ragContent.innerHTML = html;
+}
+
 function renderApiAnalysis(result, sourceOverride) {
   const decision = result?.decision || {};
   const color = decision.color || "Yellow";
@@ -1657,6 +1699,7 @@ function renderApiAnalysis(result, sourceOverride) {
   renderRedTeam(result.redTeam || []);
   renderChecklist(result.checklist || []);
   renderPostmortem(result.postmortem || []);
+  renderRagInsights(result);
 }
 
 function renderEmptyAnalysis(reason) {
@@ -1673,6 +1716,7 @@ function renderEmptyAnalysis(reason) {
   renderRedTeam([]);
   renderChecklist([]);
   renderPostmortem([]);
+  renderRagInsights(null);
 }
 
 function latestHistoryTimestamp(launch) {
