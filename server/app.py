@@ -426,55 +426,132 @@ def set_caveman_enabled(enabled: bool) -> None:
 
 def chatbot_caveman_reply(argument: str) -> str:
     value = argument.strip().lower()
-    if value in {"on", "1", "true", "yes", "enable", "enabled", "bat", "b?t"}:
+    if value in {"on", "1", "true", "yes", "enable", "enabled", "bat"}:
         set_caveman_enabled(True)
-        return "Caveman mode: on. Bot n?i ng?n. Kh?ng m?u m?. Ungh."
-    if value in {"off", "0", "false", "no", "disable", "disabled", "tat", "t?t"}:
+        return "Caveman mode: on. Bot speak short. No fluff. Ungh."
+    if value in {"off", "0", "false", "no", "disable", "disabled", "tat"}:
         set_caveman_enabled(False)
-        return "Caveman mode: off. Bot quay l?i gi?ng th??ng."
+        return "Caveman mode: off. Bot back to normal."
     status = "on" if is_caveman_enabled() else "off"
     return f"Caveman mode: {status}. Use: caveman on | caveman off"
+
+def guardrail_scan_reply(brief: str) -> str:
+    if not brief:
+        return "Missing brief. Use: guardrail <launch brief>"
+    checks = [
+        ("email", r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
+        ("phone", r"(?:\+?84|0)[0-9 .-]{8,12}"),
+        ("api_key", r"(?i)(api[_ -]?key|token|secret|password|passwd|pwd)\s*[:=]"),
+        ("private_key", r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+        ("internal_data", r"(?i)\b(confidential|internal only|khong chia se|khong cong khai|mat khau|bi mat)\b"),
+        ("payment_sensitive", r"(?i)\b(card number|credit card|cvv|otp|bank account|so tai khoan)\b"),
+    ]
+    findings = []
+    for label, pattern in checks:
+        matches = re.findall(pattern, brief)
+        if matches:
+            findings.append((label, len(matches)))
+    if not findings:
+        return "Guardrail: PASS\n- No obvious PII/secret pattern found.\n- Safe enough for demo analysis.\nNext: run analyze <brief>."
+    lines = ["Guardrail: REVIEW", "Found risky signals:"]
+    for label, count in findings:
+        lines.append(f"- {label}: {count}")
+    lines.extend([
+        "Action:",
+        "- Remove names, emails, phone numbers, tokens, passwords.",
+        "- Replace real customer/internal data with synthetic examples.",
+        "- Then run analyze again.",
+    ])
+    return "\n".join(lines)
+
+def infra_hint_reply(brief: str) -> str:
+    if not brief:
+        return "Missing brief. Use: infra <launch brief>"
+    lower = brief.lower()
+    services = [
+        ("Agent Runtime", "Run LaunchOps Custom Agent API/webhook."),
+        ("Container Registry", "Store runtime Docker image."),
+        ("vMonitor", "Watch uptime, errors, resource usage."),
+    ]
+    if any(word in lower for word in ["image", "asset", "file", "brief", "pdf", "upload", "screenshot"]):
+        services.append(("vStorage", "Store launch briefs, exports, screenshots."))
+    if any(word in lower for word in ["database", "db", "order", "payment", "user", "profile", "history"]):
+        services.append(("vDB RDS", "Store structured launch state and audit records."))
+    if any(word in lower for word in ["redis", "cache", "session", "rate", "fast"]):
+        services.append(("vDB MDS/Redis", "Cache sessions, throttles, quick bot state."))
+    if any(word in lower for word in ["h5", "web", "cdn", "static", "landing"]):
+        services.append(("vCDN", "Serve static launch assets faster."))
+    if any(word in lower for word in ["public", "traffic", "ddos", "attack", "bot", "spam"]):
+        services.append(("vWAF", "Protect public endpoint from bad traffic."))
+    if any(word in lower for word in ["high traffic", "scale", "million", "global", "load"]):
+        services.append(("vLB/GLB", "Balance traffic across endpoints/regions."))
+    lines = ["GreenNode infra hint:"]
+    seen = set()
+    for name, reason in services:
+        if name in seen:
+            continue
+        seen.add(name)
+        lines.append(f"- {name}: {reason}")
+    lines.append("Note: This is architecture hint, not cost quote.")
+    return "\n".join(lines)
+
+def report_draft_reply(brief: str) -> str:
+    if not brief:
+        return "Missing brief. Use: report <launch brief>"
+    result = fallback_result("Report command uses deterministic LaunchOps summary for quick chat export.")
+    decision = result.get("decision", {})
+    risks = result.get("topRisks", [])[:3]
+    tasks = result.get("checklist", [])[:5]
+    lines = [
+        "LaunchOps mini report",
+        f"Readiness: {decision.get('color', 'Unknown')} ({decision.get('score', '?')}/{decision.get('maxScore', '?')})",
+        f"Decision: {decision.get('title', 'LaunchOps analysis')}",
+        "Risks:",
+    ]
+    lines.extend(f"- {risk}" for risk in risks)
+    lines.append("Checklist:")
+    for task in tasks:
+        if isinstance(task, dict):
+            lines.append(f"- {task.get('task', 'Task')} | Owner: {task.get('owner', 'TBD')} | Due: {task.get('deadline', 'TBD')}")
+    lines.append("Next: paste this into README/video notes or send to PM/CS/Tech channel.")
+    return "\n".join(lines)
 
 def to_caveman_style(text: str) -> str:
     if not is_caveman_enabled():
         return text
     replacements = [
-        ("LaunchOps bot commands:", "Bot hang ?? hi?u l?nh:"),
-        ("LaunchOps status:", "Tr?ng th?i b? l?c:"),
-        ("Recent launches:", "L?ch s? s?n b?n:"),
-        ("LaunchOps config status:", "C?u h?nh ?? l?a:"),
-        ("- help: show commands", "- help: hi?n l?nh"),
-        ("- status: show launch workspace status", "- status: xem launch s?ng/ch?t"),
-        ("- list: show recent launches", "- list: xem l?ch s? s?n"),
-        ("- config: show webhook/runtime config status", "- config: xem ?? l?a runtime"),
-        ("- analyze <brief>: analyze a launch brief", "- analyze <brief>: c?n brief, t?m nguy"),
-        ("- caveman on|off: toggle terse caveman bot style", "- caveman on|off: b?t/t?t gi?ng hang ??"),
-        ("Tip: paste any launch brief directly to analyze it.", "M?o: n?m brief v?o. Bot c?n lu?n."),
-        ("- Total launches:", "- T?ng launch:"),
-        ("- Running:", "- ?ang ch?y:"),
-        ("- Upcoming:", "- S?p t?i:"),
-        ("- Completed:", "- ?? xong:"),
-        ("Send `list` to see recent launches or paste a brief to analyze.", "G? `list` xem l?ch s?. D?n brief ?? bot c?n."),
-        ("Top risks:", "Nguy hi?m:"),
-        ("Next tasks:", "Vi?c ph?i l?m:"),
-        ("Decision: Ch?a n?n launch ngay", "Quy?t ??nh: C?m ch?y. H?ng."),
-        ("Decision: C?n c?i thi?n k? l??ng", "Quy?t ??nh: S?a ti?p. Ch?a ngon."),
-        ("Decision: S?n s?ng ?? launch", "Quy?t ??nh: Ch?y ???c. Ngon."),
-        ("M?c ti?u, ??i t??ng ho?c scope c?n m? h?.", "M?c ti?u t?i. Kh?ng r? s?n con g?."),
-        ("Ch?a th?y owner/deadline r? cho c?c nh?m.", "Kh?ng t?c tr??ng. Kh?ng h?n xong."),
-        ("Reward, t? l? ho?c ng?n s?ch ch?a ?? guardrail.", "M?i/rule y?u. D? ch?t ??i."),
-        ("Ch?t scope, ??i t??ng, KPI th?nh c?ng", "Ch?t con m?i, ng??i s?n, d?u th?ng"),
-        ("Vi?t CS FAQ v? macro tr? l?i", "D?y CS n?i chuy?n"),
-        ("Chu?n b? rollback plan v? feature flag", "Chu?n b? ???ng ch?y tr?n"),
-        ("Ch?t ng?n s?ch, reward guardrail", "Chia m?i, kh?a lu?t"),
+        ("LaunchOps bot commands:", "Cave bot commands:"),
+        ("LaunchOps status:", "Tribe status:"),
+        ("Recent launches:", "Old hunts:"),
+        ("LaunchOps config status:", "Fire-rock config:"),
+        ("GreenNode infra hint:", "Cloud bones needed:"),
+        ("LaunchOps mini report", "Cave report"),
+        ("Guardrail: PASS", "Guardrail: PASS. No poison."),
+        ("Guardrail: REVIEW", "Guardrail: REVIEW. Smell danger."),
+        ("- help: show commands", "- help: show commands"),
+        ("- status: show launch workspace status", "- status: tribe status"),
+        ("- list: show recent launches", "- list: old hunts"),
+        ("- config: show webhook/runtime config status", "- config: fire-rock status"),
+        ("- analyze <brief>: analyze a launch brief", "- analyze <brief>: bite brief, find danger"),
+        ("- caveman on|off: toggle terse caveman bot style", "- caveman on|off: cave voice on/off"),
+        ("- guardrail <brief>: scan PII/secret risk", "- guardrail <brief>: sniff poison"),
+        ("- infra <brief>: suggest GreenNode infra", "- infra <brief>: pick cloud bones"),
+        ("- report <brief>: draft compact report", "- report <brief>: make cave report"),
+        ("Tip: paste any launch brief directly to analyze it.", "Tip: throw brief. Bot bite."),
+        ("Top risks:", "Bad dangers:"),
+        ("Next tasks:", "Work do:"),
+        ("Risks:", "Dangers:"),
+        ("Checklist:", "Work list:"),
+        ("Decision:", "Choose:"),
+        ("Readiness:", "Ready:"),
+        ("Owner:", "Chief:"),
+        ("Due:", "When:"),
+        ("owner:", "chief:"),
     ]
     caveman = text
     for source, target in replacements:
         caveman = caveman.replace(source, target)
-    caveman = re.sub(r"LaunchOps:\s*(Red|Yellow|Green)\s*\((\d+)/(\d+)\)", r"S?n s?ng: \1 (\2/\3)", caveman)
-    caveman = re.sub(r"Owner:", "Ch?:", caveman)
-    caveman = re.sub(r"Due:", "H?n:", caveman)
-    caveman = re.sub(r"owner:", "ch?:", caveman)
+    caveman = re.sub(r"LaunchOps:\s*(Red|Yellow|Green)\s*\((\d+)/(\d+)\)", r"Ready: \1 (\2/\3)", caveman)
     if not caveman.endswith("Ungh."):
         caveman = f"{caveman}\n\nUngh."
     return caveman
@@ -511,6 +588,9 @@ def chatbot_help_reply() -> str:
         "- config: show webhook/runtime config status",
         "- analyze <brief>: analyze a launch brief",
         "- caveman on|off: toggle terse caveman bot style",
+        "- guardrail <brief>: scan PII/secret risk",
+        "- infra <brief>: suggest GreenNode infra",
+        "- report <brief>: draft compact report",
         "Tip: paste any launch brief directly to analyze it.",
     ])
 
@@ -559,7 +639,7 @@ def parse_chatbot_command(message: str) -> tuple[str, str]:
         return "missing", ""
     head, _, rest = text.partition(" ")
     command = head.lower().lstrip("/")
-    if command in {"start", "help", "status", "list", "config", "caveman"}:
+    if command in {"start", "help", "status", "list", "config", "caveman", "guardrail", "infra", "report"}:
         return command, rest.strip()
     if command in {"analyze", "analyse", "phan-tich", "phantich"}:
         return "analyze", rest.strip()
@@ -587,6 +667,12 @@ def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, 
         reply = chatbot_config_reply()
     elif command == "caveman":
         reply = chatbot_caveman_reply(brief)
+    elif command == "guardrail":
+        reply = guardrail_scan_reply(brief)
+    elif command == "infra":
+        reply = infra_hint_reply(brief)
+    elif command == "report":
+        reply = report_draft_reply(brief)
     else:
         if not brief:
             reply = "Missing brief. Use: analyze <launch brief>"
