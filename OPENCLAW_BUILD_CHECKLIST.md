@@ -69,8 +69,8 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 
 ## 2026-06-11 - Session handoff for next run
 
-- [x] Route B chatbot code exists, built, deployed, and verified.
-- [x] GitHub main updated with latest webhook fallback state & Caveman customizer.
-- [x] Local image `launchops-command-center:v3` built, pushed, and deployed.
-- [x] AgentBase registry repository contains `v1`, `v2` v? `v3` tags.
-- [x] Runtime updated to `v3` and fully active with dynamic Caveman style assistant toggling.
+- [x] Route B chatbot code exists, built, deployed, v? verified.
+- [x] GitHub main updated v?i chatbot commands m?i (guardrail, infra, report) v? Caveman mode.
+- [x] Local image `launchops-command-center:v4` built, pushed, v? deployed.
+- [x] AgentBase registry repository ch?a `v1`, `v2`, `v3` v? `v4` tags.
+- [x] Runtime updated l?n `v4` v? active v?i ??y ?? chatbot utilities.
