@@ -66,3 +66,12 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - [ ] Push `v2` to VCR blocked: `docker login vcr.vngcloud.vn` returns `unauthorized` with current CR credential.
 - [ ] Runtime update to `v2` pending after registry auth is fixed.
 - [ ] Do not reset CR credential without Human approval; reset invalidates existing image pull auth.
+
+## 2026-06-11 - Session handoff for next run
+
+- [x] Route B chatbot code exists and local tests pass.
+- [x] GitHub main updated with latest webhook fallback state.
+- [x] Local image `launchops-command-center:v2` built and tested.
+- [x] AgentBase registry repo visible with existing `v1` image and 5 artifacts.
+- [ ] Confirm whether runtime should stay on `v1` or move to a new pushed tag.
+- [ ] Fix CR auth / update runtime in next session if needed.
