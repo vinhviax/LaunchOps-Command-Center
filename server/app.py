@@ -574,9 +574,36 @@ def send_telegram_message(chat_id: str, text: str) -> bool:
         write_backend_log(f"Telegram send failed: {type(exc).__name__}")
         return False
 
+def send_zalo_message(user_id: str, text: str) -> bool:
+    token = os.getenv("ZALO_BOT_TOKEN", "").strip()
+    if not token or not user_id:
+        return False
+    # Zalo OpenAPI format for sending text message
+    payload = json.dumps({
+        "recipient": {"user_id": user_id},
+        "message": {"text": text[:1900]}
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        "https://openapi.zalo.me/v3.0/oa/message/cs",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "access_token": token
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            return 200 <= response.status < 300
+    except Exception as exc:
+        write_backend_log(f"Zalo send failed: {type(exc).__name__}")
+        return False
+
 def send_chatbot_reply(provider: str, chat_id: str, reply: str) -> bool:
     if provider == "telegram":
         return send_telegram_message(chat_id, reply)
+    if provider == "zalo":
+        return send_zalo_message(chat_id, reply)
     return False
 
 def chatbot_help_reply() -> str:
@@ -622,12 +649,14 @@ def chatbot_list_reply() -> str:
 def chatbot_config_reply() -> str:
     webhook_auth = "on" if os.getenv("LAUNCHOPS_WEBHOOK_TOKEN", "").strip() else "off"
     telegram_send = "on" if os.getenv("TELEGRAM_BOT_TOKEN", "").strip() else "off"
+    zalo_send = "on" if os.getenv("ZALO_BOT_TOKEN", "").strip() else "off"
     fast_mode = os.getenv("CHATBOT_FAST_MODE", "1").strip() or "1"
     caveman_mode = "on" if is_caveman_enabled() else "off"
     return "\n".join([
         "LaunchOps config status:",
         f"- Webhook auth: {webhook_auth}",
         f"- Telegram sendMessage: {telegram_send}",
+        f"- Zalo sendMessage: {zalo_send}",
         f"- Chatbot fast mode: {fast_mode}",
         f"- Caveman style: {caveman_mode}",
         "- Routes: /webhooks/telegram, /webhooks/zalo, /api/chatbot",
