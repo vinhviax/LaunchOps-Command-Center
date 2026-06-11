@@ -1624,6 +1624,79 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         parts = [part for part in path.split("/") if part]
 
+
+        if path == "/mcp" or path == "/":
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            if payload.get("jsonrpc") != "2.0":
+                json_response(self, 400, {"error": "Invalid jsonrpc"})
+                return
+                
+            req_id = payload.get("id")
+            method = payload.get("method")
+            
+            if method == "tools/list":
+                json_response(self, 200, {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "tools": [
+                            {
+                                "name": "analyze_launch_brief",
+                                "description": "Phân tích Launch Brief chuyên sâu để chấm điểm readiness (Green/Yellow/Red), phản biện bằng Red Team, tạo checklist hành động và post-mortem.",
+                                "inputSchema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "brief": {
+                                            "type": "string",
+                                            "description": "Nội dung văn bản launch brief đầy đủ cần phân tích."
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "description": "Phân loại launch nếu có (game_event_h5, marketing, webshop_promotion)."
+                                        }
+                                    },
+                                    "required": ["brief"]
+                                }
+                            }
+                        ]
+                    }
+                })
+                return
+                
+            if method == "tools/call":
+                params = payload.get("params", {})
+                tool_name = params.get("name", "").strip()
+                args = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
+                brief = str(args.get("brief", "")).strip()
+                
+                if tool_name != "analyze_launch_brief":
+                    json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}})
+                    return
+                if not brief:
+                    json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": "Missing parameter: brief"}})
+                    return
+                    
+                try:
+                    launch_type = str(args.get("type") or "").strip()
+                    launch_ctx = {"type": launch_type} if launch_type else None
+                    result = orchestrate_launchops_analysis(brief, launch_ctx)
+                    json_response(self, 200, {
+                        "jsonrpc": "2.0",
+                        "id": req_id,
+                        "result": {
+                            "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, separators=(",", ":"))}]
+                        }
+                    })
+                except Exception as exc:
+                    write_backend_log(f"MCP JSON-RPC crash: {type(exc).__name__}")
+                    json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(exc)}})
+                return
+                
+            json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}})
+            return
+
         if path == "/tools/call":
             payload = self.read_json_payload()
             if payload is None:
