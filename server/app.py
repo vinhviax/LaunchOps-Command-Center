@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -81,11 +81,11 @@ def read_sample_brief() -> str:
     brief_path = APP_ROOT / "data" / "bad_launch_brief.md"
     if brief_path.exists():
         return brief_path.read_text(encoding="utf-8").strip()
-    return "Bad launch brief máº«u: thiáº¿u rollback plan, thiáº¿u CS FAQ, thiáº¿u owner trá»±c, thiáº¿u guardrail reward."
+    return "Bad launch brief mẫu: thiếu rollback plan, thiếu CS FAQ, thiếu owner trực, thiếu guardrail reward."
 
 
 def sample_decision(color: str, score: int, reason: str) -> dict[str, Any]:
-    result = fallback_result("Dá»¯ liá»‡u máº«u Ä‘Ã£ lÆ°u trong Launch Workspace.")
+    result = fallback_result("Dữ liệu mẫu đã lưu trong Launch Workspace.")
     result["source"] = "memory_sample"
     result["decision"].update(
         {
@@ -105,54 +105,54 @@ def seed_launches_if_empty() -> None:
 
     created = now_iso()
     sample_brief = read_sample_brief()
-    marketing_brief = """TÃªn launch: Midweek Top-up Campaign - chiáº¿n dá»‹ch náº¡p giá»¯a tuáº§n cho nhÃ³m ngÆ°á»i chÆ¡i tráº£ phÃ­ tháº¥p vÃ  trung bÃ¬nh.
+    marketing_brief = """Tên launch: Midweek Top-up Campaign - chiến dịch nạp giữa tuần cho nhóm người chơi trả phí thấp và trung bình.
 
-Má»¥c tiÃªu: TÄƒng doanh thu gÃ³i náº¡p nhá» trong 4 ngÃ y, kÃ­ch hoáº¡t láº¡i ngÆ°á»i chÆ¡i cÃ³ lá»‹ch sá»­ náº¡p nhÆ°ng 14 ngÃ y gáº§n nháº¥t chÆ°a náº¡p.
+Mục tiêu: Tăng doanh thu gói nạp nhỏ trong 4 ngày, kích hoạt lại người chơi có lịch sử nạp nhưng 14 ngày gần nhất chưa nạp.
 
-Thá»i gian: Dá»± kiáº¿n cháº¡y tá»« 15/06/2026 Ä‘áº¿n 18/06/2026.
+Thời gian: Dự kiến chạy từ 15/06/2026 đến 18/06/2026.
 
-Äá»‘i tÆ°á»£ng: NgÆ°á»i chÆ¡i level 20 trá»Ÿ lÃªn, tá»«ng náº¡p trong 90 ngÃ y gáº§n nháº¥t, khÃ´ng thuá»™c nhÃ³m refund/abuse.
+Đối tượng: Người chơi level 20 trở lên, từng nạp trong 90 ngày gần nhất, không thuộc nhóm refund/abuse.
 
-Offer: Náº¡p gÃ³i 99k hoáº·c 199k nháº­n thÃªm coupon vÃ  váº­t pháº©m tiÃªu hao. CÃ³ giá»›i háº¡n 1 láº§n/ngÃ y/ngÆ°á»i chÆ¡i.
+Offer: Nạp gói 99k hoặc 199k nhận thêm coupon và vật phẩm tiêu hao. Có giới hạn 1 lần/ngày/người chơi.
 
-KÃªnh truyá»n thÃ´ng: In-game popup, inbox, fanpage post vÃ  push notification.
+Kênh truyền thông: In-game popup, inbox, fanpage post và push notification.
 
-Viá»‡c Ä‘Ã£ cÃ³:
-- Growth phá»¥ trÃ¡ch target segment vÃ  tracking.
-- Business phá»¥ trÃ¡ch ngÃ¢n sÃ¡ch Æ°u Ä‘Ã£i.
-- LiveOps phá»¥ trÃ¡ch lá»‹ch cháº¡y trong game.
+Việc đã có:
+- Growth phụ trách target segment và tracking.
+- Business phụ trách ngân sách ưu đãi.
+- LiveOps phụ trách lịch chạy trong game.
 
-Váº¥n Ä‘á» cÃ²n má»Ÿ:
-- ChÆ°a chá»‘t ngÃ¢n sÃ¡ch coupon tá»‘i Ä‘a.
-- ChÆ°a cÃ³ guardrail náº¿u doanh thu tÄƒng nhÆ°ng refund cÅ©ng tÄƒng.
-- ChÆ°a cÃ³ CS FAQ vá» Ä‘iá»u kiá»‡n nháº­n coupon.
-- ChÆ°a chá»‘t dashboard theo dÃµi conversion, refund, coupon claim.
-- ChÆ°a cÃ³ ngÆ°á»¡ng dá»«ng náº¿u coupon bá»‹ nháº­n sai hoáº·c claim trÃ¹ng.
-- ChÆ°a chá»‘t post-campaign report sau 48 giá»."""
-    may_brief = """TÃªn launch: May Login Streak - sá»± kiá»‡n Ä‘Äƒng nháº­p 7 ngÃ y liÃªn tiáº¿p trong thÃ¡ng 5.
+Vấn đề còn mở:
+- Chưa chốt ngân sách coupon tối đa.
+- Chưa có guardrail nếu doanh thu tăng nhưng refund cũng tăng.
+- Chưa có CS FAQ về điều kiện nhận coupon.
+- Chưa chốt dashboard theo dõi conversion, refund, coupon claim.
+- Chưa có ngưỡng dừng nếu coupon bị nhận sai hoặc claim trùng.
+- Chưa chốt post-campaign report sau 48 giờ."""
+    may_brief = """Tên launch: May Login Streak - sự kiện đăng nhập 7 ngày liên tiếp trong tháng 5.
 
-Tráº¡ng thÃ¡i: ÄÃ£ cháº¡y xong tá»« 28/05/2026 Ä‘áº¿n 31/05/2026.
+Trạng thái: Đã chạy xong từ 28/05/2026 đến 31/05/2026.
 
-Má»¥c tiÃªu ban Ä‘áº§u:
-- TÄƒng tá»· lá»‡ quay láº¡i game trong nhÃ³m ngÆ°á»i chÆ¡i casual.
-- Khuyáº¿n khÃ­ch ngÆ°á»i chÆ¡i Ä‘Äƒng nháº­p Ä‘á»§ 7 ngÃ y Ä‘á»ƒ nháº­n reward cuá»‘i.
-- Giá»¯ chi phÃ­ reward tháº¥p, khÃ´ng áº£nh hÆ°á»Ÿng economy.
+Mục tiêu ban đầu:
+- Tăng tỷ lệ quay lại game trong nhóm người chơi casual.
+- Khuyến khích người chơi đăng nhập đủ 7 ngày để nhận reward cuối.
+- Giữ chi phí reward thấp, không ảnh hưởng economy.
 
-Äá»‘i tÆ°á»£ng: NgÆ°á»i chÆ¡i level 10 trá»Ÿ lÃªn, khÃ´ng yÃªu cáº§u náº¡p.
+Đối tượng: Người chơi level 10 trở lên, không yêu cầu nạp.
 
-CÆ¡ cháº¿: Má»—i ngÃ y Ä‘Äƒng nháº­p nháº­n má»™t pháº§n quÃ  nhá». Náº¿u Ä‘á»§ chuá»—i 7 ngÃ y, ngÆ°á»i chÆ¡i nháº­n thÃªm rÆ°Æ¡ng tá»•ng káº¿t.
+Cơ chế: Mỗi ngày đăng nhập nhận một phần quà nhỏ. Nếu đủ chuỗi 7 ngày, người chơi nhận thêm rương tổng kết.
 
-Káº¿t quáº£ thá»±c táº¿:
-- Login rate tÄƒng nháº¹ trong 2 ngÃ y Ä‘áº§u.
-- Ticket CS tÄƒng trong 6 giá» Ä‘áº§u vÃ¬ má»™t sá»‘ ngÆ°á»i chÆ¡i hiá»ƒu nháº§m Ä‘iá»u kiá»‡n reset ngÃ y.
-- Reward khÃ´ng vÆ°á»£t ngÃ¢n sÃ¡ch.
-- KhÃ´ng cÃ³ lá»—i nghiÃªm trá»ng vá» há»‡ thá»‘ng.
+Kết quả thực tế:
+- Login rate tăng nhẹ trong 2 ngày đầu.
+- Ticket CS tăng trong 6 giờ đầu vì một số người chơi hiểu nhầm điều kiện reset ngày.
+- Reward không vượt ngân sách.
+- Không có lỗi nghiêm trọng về hệ thống.
 
-Äiá»ƒm thiáº¿u khi chuáº©n bá»‹:
-- FAQ cho CS cÃ³ nhÆ°ng chÆ°a giáº£i thÃ­ch rÃµ má»‘c reset ngÃ y.
-- In-game message chÆ°a nÃ³i rÃµ Ä‘Äƒng nháº­p pháº£i liÃªn tá»¥c, khÃ´ng Ä‘Æ°á»£c bá» ngÃ y.
-- ChÆ°a cÃ³ ngÆ°á»¡ng pause náº¿u há»‡ thá»‘ng ghi nháº­n login sai.
-- Post-mortem ban Ä‘áº§u chÆ°a cÃ³ cÃ¢u há»i vá» hiá»ƒu nháº§m Ä‘iá»u kiá»‡n event."""
+Điểm thiếu khi chuẩn bị:
+- FAQ cho CS có nhưng chưa giải thích rõ mốc reset ngày.
+- In-game message chưa nói rõ đăng nhập phải liên tục, không được bỏ ngày.
+- Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai.
+- Post-mortem ban đầu chưa có câu hỏi về hiểu nhầm điều kiện event."""
     samples = [
         {
             "id": "lucky-wheel-weekend",
@@ -201,21 +201,21 @@ Káº¿t quáº£ thá»±c táº¿:
                     "result": sample_decision(
                         "Yellow",
                         8,
-                        "Sá»± kiá»‡n Ä‘áº¡t má»¥c tiÃªu giá»¯ chÃ¢n nháº¹ vÃ  khÃ´ng vÆ°á»£t ngÃ¢n sÃ¡ch, nhÆ°ng thÃ´ng Ä‘iá»‡p reset ngÃ y, FAQ CS vÃ  ngÆ°á»¡ng pause chÆ°a Ä‘á»§ rÃµ.",
+                        "Sự kiện đạt mục tiêu giữ chân nhẹ và không vượt ngân sách, nhưng thông điệp reset ngày, FAQ CS và ngưỡng pause chưa đủ rõ.",
                     ),
                 }
             ],
-            "postLaunchResult": "HoÃ n thÃ nh launch. Login rate tÄƒng nháº¹ trong 2 ngÃ y Ä‘áº§u, reward khÃ´ng vÆ°á»£t ngÃ¢n sÃ¡ch, nhÆ°ng ticket CS tÄƒng trong 6 giá» Ä‘áº§u vÃ¬ ngÆ°á»i chÆ¡i há»i má»‘c reset ngÃ y vÃ  Ä‘iá»u kiá»‡n giá»¯ chuá»—i.",
+            "postLaunchResult": "Hoàn thành launch. Login rate tăng nhẹ trong 2 ngày đầu, reward không vượt ngân sách, nhưng ticket CS tăng trong 6 giờ đầu vì người chơi hỏi mốc reset ngày và điều kiện giữ chuỗi.",
             "lessonsLearned": [
                 {
                     "id": "lesson-sample-1",
                     "createdAt": created,
-                    "text": "LuÃ´n viáº¿t rÃµ má»‘c reset ngÃ y, Ä‘iá»u kiá»‡n giá»¯ chuá»—i liÃªn tá»¥c vÃ  vÃ­ dá»¥ minh há»a trong in-game message.",
+                    "text": "Luôn viết rõ mốc reset ngày, điều kiện giữ chuỗi liên tục và ví dụ minh họa trong in-game message.",
                 },
                 {
                     "id": "lesson-sample-2",
                     "createdAt": created,
-                    "text": "CS FAQ pháº£i cÃ³ macro riÃªng cho case máº¥t chuá»—i, claim rÆ°Æ¡ng tá»•ng káº¿t vÃ  khiáº¿u náº¡i thiáº¿u reward.",
+                    "text": "CS FAQ phải có macro riêng cho case mất chuỗi, claim rương tổng kết và khiếu nại thiếu reward.",
                 }
             ],
             "createdAt": created,
@@ -277,7 +277,7 @@ def get_launch(launch_id: str) -> dict[str, Any] | None:
 
 def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None) -> dict[str, Any]:
     incoming = payload.get("launch") if isinstance(payload.get("launch"), dict) else payload
-    name = str(incoming.get("name") or "Launch má»›i").strip()
+    name = str(incoming.get("name") or "Launch mới").strip()
     launch_id = existing_id or str(incoming.get("id") or slugify(name)).strip()
     if existing_id is None:
         launch_id = slugify(launch_id)
@@ -358,68 +358,68 @@ def fallback_result(reason: str) -> dict[str, Any]:
             "color": "Yellow",
             "score": 8,
             "maxScore": 12,
-            "title": "Ch?a n?n launch ngay",
-            "reason": "?ang d?ng fallback local v? API ch?a s?n s?ng ho?c tr? l?i.",
+            "title": "Chưa nên launch ngay",
+            "reason": "Đang dùng fallback local vì API chưa sẵn sàng hoặc trả lỗi.",
         },
         "riskBreakdown": [
-            {"label": "M?c ti?u v? scope", "score": 1, "maxScore": 2, "missing": "M?c ti?u, ??i t??ng ho?c scope c?n m? h?."},
-            {"label": "Owner v? deadline", "score": 1, "maxScore": 2, "missing": "Ch?a th?y owner/deadline r? cho c?c nh?m."},
-            {"label": "Tech readiness", "score": 2, "maxScore": 2, "missing": "?n cho demo brief."},
-            {"label": "User impact", "score": 2, "maxScore": 2, "missing": "?n cho demo brief."},
-            {"label": "Business v? reward", "score": 1, "maxScore": 2, "missing": "Reward, t? l? ho?c ng?n s?ch ch?a ?? guardrail."},
-            {"label": "Learning v? post-mortem", "score": 1, "maxScore": 2, "missing": "Ch?a c? k? ho?ch h?c l?i sau launch."},
+            {"label": "Mục tiêu và scope", "score": 1, "maxScore": 2, "missing": "Mục tiêu, đối tượng hoặc scope còn mơ hồ."},
+            {"label": "Owner và deadline", "score": 1, "maxScore": 2, "missing": "Chưa thấy owner/deadline rõ cho các nhóm."},
+            {"label": "Tech readiness", "score": 2, "maxScore": 2, "missing": "Ổn cho demo brief."},
+            {"label": "User impact", "score": 2, "maxScore": 2, "missing": "Ổn cho demo brief."},
+            {"label": "Business và reward", "score": 1, "maxScore": 2, "missing": "Reward, tỷ lệ hoặc ngân sách chưa đủ guardrail."},
+            {"label": "Learning và post-mortem", "score": 1, "maxScore": 2, "missing": "Chưa có kế hoạch học lại sau launch."},
         ],
         "topRisks": [
-            "M?c ti?u, ??i t??ng ho?c scope c?n m? h?.",
-            "Ch?a th?y owner/deadline r? cho c?c nh?m.",
-            "Reward, t? l? ho?c ng?n s?ch ch?a ?? guardrail.",
+            "Mục tiêu, đối tượng hoặc scope còn mơ hồ.",
+            "Chưa thấy owner/deadline rõ cho các nhóm.",
+            "Reward, tỷ lệ hoặc ngân sách chưa đủ guardrail.",
         ],
         "redTeam": [
             {
                 "persona": "Angry user",
-                "worry": "Ng??i ch?i b? l?i quay th??ng ho?c kh?ng nh?n qu? s? ph?n n?n nhanh.",
-                "evidence": "Brief ch?a c? FAQ v? c?ch x? l? n?u kh?ng nh?n ph?n th??ng.",
-                "fix": "T?o CS FAQ, th?ng ?i?p in-game, v? rule b?i th??ng n?u h? th?ng l?i.",
+                "worry": "Người chơi bị lỗi quay thưởng hoặc không nhận quà sẽ phàn nàn nhanh.",
+                "evidence": "Brief chưa có FAQ và cách xử lý nếu không nhận phần thưởng.",
+                "fix": "Tạo CS FAQ, thông điệp in-game, và rule bồi thường nếu hệ thống lỗi.",
             },
             {
                 "persona": "Exploit hunter",
-                "worry": "Ng??i ch?i c? th? t?m c?ch farm l??t quay ho?c l?i d?ng ?i?u ki?n n?p.",
-                "evidence": "Brief ghi t?t c? ng??i ch?i nh?ng ch?a r? ?i?u ki?n ng??i m?i/c? v? gi?i h?n.",
-                "fix": "Ch?t ?i?u ki?n tham gia, gi?i h?n l??t m?i ng?y, v? log b?t th??ng.",
+                "worry": "Người chơi có thể tìm cách farm lượt quay hoặc lợi dụng điều kiện nạp.",
+                "evidence": "Brief ghi tất cả người chơi nhưng chưa rõ điều kiện người mới/cũ và giới hạn.",
+                "fix": "Chốt điều kiện tham gia, giới hạn lượt mỗi ngày, và log bất thường.",
             },
             {
                 "persona": "CS lead",
-                "worry": "CS thi?u macro v? t?nh hu?ng escalation s? x? l? ch?m.",
-                "evidence": "Ch?a c? b? c?u tr? l?i chu?n cho ticket ph?t sinh.",
-                "fix": "Vi?t CS macro, ph?n c?p ticket v? timeline ph?n h?i.",
+                "worry": "CS thiếu macro và tình huống escalation sẽ xử lý chậm.",
+                "evidence": "Chưa có bộ câu trả lời chuẩn cho ticket phát sinh.",
+                "fix": "Viết CS macro, phân cấp ticket và timeline phản hồi.",
             },
             {
                 "persona": "Tech on-call",
-                "worry": "Kh?ng c? rollback/feature flag th? l?i production kh? c?u.",
-                "evidence": "Kh?ng th?y rollback plan hay alerting r?.",
-                "fix": "Th?m feature flag, rollback trigger v? monitor t?i thi?u.",
+                "worry": "Không có rollback/feature flag thì lỗi production khó cứu.",
+                "evidence": "Không thấy rollback plan hay alerting rõ.",
+                "fix": "Thêm feature flag, rollback trigger và monitor tối thiểu.",
             },
             {
                 "persona": "Business owner",
-                "worry": "Campaign t?t nh?ng kh?ng ?o ???c ROI th? kh? duy?t.",
-                "evidence": "Brief ch?a g?n KPI sau launch ho?c guardrail ng?n s?ch.",
-                "fix": "Ch?t KPI, ng?n s?ch, v? ti?u ch? success tr??c launch.",
+                "worry": "Campaign tốt nhưng không đo được ROI thì khó duyệt.",
+                "evidence": "Brief chưa gắn KPI sau launch hoặc guardrail ngân sách.",
+                "fix": "Chốt KPI, ngân sách, và tiêu chí success trước launch.",
             },
         ],
         "checklist": [
-            {"task": "Ch?t scope, ??i t??ng, KPI th?nh c?ng", "owner": "PM LiveOps", "deadline": "T-2 ng?y", "status": "Todo", "priority": "High"},
-            {"task": "Vi?t CS FAQ v? macro tr? l?i", "owner": "CS Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
-            {"task": "Chu?n b? rollback plan v? feature flag", "owner": "Tech Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
-            {"task": "Ch?t ng?n s?ch, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
-            {"task": "T?o monitoring dashboard sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
-            {"task": "Review legal/compliance copy", "owner": "Legal/Compliance", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
-            {"task": "Brief n?i b? cho team v?n h?nh", "owner": "Ops", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
-            {"task": "Post-launch recap v? lesson learned", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+            {"task": "Chốt scope, đối tượng, KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Viết CS FAQ và macro trả lời", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Chuẩn bị rollback plan và feature flag", "owner": "Tech Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Chốt ngân sách, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+            {"task": "Tạo monitoring dashboard sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+            {"task": "Review legal/compliance copy", "owner": "Legal/Compliance", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
+            {"task": "Brief nội bộ cho team vận hành", "owner": "Ops", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
+            {"task": "Post-launch recap và lesson learned", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
         ],
         "postmortem": [
-            {"title": "C?u h?i sau launch", "items": ["M?c ti?u ban ??u c? ??t kh?ng?", "R?i ro n?o ?? ???c b?t ??ng tr??c launch?", "?i?m n?o c?n th?m guardrail?"]},
-            {"title": "Metrics c?n ?i?n", "items": ["DAU / login rate", "S? ticket CS v? lo?i ticket", "ROI / conversion"]},
-            {"title": "Action items", "items": ["Ch?t lesson t?t nh?t", "??a lesson v?o template l?n sau", "C?p nh?t checklist g?c"]},
+            {"title": "Câu hỏi sau launch", "items": ["Mục tiêu ban đầu có đạt không?", "Rủi ro nào đã được bắt đúng trước launch?", "Điểm nào cần thêm guardrail?"]},
+            {"title": "Metrics cần điền", "items": ["DAU / login rate", "Số ticket CS và loại ticket", "ROI / conversion"]},
+            {"title": "Action items", "items": ["Chốt lesson tốt nhất", "Đưa lesson vào template lần sau", "Cập nhật checklist gốc"]},
         ],
     }
 
@@ -433,16 +433,16 @@ def build_default_template() -> dict[str, Any]:
         "name": "Default LaunchOps Template",
         "type": "generic",
         "riskGroups": [
-            {"label": "M?c ti?u v? scope", "maxScore": 2},
-            {"label": "Owner v? deadline", "maxScore": 2},
+            {"label": "Mục tiêu và scope", "maxScore": 2},
+            {"label": "Owner và deadline", "maxScore": 2},
             {"label": "Tech readiness", "maxScore": 2},
             {"label": "User impact", "maxScore": 2},
-            {"label": "Business v? reward", "maxScore": 2},
-            {"label": "Learning v? post-mortem", "maxScore": 2},
+            {"label": "Business và reward", "maxScore": 2},
+            {"label": "Learning và post-mortem", "maxScore": 2},
         ],
         "redTeamPersonas": ["Angry user", "Exploit hunter", "CS lead", "Tech on-call", "Business owner"],
-        "checklistExamples": ["Ch?t scope", "Vi?t FAQ", "Chu?n b? rollback", "Theo d?i KPI"],
-        "postmortemBlocks": ["C?u h?i sau launch", "Metrics c?n ?i?n", "Action items"],
+        "checklistExamples": ["Chốt scope", "Viết FAQ", "Chuẩn bị rollback", "Theo dõi KPI"],
+        "postmortemBlocks": ["Câu hỏi sau launch", "Metrics cần điền", "Action items"],
         "maxScore": 12,
     }
 
@@ -519,9 +519,9 @@ def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None
     for persona in personas[:5]:
         red_team.append({
             "persona": persona,
-            "worry": f"{persona} lo brief c?n h?ng guardrail.",
-            "evidence": "D?a tr?n riskBreakdown v? n?i dung brief.",
-            "fix": "B? sung guardrail, owner v? rollback plan.",
+            "worry": f"{persona} lo brief còn hổng guardrail.",
+            "evidence": "Dựa trên riskBreakdown và nội dung brief.",
+            "fix": "Bổ sung guardrail, owner và rollback plan.",
         })
     result["redTeam"] = red_team
     result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "cards": len(red_team), "llm": public_llm_config("redteam")})
@@ -536,13 +536,13 @@ def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | Non
             result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "source": "llm", "llm": public_llm_config("checklist")})
             return result
     result["checklist"] = [
-        {"task": "Ch?t scope, ??i t??ng, KPI th?nh c?ng", "owner": "PM LiveOps", "deadline": "T-2 ng?y", "status": "Todo", "priority": "High"},
-        {"task": "Vi?t CS FAQ v? macro tr? l?i", "owner": "CS Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
-        {"task": "Chu?n b? rollback plan v? feature flag", "owner": "Tech Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "High"},
-        {"task": "Ki?m tra ng?n s?ch, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
-        {"task": "Theo d?i KPI sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
-        {"task": "Review copy n?i b?", "owner": "Ops", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
-        {"task": "Chu?n b? escalation path", "owner": "CS Lead", "deadline": "T-1 ng?y", "status": "Todo", "priority": "Low"},
+        {"task": "Chốt scope, đối tượng, KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
+        {"task": "Viết CS FAQ và macro trả lời", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
+        {"task": "Chuẩn bị rollback plan và feature flag", "owner": "Tech Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
+        {"task": "Kiểm tra ngân sách, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+        {"task": "Theo dõi KPI sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+        {"task": "Review copy nội bộ", "owner": "Ops", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
+        {"task": "Chuẩn bị escalation path", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
         {"task": "Post-launch recap", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
     ]
     result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "tasks": len(result["checklist"]), "llm": public_llm_config("checklist")})
@@ -557,9 +557,9 @@ def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | No
             result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "source": "llm", "llm": public_llm_config("postmortem")})
             return result
     result["postmortem"] = [
-        {"title": "C?u h?i sau launch", "items": ["M?c ti?u ban ??u c? ??t kh?ng?", "R?i ro n?o ?? ???c b?t ??ng tr??c launch?", "?i?m n?o c?n th?m guardrail?"]},
-        {"title": "Metrics c?n ?i?n", "items": ["DAU / login rate", "S? ticket CS v? lo?i ticket", "ROI / conversion"]},
-        {"title": "Action items", "items": ["Ch?t lesson t?t nh?t", "??a lesson v?o template l?n sau", "C?p nh?t checklist g?c"]},
+        {"title": "Câu hỏi sau launch", "items": ["Mục tiêu ban đầu có đạt không?", "Rủi ro nào đã được bắt đúng trước launch?", "Điểm nào cần thêm guardrail?"]},
+        {"title": "Metrics cần điền", "items": ["DAU / login rate", "Số ticket CS và loại ticket", "ROI / conversion"]},
+        {"title": "Action items", "items": ["Chốt lesson tốt nhất", "Đưa lesson vào template lần sau", "Cập nhật checklist gốc"]},
     ]
     result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "blocks": len(result["postmortem"]), "llm": public_llm_config("postmortem")})
     return result
@@ -596,13 +596,13 @@ def template_prompt_context(template: dict[str, Any]) -> dict[str, Any]:
     postmortem = template.get("postmortem") if isinstance(template.get("postmortem"), list) else []
     max_score = sum(int(group.get("maxScore") or 2) for group in risk_groups if isinstance(group, dict)) or 12
     return {
-        "name": str(template.get("name") or "Template máº·c Ä‘á»‹nh"),
+        "name": str(template.get("name") or "Template mặc định"),
         "description": str(template.get("description") or ""),
         "maxScore": max_score,
         "riskGroups": [
             {
                 "key": str(group.get("key") or ""),
-                "label": str(group.get("label") or "NhÃ³m rá»§i ro"),
+                "label": str(group.get("label") or "Nhóm rủi ro"),
                 "maxScore": int(group.get("maxScore") or 2),
                 "checks": group.get("checks") if isinstance(group.get("checks"), list) else [],
                 "requirements": group.get("requirements") if isinstance(group.get("requirements"), list) else [],
@@ -628,7 +628,7 @@ def template_prompt_context(template: dict[str, Any]) -> dict[str, Any]:
         ],
         "postmortemBlocks": [
             {
-                "title": str(block.get("title") or "BÃ i há»c"),
+                "title": str(block.get("title") or "Bài học"),
                 "items": block.get("items") if isinstance(block.get("items"), list) else [],
             }
             for block in postmortem
@@ -639,12 +639,12 @@ def template_prompt_context(template: dict[str, Any]) -> dict[str, Any]:
 
 def build_prompt(brief: str, launch_context: dict[str, Any] | None = None) -> str:
     launch_context = launch_context or {}
-    launch_name = str(launch_context.get("name") or "ChÆ°a Ä‘áº·t tÃªn")
-    launch_type = str(launch_context.get("type") or "ChÆ°a phÃ¢n loáº¡i")
+    launch_name = str(launch_context.get("name") or "Chưa đặt tên")
+    launch_type = str(launch_context.get("type") or "Chưa phân loại")
     launch_status = str(launch_context.get("status") or "upcoming")
-    owner = str(launch_context.get("owner") or "ChÆ°a rÃµ owner")
-    target_date = str(launch_context.get("targetDate") or "ChÆ°a rÃµ ngÃ y launch")
-    end_date = str(launch_context.get("endDate") or "ChÆ°a rÃµ ngÃ y káº¿t thÃºc")
+    owner = str(launch_context.get("owner") or "Chưa rõ owner")
+    target_date = str(launch_context.get("targetDate") or "Chưa rõ ngày launch")
+    end_date = str(launch_context.get("endDate") or "Chưa rõ ngày kết thúc")
     template = launch_context.get("template") if isinstance(launch_context.get("template"), dict) else {}
     template_context = template_prompt_context(template)
     risk_schema = [
@@ -657,33 +657,33 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None) -> st
     ]
 
     return f"""
-Báº¡n lÃ  LaunchOps Command Center, má»™t Super Agent giÃºp team kiá»ƒm tra rá»§i ro trÆ°á»›c launch.
+Bạn là LaunchOps Command Center, một Super Agent giúp team kiểm tra rủi ro trước launch.
 
-HÃ£y Ä‘á»c metadata + launch brief + template cáº¥u hÃ¬nh vÃ  chá»‰ tráº£ vá» JSON há»£p lá»‡, khÃ´ng markdown, khÃ´ng giáº£i thÃ­ch ngoÃ i JSON.
+Hãy đọc metadata + launch brief + template cấu hình và chỉ trả về JSON hợp lệ, không markdown, không giải thích ngoài JSON.
 
-Metadata cá»§a launch:
-- TÃªn launch: {launch_name}
-- Loáº¡i launch: {launch_type}
-- Tráº¡ng thÃ¡i hiá»‡n táº¡i: {launch_status}
+Metadata của launch:
+- Tên launch: {launch_name}
+- Loại launch: {launch_type}
+- Trạng thái hiện tại: {launch_status}
 - Owner: {owner}
 - Start Launch: {target_date}
 - End Launch: {end_date}
 
-Template Ä‘ang dÃ¹ng:
+Template đang dùng:
 {json.dumps(template_context, ensure_ascii=False, indent=2)}
 
-Luáº­t ráº¥t quan trá»ng:
-- Chá»‰ cháº¥m theo riskGroups trong template, khÃ´ng tá»± thÃªm nhÃ³m ngoÃ i template.
-- Äiá»ƒm readiness cuá»‘i cÃ¹ng sáº½ Ä‘Æ°á»£c backend tÃ­nh láº¡i báº±ng scoring rule cá»‘ Ä‘á»‹nh. AI chá»‰ cáº§n giáº£i thÃ­ch rá»§i ro theo cÃ¹ng riskGroups.
-- Náº¿u váº«n tráº£ score, chá»‰ dÃ¹ng sá»‘ nguyÃªn tá»« 0 Ä‘áº¿n maxScore cá»§a tá»«ng nhÃ³m; khÃ´ng dÃ¹ng Ä‘iá»ƒm láº».
-- decision.maxScore pháº£i báº±ng tá»•ng maxScore cá»§a riskGroups: {template_context["maxScore"]}.
-- riskBreakdown pháº£i cÃ³ Ä‘Ãºng cÃ¡c label trong riskGroups.
-- redTeam pháº£i dÃ¹ng Ä‘Ãºng cÃ¡c persona trong redTeamPersonas. KhÃ´ng Ä‘Æ°á»£c tá»± thÃªm persona ngoÃ i template.
-- checklist nÃªn bÃ¡m checklistExamples nhÆ°ng cÃ³ thá»ƒ bá»• sung chi tiáº¿t tá»« brief.
-- postmortem nÃªn bÃ¡m postmortemBlocks.
-- Green/Yellow/Red tÃ­nh theo tá»· lá»‡ Ä‘iá»ƒm: Green >= 80%, Yellow >= 50%, Red < 50%.
+Luật rất quan trọng:
+- Chỉ chấm theo riskGroups trong template, không tự thêm nhóm ngoài template.
+- Điểm readiness cuối cùng sẽ được backend tính lại bằng scoring rule cố định. AI chỉ cần giải thích rủi ro theo cùng riskGroups.
+- Nếu vẫn trả score, chỉ dùng số nguyên từ 0 đến maxScore của từng nhóm; không dùng điểm lẻ.
+- decision.maxScore phải bằng tổng maxScore của riskGroups: {template_context["maxScore"]}.
+- riskBreakdown phải có đúng các label trong riskGroups.
+- redTeam phải dùng đúng các persona trong redTeamPersonas. Không được tự thêm persona ngoài template.
+- checklist nên bám checklistExamples nhưng có thể bổ sung chi tiết từ brief.
+- postmortem nên bám postmortemBlocks.
+- Green/Yellow/Red tính theo tỷ lệ điểm: Green >= 80%, Yellow >= 50%, Red < 50%.
 
-Schema báº¯t buá»™c:
+Schema bắt buộc:
 {{
   "decision": {{
     "color": "Green|Yellow|Red",
@@ -776,7 +776,7 @@ CRITICAL_NEGATIVE_KEYS = {"support", "risk", "learning", "rollback", "monitoring
 
 
 def normalize_for_match(value: Any) -> str:
-    normalized = unicodedata.normalize("NFD", str(value or "").lower().replace("Ä‘", "d"))
+    normalized = unicodedata.normalize("NFD", str(value or "").lower().replace("đ", "d"))
     ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
     return re.sub(r"\s+", " ", ascii_value).strip()
 
@@ -853,7 +853,7 @@ def deterministic_risk_breakdown(brief: str, template: dict[str, Any]) -> list[d
         if not isinstance(group, dict):
             continue
         key = group_key(group)
-        label = str(group.get("label") or "NhÃ³m rá»§i ro")
+        label = str(group.get("label") or "Nhóm rủi ro")
         max_score = max(1, int(group.get("maxScore") or 2))
         keywords = deterministic_keywords(group)
         positive_hits = 0
@@ -883,13 +883,13 @@ def deterministic_risk_breakdown(brief: str, template: dict[str, Any]) -> list[d
                 score = min(score, max(0, max_score - 1))
 
         if score >= max_score:
-            missing = "Äá»§ báº±ng chá»©ng trong brief cho nhÃ³m nÃ y."
+            missing = "Đủ bằng chứng trong brief cho nhóm này."
         elif negative_lines:
-            missing = str(group.get("missing") or "Brief cÃ³ nháº¯c tá»›i nhÆ°ng váº«n cÃ²n Ä‘iá»ƒm chÆ°a chá»‘t.")
+            missing = str(group.get("missing") or "Brief có nhắc tới nhưng vẫn còn điểm chưa chốt.")
         elif positive_hits:
-            missing = str(group.get("missing") or "CÃ³ nháº¯c tá»›i, nhÆ°ng chÆ°a Ä‘á»§ chi tiáº¿t Ä‘á»ƒ cháº¥m trá»n Ä‘iá»ƒm.")
+            missing = str(group.get("missing") or "Có nhắc tới, nhưng chưa đủ chi tiết để chấm trọn điểm.")
         else:
-            missing = str(group.get("missing") or "ChÆ°a tháº¥y Ä‘á»§ báº±ng chá»©ng trong brief.")
+            missing = str(group.get("missing") or "Chưa thấy đủ bằng chứng trong brief.")
 
         breakdown.append({
             "label": label,
@@ -904,7 +904,7 @@ def deterministic_risk_breakdown(brief: str, template: dict[str, Any]) -> list[d
     # Fallback if a malformed launch omits template.riskGroups.
     return [
         {"label": item["label"], "score": item["score"], "maxScore": item["maxScore"], "missing": item["missing"]}
-        for item in fallback_result("Template thiáº¿u riskGroups.")["riskBreakdown"]
+        for item in fallback_result("Template thiếu riskGroups.")["riskBreakdown"]
     ]
 
 
@@ -930,9 +930,9 @@ def apply_deterministic_readiness(result: dict[str, Any], brief: str, launch_con
         "color": color,
         "score": total,
         "maxScore": max_score,
-        "title": current_decision.get("title") or ("CÃ³ thá»ƒ tiáº¿p tá»¥c chuáº©n bá»‹" if color != "Red" else "ChÆ°a Ä‘á»§ an toÃ n Ä‘á»ƒ launch"),
+        "title": current_decision.get("title") or ("Có thể tiếp tục chuẩn bị" if color != "Red" else "Chưa đủ an toàn để launch"),
         "reason": (
-            "Äiá»ƒm readiness Ä‘Æ°á»£c tÃ­nh báº±ng rule cá»‘ Ä‘á»‹nh theo template, nÃªn cÃ¹ng brief + template sáº½ luÃ´n ra cÃ¹ng Ä‘iá»ƒm. "
+            "Điểm readiness được tính bằng rule cố định theo template, nên cùng brief + template sẽ luôn ra cùng điểm. "
             + str(current_decision.get("reason") or "")
         ).strip(),
     }
@@ -1027,7 +1027,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     if not api_key or not base_url or not model:
         result = apply_deterministic_readiness(
             fallback_result(
-                f"Thi?u c?u h?nh LLM cho {step_name}: c?n base URL, API key v? model trong bi?n LAUNCHOPS_*."
+                f"Thiếu cấu hình LLM cho {step_name}: cần base URL, API key và model trong biến LAUNCHOPS_*."
             ),
             brief,
             launch_context,
@@ -1038,7 +1038,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "B?n ch? tr? v? JSON h?p l? theo schema ng??i d?ng y?u c?u."},
+            {"role": "system", "content": "Bạn chỉ trả về JSON hợp lệ theo schema người dùng yêu cầu."},
             {"role": "user", "content": build_prompt(brief, launch_context)},
         ],
         "temperature": 0,
@@ -1073,7 +1073,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     except FutureTimeoutError:
         write_backend_log(f"LLM call failed for {step_name}: Timeout after {timeout + 5}s")
         return apply_deterministic_readiness(
-            fallback_result(f"API kh?ng tr? trong {timeout + 5} gi?y cho {step_name}. Demo d?ng fallback ?? kh?ng treo UI."),
+            fallback_result(f"API không trả trong {timeout + 5} giây cho {step_name}. Demo dùng fallback để không treo UI."),
             brief,
             launch_context,
         )
@@ -1083,14 +1083,14 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
             write_backend_log(f"LLM call failed for {step_name}: HTTPError {status_code}")
             return apply_deterministic_readiness(
                 fallback_result(
-                    f"API tr? HTTPError {status_code} cho {step_name}. Ki?m tra base URL, model ho?c quy?n API key."
+                    f"API trả HTTPError {status_code} cho {step_name}. Kiểm tra base URL, model hoặc quyền API key."
                 ),
                 brief,
                 launch_context,
             )
         write_backend_log(f"LLM call failed for {step_name}: {type(exc).__name__}")
         return apply_deterministic_readiness(
-            fallback_result(f"API l?i ho?c JSON kh?ng h?p l? cho {step_name}: {type(exc).__name__}."),
+            fallback_result(f"API lỗi hoặc JSON không hợp lệ cho {step_name}: {type(exc).__name__}."),
             brief,
             launch_context,
         )
@@ -1102,20 +1102,20 @@ def assistant_fallback_reply(message: str, context: dict[str, Any] | None = None
     normalized = unicodedata.normalize("NFD", text.lower())
     normalized = normalized.encode("ascii", "ignore").decode("ascii")
     context = context or {}
-    launch_name = context.get("launchName") or "launch hiá»‡n táº¡i"
-    launch_type = context.get("launchType") or "phÃ¢n loáº¡i hiá»‡n táº¡i"
+    launch_name = context.get("launchName") or "launch hiện tại"
+    launch_type = context.get("launchType") or "phân loại hiện tại"
 
     if re.search(r"thoi tiet|weather|gia vang|bitcoin|coin|bong da|phim|nau an|facebook|youtube|google|tin tuc", normalized):
-        return "TÃ´i chá»‰ há»— trá»£ trong pháº¡m vi LaunchOps Command Center: launch brief, readiness, pháº£n biá»‡n, checklist, bÃ i há»c vÃ  cáº¥u hÃ¬nh phÃ¢n loáº¡i."
+        return "Tôi chỉ hỗ trợ trong phạm vi LaunchOps Command Center: launch brief, readiness, phản biện, checklist, bài học và cấu hình phân loại."
     if local_reply:
         return local_reply
     if "cau hinh" in normalized or "template" in normalized or "bo luat" in normalized:
-        return "Cáº¥u hÃ¬nh phÃ¢n loáº¡i lÃ  bá»™ luáº­t chung cho tá»«ng loáº¡i launch. Báº£n review public chá»‰ cho xem cáº¥u hÃ¬nh Ä‘á»ƒ trÃ¡nh ngÆ°á»i review sá»­a nháº§m dá»¯ liá»‡u demo."
+        return "Cấu hình phân loại là bộ luật chung cho từng loại launch. Bản review public chỉ cho xem cấu hình để tránh người review sửa nhầm dữ liệu demo."
     if "diem" in normalized or "readiness" in normalized:
-        return f"Má»©c sáºµn sÃ ng cá»§a {launch_name} Ä‘Æ°á»£c tÃ­nh theo bá»™ luáº­t cá»§a {launch_type}. Äiá»ƒm cÃ ng tháº¥p nghÄ©a lÃ  brief cÃ²n thiáº¿u dá»¯ liá»‡u Ä‘á»ƒ launch an toÃ n."
+        return f"Mức sẵn sàng của {launch_name} được tính theo bộ luật của {launch_type}. Điểm càng thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn."
     if "checklist" in normalized or "viec can lam" in normalized:
-        return "Checklist lÃ  danh sÃ¡ch viá»‡c cáº§n lÃ m theo owner, deadline, tráº¡ng thÃ¡i vÃ  má»©c Æ°u tiÃªn Ä‘á»ƒ team biáº¿t launch cÃ²n thiáº¿u gÃ¬ trÆ°á»›c khi cháº¡y."
-    return f"TÃ´i cÃ³ thá»ƒ há»— trá»£ trong LaunchOps cho {launch_name}: giáº£i thÃ­ch readiness, pháº£n biá»‡n, checklist, bÃ i há»c hoáº·c thao tÃ¡c trong web nÃ y."
+        return "Checklist là danh sách việc cần làm theo owner, deadline, trạng thái và mức ưu tiên để team biết launch còn thiếu gì trước khi chạy."
+    return f"Tôi có thể hỗ trợ trong LaunchOps cho {launch_name}: giải thích readiness, phản biện, checklist, bài học hoặc thao tác trong web này."
 
 
 def call_assistant(message: str, context: dict[str, Any] | None = None, local_reply: str = "") -> dict[str, Any]:
@@ -1129,29 +1129,29 @@ def call_assistant(message: str, context: dict[str, Any] | None = None, local_re
         return {"reply": assistant_fallback_reply(message, context, local_reply), "source": "fallback"}
 
     prompt = f"""
-Báº¡n lÃ  LaunchOps Assistant náº±m bÃªn trong LaunchOps Command Center.
-Chá»‰ tráº£ lá»i trong pháº¡m vi sáº£n pháº©m nÃ y: launch brief, readiness, pháº£n biá»‡n, checklist, bÃ i há»c, lá»‹ch sá»­ phÃ¢n tÃ­ch, cáº¥u hÃ¬nh phÃ¢n loáº¡i vÃ  thao tÃ¡c trong web.
-KhÃ´ng tráº£ lá»i viá»‡c ngoÃ i pháº¡m vi. KhÃ´ng hÆ°á»›ng dáº«n chá»‰nh sá»­a cáº¥u hÃ¬nh vÃ¬ báº£n review public Ä‘ang khÃ³a cáº¥u hÃ¬nh chá»‰ xem.
-Tráº£ lá»i ngáº¯n, tiáº¿ng Viá»‡t, dá»… hiá»ƒu cho ngÆ°á»i non-code.
-Báº¡n chá»‰ táº¡o ná»™i dung tráº£ lá»i; frontend sáº½ tá»± quyáº¿t Ä‘á»‹nh thao tÃ¡c UI náº¿u cáº§n.
+Bạn là LaunchOps Assistant nằm bên trong LaunchOps Command Center.
+Chỉ trả lời trong phạm vi sản phẩm này: launch brief, readiness, phản biện, checklist, bài học, lịch sử phân tích, cấu hình phân loại và thao tác trong web.
+Không trả lời việc ngoài phạm vi. Không hướng dẫn chỉnh sửa cấu hình vì bản review public đang khóa cấu hình chỉ xem.
+Trả lời ngắn, tiếng Việt, dễ hiểu cho người non-code.
+Bạn chỉ tạo nội dung trả lời; frontend sẽ tự quyết định thao tác UI nếu cần.
 
 Context JSON:
 {json.dumps(context or {}, ensure_ascii=False)}
 
-Fallback/local reply Ä‘ang cÃ³:
+Fallback/local reply đang có:
 {local_reply}
 
-Tin nháº¯n ngÆ°á»i dÃ¹ng:
+Tin nhắn người dùng:
 {message}
 
-Chá»‰ tráº£ vá» JSON há»£p lá»‡:
+Chỉ trả về JSON hợp lệ:
 {{"reply": "string"}}
 """.strip()
 
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "Báº¡n chá»‰ tráº£ vá» JSON há»£p lá»‡ theo schema ngÆ°á»i dÃ¹ng yÃªu cáº§u."},
+            {"role": "system", "content": "Bạn chỉ trả về JSON hợp lệ theo schema người dùng yêu cầu."},
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.2,
@@ -1196,9 +1196,7 @@ Chá»‰ tráº£ vá» JSON há»£p lá»‡:
 
 class LaunchOpsHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
-        log_str = "%s - %s" % (self.address_string(), format % args)
-        sys.stderr.write(log_str + "\n")
-        write_backend_log(log_str)
+        sys.stderr.write("%s - %s\n" % (self.address_string(), format % args))
 
     def do_OPTIONS(self) -> None:
         json_response(self, 200, {"ok": True})
@@ -1225,87 +1223,25 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/tools":
+            # MCP List Tools endpoint
             json_response(self, 200, {
                 "tools": [
                     {
-                        "name": "list_launches",
-                        "description": "Liệt kê danh sách các Launch Workspace hiện có.",
-                        "inputSchema": {"type": "object", "properties": {}}
-                    },
-                    {
-                        "name": "get_launch",
-                        "description": "Xem chi tiết thông tin và kết quả phân tích của một Launch Workspace.",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {"launchId": {"type": "string", "description": "ID của launch"}},
-                            "required": ["launchId"]
-                        }
-                    },
-                    {
-                        "name": "create_launch",
-                        "description": "Tạo mới một Launch Workspace để theo dõi.",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string", "description": "Tên dự án Launch"},
-                                "brief": {"type": "string", "description": "Mô tả ngắn gọn hoặc đầy đủ brief"},
-                                "type": {"type": "string", "description": "Phân loại launch (game_event_h5, marketing, webshop_promotion)"},
-                                "owner": {"type": "string", "description": "Người phụ trách"}
-                            },
-                            "required": ["name"]
-                        }
-                    },
-                    {
-                        "name": "update_launch",
-                        "description": "Cập nhật thông tin cơ bản cho một Launch Workspace.",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "launchId": {"type": "string", "description": "ID của launch"},
-                                "name": {"type": "string"},
-                                "brief": {"type": "string"},
-                                "owner": {"type": "string"},
-                                "status": {"type": "string", "description": "upcoming, running, completed"}
-                            },
-                            "required": ["launchId"]
-                        }
-                    },
-                    {
                         "name": "analyze_launch_brief",
-                        "description": "Phân tích Launch Brief chuyên sâu để chấm điểm sẵn sàng, phản biện bằng Red Team, tạo checklist hành động và post-mortem.",
+                        "description": "Phân tích Launch Brief chuyên sâu để chấm điểm readiness (Green/Yellow/Red), phản biện bằng Red Team, tạo checklist hành động và post-mortem.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
-                                "brief": {"type": "string", "description": "Nội dung văn bản launch brief."},
-                                "launchId": {"type": "string", "description": "ID của launch (nếu có để cập nhật kết quả phân tích vào file launch)"}
+                                "brief": {
+                                    "type": "string",
+                                    "description": "Nội dung văn bản launch brief đầy đủ cần phân tích."
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "description": "Phân loại launch nếu có (game_event_h5, marketing, webshop_promotion)."
+                                }
                             },
                             "required": ["brief"]
-                        }
-                    },
-                    {
-                        "name": "save_postmortem_result",
-                        "description": "Lưu kết quả chạy thực tế, trạng thái và bài học kinh nghiệm (lessons learned) sau khi Launch hoàn tất.",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "launchId": {"type": "string", "description": "ID của launch"},
-                                "status": {"type": "string", "description": "Trạng thái mới, thường là completed"},
-                                "postLaunchResult": {"type": "string", "description": "Kết quả thực tế sau khi launch"},
-                                "lesson": {"type": "string", "description": "Bài học kinh nghiệm rút ra"}
-                            },
-                            "required": ["launchId"]
-                        }
-                    },
-                    {
-                        "name": "call_launchops_assistant",
-                        "description": "Hội thoại tự do với AI Assistant về LaunchOps để hỏi đáp, tư vấn hoặc hỗ trợ điều hướng workspace.",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {"type": "string", "description": "Nội dung câu hỏi của người dùng."},
-                                "launchId": {"type": "string", "description": "ID của launch hiện tại nếu có"}
-                            },
-                            "required": ["message"]
                         }
                     }
                 ]
@@ -1353,132 +1289,55 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 return
             tool_name = str(payload.get("name", "")).strip()
             args = payload.get("arguments") if isinstance(payload.get("arguments"), dict) else {}
+            brief = str(args.get("brief", "")).strip()
             
+            if tool_name != "analyze_launch_brief":
+                json_response(self, 400, {"ok": False, "error": f"Unknown tool: {tool_name}"})
+                return
+            if not brief:
+                json_response(self, 400, {"ok": False, "error": "Missing parameter: brief"})
+                return
+
             try:
-                mcp_text = ""
-                if tool_name == "list_launches":
-                    launches = list_launches()
-                    if not launches:
-                        mcp_text = "Hiện chưa có Launch Workspace nào."
-                    else:
-                        mcp_text = "Danh sách Launch Workspaces:\n"
-                        for l in launches:
-                            mcp_text += f"- ID: {l.get('id')} | Tên: {l.get('name')} | Status: {l.get('status')} | Owner: {l.get('owner')}\n"
+                launch_type = str(args.get("type") or "").strip()
+                launch_ctx = {"type": launch_type} if launch_type else None
+                result = orchestrate_launchops_analysis(brief, launch_ctx)
                 
-                elif tool_name == "get_launch":
-                    launch_id = str(args.get("launchId", ""))
-                    launch = get_launch(launch_id)
-                    if not launch:
-                        mcp_text = f"Không tìm thấy Launch ID: {launch_id}"
-                    else:
-                        mcp_text = f"Chi tiết Launch: {launch.get('name')} ({launch.get('id')})\n"
-                        mcp_text += f"- Trạng thái: {launch.get('status')}\n- Owner: {launch.get('owner')}\n"
-                        mcp_text += f"- Target Date: {launch.get('targetDate')}\n"
-                        mcp_text += f"- Brief:\n{launch.get('brief')}\n"
-                        if launch.get("analyses"):
-                            latest = launch["analyses"][-1]["result"]
-                            mcp_text += f"\nKết quả phân tích gần nhất:\n"
-                            mcp_text += f"- Điểm số: {latest['decision']['color']} ({latest['decision']['score']}/{latest['decision']['maxScore']})\n"
-                            mcp_text += f"- Kết luận: {latest['decision']['title']}\n"
+                # Format response back to MCP specs
+                mcp_text = f"Kết quả phân tích LaunchOps Command Center:\n" \
+                           f"- Trạng thái sẵn sàng: {result['decision']['color']} ({result['decision']['score']}/{result['decision']['maxScore']} điểm)\n" \
+                           f"- Kết luận: {result['decision']['title']}\n" \
+                           f"- Chi tiết lý do: {result['decision']['reason']}\n\n" \
+                           f"Top Rủi ro lớn nhất:\n"
+                for r in result.get("topRisks", []):
+                    mcp_text += f"  * {r}\n"
                 
-                elif tool_name == "create_launch":
-                    name = str(args.get("name", ""))
-                    if not name:
-                        raise ValueError("Thiếu tên launch (name).")
-                    launch_data = {
-                        "name": name,
-                        "brief": str(args.get("brief", "")),
-                        "type": str(args.get("type", "game_event_h5")),
-                        "owner": str(args.get("owner", ""))
-                    }
-                    launch = save_launch_payload(launch_data)
-                    mcp_text = f"Đã tạo Launch mới:\n- ID: {launch.get('id')}\n- Tên: {launch.get('name')}"
+                mcp_text += f"\nRed Team phản biện (5 Persona):\n"
+                for c in result.get("redTeam", []):
+                    mcp_text += f"  * [{c['persona']}]: Lo ngại: {c['worry']} | Chứng cứ: {c['evidence']} | Đề xuất sửa: {c['fix']}\n"
                 
-                elif tool_name == "update_launch":
-                    launch_id = str(args.get("launchId", ""))
-                    if not launch_id:
-                        raise ValueError("Thiếu launchId.")
-                    launch = get_launch(launch_id)
-                    if not launch:
-                        mcp_text = f"Không tìm thấy Launch ID: {launch_id}"
-                    else:
-                        for k in ["name", "brief", "owner", "status"]:
-                            if k in args:
-                                launch[k] = args[k]
-                        launch = save_launch_payload(launch, existing_id=launch_id)
-                        mcp_text = f"Đã cập nhật Launch {launch_id} thành công.\n- Trạng thái: {launch.get('status')}"
+                mcp_text += f"\nChecklist việc cần làm (Chủ sở hữu & Hạn chót):\n"
+                for t in result.get("checklist", []):
+                    mcp_text += f"  * {t['task']} | Owner: {t['owner']} | Deadline: {t['deadline']} | Trạng thái: {t['status']}\n"
                 
-                elif tool_name == "analyze_launch_brief":
-                    brief = str(args.get("brief", "")).strip()
-                    launch_id = str(args.get("launchId", "")).strip()
-                    if not brief:
-                        raise ValueError("Thiếu brief để phân tích.")
-                    
-                    launch_ctx = None
-                    if launch_id:
-                        launch = get_launch(launch_id)
-                        if launch:
-                            launch_ctx = launch
-                            if not launch.get("brief") or launch.get("brief") != brief:
-                                launch["brief"] = brief
-                                launch = save_launch_payload(launch, existing_id=launch_id)
-                    
-                    result = orchestrate_launchops_analysis(brief, launch_ctx)
-                    if launch_id and launch_ctx:
-                        append_analysis(launch_ctx, result, brief)
-                    
-                    mcp_text = f"Kết quả phân tích LaunchOps Command Center:\n" \
-                               f"- Trạng thái sẵn sàng: {result['decision']['color']} ({result['decision']['score']}/{result['decision']['maxScore']} điểm)\n" \
-                               f"- Kết luận: {result['decision']['title']}\n" \
-                               f"- Chi tiết lý do: {result['decision']['reason']}\n\n" \
-                               f"Top Rủi ro lớn nhất:\n"
-                    for r in result.get("topRisks", []):
-                        mcp_text += f"  * {r}\n"
-                    
-                    mcp_text += f"\nRed Team phản biện (5 Persona):\n"
-                    for c in result.get("redTeam", []):
-                        mcp_text += f"  * [{c['persona']}]: Lo ngại: {c['worry']} | Chứng cớ: {c['evidence']} | Đề xuất sửa: {c['fix']}\n"
-                    
-                    mcp_text += f"\nChecklist việc cần làm (Chủ sở hữu & Hạn chót):\n"
-                    for t in result.get("checklist", []):
-                        mcp_text += f"  * {t['task']} | Owner: {t['owner']} | Deadline: {t['deadline']} | Trạng thái: {t['status']}\n"
-                
-                elif tool_name == "save_postmortem_result":
-                    launch_id = str(args.get("launchId", ""))
-                    if not launch_id:
-                        raise ValueError("Thiếu launchId.")
-                    launch = get_launch(launch_id)
-                    if not launch:
-                        mcp_text = f"Không tìm thấy Launch ID: {launch_id}"
-                    else:
-                        launch = save_post_result(launch, args)
-                        mcp_text = f"Đã lưu kết quả Post-Mortem cho Launch {launch_id}.\n- Trạng thái: {launch.get('status')}\n- Kết quả: {launch.get('postLaunchResult')}"
-                        if args.get("lesson"):
-                            mcp_text += f"\n- Bài học kinh nghiệm: {args.get('lesson')}"
-
-                elif tool_name == "call_launchops_assistant":
-                    message = str(args.get("message", ""))
-                    launch_id = str(args.get("launchId", ""))
-                    launch_ctx = None
-                    if launch_id:
-                        launch_ctx = get_launch(launch_id)
-                    
-                    res = call_assistant(message, launch_ctx)
-                    mcp_text = res.get("reply", "Không có phản hồi từ Assistant.")
-
-                else:
-                    mcp_text = f"Không hỗ trợ tool: {tool_name}"
-                    json_response(self, 400, {"ok": False, "error": mcp_text})
-                    return
-
                 json_response(self, 200, {
-                    "content": [{"type": "text", "text": mcp_text}],
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": mcp_text
+                        }
+                    ],
                     "isError": False
                 })
             except Exception as exc:
-                write_backend_log(f"MCP tool call {tool_name} crashed: {type(exc).__name__}")
+                write_backend_log(f"MCP tool call analyze_launch_brief crashed: {type(exc).__name__}")
                 json_response(self, 200, {
-                    "content": [{"type": "text", "text": f"Lỗi gọi tool {tool_name}: {str(exc)}"}],
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Lỗi gọi tool phân tích: {type(exc).__name__}. Vui lòng thử lại."
+                        }
+                    ],
                     "isError": True
                 })
             return
@@ -1503,7 +1362,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     200,
                     {
                         "ok": True,
-                        "result": fallback_result(f"Backend lá»—i nhÆ°ng Ä‘Ã£ fallback: {type(exc).__name__}."),
+                        "result": fallback_result(f"Backend lỗi nhưng đã fallback: {type(exc).__name__}."),
                     },
                 )
             return
@@ -1590,7 +1449,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             except Exception as exc:
                 write_backend_log(f"Launch analyze handler crashed: {type(exc).__name__}")
                 write_backend_log(traceback.format_exc())
-                result = fallback_result(f"Backend lá»—i nhÆ°ng Ä‘Ã£ fallback: {type(exc).__name__}.")
+                result = fallback_result(f"Backend lỗi nhưng đã fallback: {type(exc).__name__}.")
                 launch = append_analysis(launch, result, brief)
                 json_response(
                     self,

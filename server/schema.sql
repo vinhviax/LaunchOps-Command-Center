@@ -1,4 +1,4 @@
-﻿CREATE TABLE IF NOT EXISTS launch_types (
+CREATE TABLE IF NOT EXISTS launch_types (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   domain TEXT NOT NULL,

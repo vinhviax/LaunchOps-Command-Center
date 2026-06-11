@@ -1,45 +1,45 @@
 const badBrief = `# Bad launch brief mẫu
 
-T�n launch: Lucky Wheel Weekend - sự kiện quay thưởng cuối tuần cho người chơi game.
+Tên launch: Lucky Wheel Weekend - sự kiện quay thưởng cuối tuần cho người chơi game.
 
-Mục ti�u: Tăng số lượt đăng nhập v� tăng doanh thu g�i nạp nhỏ trong 3 ng�y cuối tuần.
+Mục tiêu: Tăng số lượt đăng nhập và tăng doanh thu gói nạp nhỏ trong 3 ngày cuối tuần.
 
-Nội dung: Người chơi đăng nhập mỗi ng�y sẽ nhận 1 lượt quay miễn ph�. Nếu nạp g�i bất kỳ sẽ nhận th�m 3 lượt quay. Phần thưởng c� thể l� vật phẩm trong game, coupon, v� một số item hiếm.
+Nội dung: Người chơi đăng nhập mỗi ngày sẽ nhận 1 lượt quay miễn phí. Nếu nạp gói bất kỳ sẽ nhận thêm 3 lượt quay. Phần thưởng có thể là vật phẩm trong game, coupon, và một số item hiếm.
 
-Thời gian: Dự kiến launch v�o tối thứ S�u. Chưa c� giờ ch�nh x�c.
+Thời gian: Dự kiến launch vào tối thứ Sáu. Chưa có giờ chính xác.
 
 Đối tượng: Tất cả người chơi.
 
-K�nh truyền th�ng: Th�ng b�o trong game v� post fanpage.
+Kênh truyền thông: Thông báo trong game và post fanpage.
 
-Phần thưởng: Chưa chốt tỷ lệ tr�ng. C� thể d�ng item hiếm để tạo cảm gi�c hấp dẫn.
+Phần thưởng: Chưa chốt tỷ lệ trúng. Có thể dùng item hiếm để tạo cảm giác hấp dẫn.
 
-Vấn đề c�n mở:
-- Chưa c� rollback plan nếu hệ thống quay thưởng lỗi.
-- Chưa c� FAQ cho CS.
-- Chưa c� owner trực cuối tuần.
-- Chưa c� ngưỡng dừng sự kiện nếu c� bug nghi�m trọng.
-- Chưa c� test tải lượng truy cập cao.
-- Chưa r� điều kiện người chơi mới v� người chơi cũ.
-- Chưa r� th�ng điệp nếu hết qu� hoặc thay đổi tỷ lệ.
-- Chưa c� post-mortem template.`;
+Vấn đề còn mở:
+- Chưa có rollback plan nếu hệ thống quay thưởng lỗi.
+- Chưa có FAQ cho CS.
+- Chưa có owner trực cuối tuần.
+- Chưa có ngưỡng dừng sự kiện nếu có bug nghiêm trọng.
+- Chưa có test tải lượng truy cập cao.
+- Chưa rõ điều kiện người chơi mới và người chơi cũ.
+- Chưa rõ thông điệp nếu hết quà hoặc thay đổi tỷ lệ.
+- Chưa có post-mortem template.`;
 
 const rubric = [
   {
     key: "scope",
-    label: "Mục ti�u v� scope",
+    label: "Mục tiêu và scope",
     checks: ["muc tieu", "doi tuong", "scope", "kpi", "level"],
-    missing: "Mục ti�u, đối tượng hoặc scope c�n mơ hồ."
+    missing: "Mục tiêu, đối tượng hoặc scope còn mơ hồ."
   },
   {
     key: "owner",
-    label: "Người phụ tr�ch v� hạn xử l�",
+    label: "Người phụ trách và hạn xử lý",
     checks: ["owner", "deadline", "pm", "lead", "truc"],
-    missing: "Chưa thấy owner/deadline r� cho c�c nh�m."
+    missing: "Chưa thấy owner/deadline rõ cho các nhóm."
   },
   {
     key: "tech",
-    label: "Sẵn s�ng kỹ thuật",
+    label: "Sẵn sàng kỹ thuật",
     checks: ["test", "rollback", "monitoring", "nguong", "pause", "stop"],
     missing: "Thiếu test, monitoring, rollback hoặc ngưỡng dừng."
   },
@@ -47,77 +47,77 @@ const rubric = [
     key: "user",
     label: "User impact",
     checks: ["faq", "cs", "thong diep", "ticket", "khieu nai"],
-    missing: "Thiếu FAQ/CS plan hoặc th�ng điệp cho người d�ng."
+    missing: "Thiếu FAQ/CS plan hoặc thông điệp cho người dùng."
   },
   {
     key: "business",
-    label: "Business v� reward",
+    label: "Business và reward",
     checks: ["reward", "phan thuong", "ngan sach", "ty le", "guardrail"],
-    missing: "Reward, tỷ lệ hoặc ng�n s�ch chưa đủ guardrail."
+    missing: "Reward, tỷ lệ hoặc ngân sách chưa đủ guardrail."
   },
   {
     key: "learning",
-    label: "B�i học sau launch",
+    label: "Bài học sau launch",
     checks: ["post-mortem", "lesson", "metrics", "bao cao"],
-    missing: "Chưa c� kế hoạch học lại sau launch."
+    missing: "Chưa có kế hoạch học lại sau launch."
   }
 ];
 
 const redTeamPersonas = [
   {
     persona: "Angry user",
-    worry: "Người chơi bị lỗi quay thưởng hoặc kh�ng nhận qu� sẽ ph�n n�n nhanh.",
-    evidence: "Brief chưa c� FAQ v� c�ch xử l� nếu kh�ng nhận phần thưởng.",
-    fix: "Tạo CS FAQ, th�ng điệp in-game, v� rule bồi thường nếu hệ thống lỗi."
+    worry: "Người chơi bị lỗi quay thưởng hoặc không nhận quà sẽ phàn nàn nhanh.",
+    evidence: "Brief chưa có FAQ và cách xử lý nếu không nhận phần thưởng.",
+    fix: "Tạo CS FAQ, thông điệp in-game, và rule bồi thường nếu hệ thống lỗi."
   },
   {
     persona: "Exploit hunter",
-    worry: "Người chơi c� thể t�m c�ch farm lượt quay hoặc lợi dụng điều kiện nạp.",
-    evidence: "Brief ghi tất cả người chơi nhưng chưa r� điều kiện người mới/cũ v� giới hạn.",
-    fix: "Chốt điều kiện tham gia, giới hạn lượt mỗi ng�y, v� log bất thường."
+    worry: "Người chơi có thể tìm cách farm lượt quay hoặc lợi dụng điều kiện nạp.",
+    evidence: "Brief ghi tất cả người chơi nhưng chưa rõ điều kiện người mới/cũ và giới hạn.",
+    fix: "Chốt điều kiện tham gia, giới hạn lượt mỗi ngày, và log bất thường."
   },
   {
     persona: "CS lead",
-    worry: "CS sẽ bị dồn ticket v�o cuối tuần nếu launch lỗi.",
-    evidence: "Brief chưa c� owner trực cuối tuần v� chưa c� FAQ.",
-    fix: "Gắn người phụ tr�ch CS, ca trực, mẫu trả lời, v� đường xử l� leo thang."
+    worry: "CS sẽ bị dồn ticket vào cuối tuần nếu launch lỗi.",
+    evidence: "Brief chưa có owner trực cuối tuần và chưa có FAQ.",
+    fix: "Gắn người phụ trách CS, ca trực, mẫu trả lời, và đường xử lý leo thang."
   },
   {
     persona: "Tech on-call",
-    worry: "Nếu hệ thống quay lỗi, team kh�ng biết khi n�o phải tắt event.",
-    evidence: "Brief chưa c� rollback plan, test tải, v� ngưỡng dừng.",
-    fix: "Đặt ngưỡng pause, monitoring dashboard, rollback script, v� người c� quyền quyết định."
+    worry: "Nếu hệ thống quay lỗi, team không biết khi nào phải tắt event.",
+    evidence: "Brief chưa có rollback plan, test tải, và ngưỡng dừng.",
+    fix: "Đặt ngưỡng pause, monitoring dashboard, rollback script, và người có quyền quyết định."
   },
   {
     persona: "Business owner",
-    worry: "Reward item hiếm c� thể l�m vượt ng�n s�ch hoặc g�y mất c�n bằng.",
-    evidence: "Brief chưa chốt tỷ lệ tr�ng v� guardrail reward.",
-    fix: "Chốt tỷ lệ, ng�n s�ch tối đa, v� review t�c động economy trước launch."
+    worry: "Reward item hiếm có thể làm vượt ngân sách hoặc gây mất cân bằng.",
+    evidence: "Brief chưa chốt tỷ lệ trúng và guardrail reward.",
+    fix: "Chốt tỷ lệ, ngân sách tối đa, và review tác động economy trước launch."
   }
 ];
 
 const checklistTemplate = [
-  ["Chốt scope, đối tượng, KPI th�nh c�ng", "PM LiveOps", "T-2 ng�y", "Todo", "High"],
-  ["Chốt reward, tỷ lệ, ng�n s�ch", "Business + PM", "T-2 ng�y", "Todo", "High"],
-  ["Viết CS FAQ v� macro trả lời", "CS Lead", "T-1 ng�y", "Todo", "High"],
-  ["Test tải với peak x2", "Tech Owner", "T-1 ng�y", "Todo", "High"],
-  ["Chốt rollback plan v� ngưỡng pause", "Tech + LiveOps Lead", "T-1 ng�y", "Todo", "High"],
-  ["Mở war room v� lịch trực cuối tuần", "LiveOps Lead", "T-1 ng�y", "Todo", "Medium"],
-  ["Tổng hợp metrics v� post-mortem", "PM LiveOps", "T+48 giờ", "Todo", "Medium"]
+  ["Chốt scope, đối tượng, KPI thành công", "PM LiveOps", "T-2 ngày", "Todo", "High"],
+  ["Chốt reward, tỷ lệ, ngân sách", "Business + PM", "T-2 ngày", "Todo", "High"],
+  ["Viết CS FAQ và macro trả lời", "CS Lead", "T-1 ngày", "Todo", "High"],
+  ["Test tải với peak x2", "Tech Owner", "T-1 ngày", "Todo", "High"],
+  ["Chốt rollback plan và ngưỡng pause", "Tech + LiveOps Lead", "T-1 ngày", "Todo", "High"],
+  ["Mở war room và lịch trực cuối tuần", "LiveOps Lead", "T-1 ngày", "Todo", "Medium"],
+  ["Tổng hợp metrics và post-mortem", "PM LiveOps", "T+48 giờ", "Todo", "Medium"]
 ];
 
 const DEFAULT_BRIEF_GUIDE = [
-  "Mục ti�u, KPI, đối tượng �p dụng.",
-  "Thời gian chạy, người phụ tr�ch, team trực.",
-  "Cơ chế sự kiện/chiến dịch, phần thưởng, ng�n s�ch, giới hạn.",
-  "C�u hỏi thường gặp cho CS, th�ng điệp cho người d�ng, rủi ro khiếu nại.",
-  "Kiểm thử kỹ thuật, theo d�i hệ thống, phương �n quay lại, ngưỡng dừng.",
-  "Sau launch sẽ đo g� v� ghi b�i học ở đ�u."
+  "Mục tiêu, KPI, đối tượng áp dụng.",
+  "Thời gian chạy, người phụ trách, team trực.",
+  "Cơ chế sự kiện/chiến dịch, phần thưởng, ngân sách, giới hạn.",
+  "Câu hỏi thường gặp cho CS, thông điệp cho người dùng, rủi ro khiếu nại.",
+  "Kiểm thử kỹ thuật, theo dõi hệ thống, phương án quay lại, ngưỡng dừng.",
+  "Sau launch sẽ đo gì và ghi bài học ở đâu."
 ];
 
 const GAME_EVENT_TEMPLATE = {
   name: "Game Event Launch",
-  description: "D�ng cho event/campaign trong game c� người chơi, phần thưởng, CS v� rủi ro l�ch luật.",
+  description: "Dùng cho event/campaign trong game có người chơi, phần thưởng, CS và rủi ro lách luật.",
   briefGuide: DEFAULT_BRIEF_GUIDE,
   riskGroups: rubric.map((item) => ({
     key: item.key,
@@ -130,91 +130,91 @@ const GAME_EVENT_TEMPLATE = {
   redTeam: redTeamPersonas,
   checklist: checklistTemplate.map(([task, owner, deadline, status, priority]) => ({ task, owner, deadline, status, priority })),
   postmortem: [
-    { title: "C�u hỏi sau launch", items: ["Mục ti�u ban đầu c� đạt kh�ng?", "Rủi ro n�o đ� được bắt đ�ng trước launch?", "Rủi ro n�o bị bỏ s�t?", "CS c� đủ FAQ để xử l� ticket kh�ng?"] },
-    { title: "Chỉ số cần điền", items: ["DAU/login rate trong thời gian event", "Doanh thu g�i nạp li�n quan", "Số ticket CS v� loại ticket", "Chi ph�/ph�t thưởng thực tế"] },
-    { title: "B�i học cho lần sau", items: ["Cần đổi rule, phần thưởng, timing hay th�ng điệp kh�ng?", "C� rủi ro l�ch luật mới cần th�m v�o template kh�ng?"] }
+    { title: "Câu hỏi sau launch", items: ["Mục tiêu ban đầu có đạt không?", "Rủi ro nào đã được bắt đúng trước launch?", "Rủi ro nào bị bỏ sót?", "CS có đủ FAQ để xử lý ticket không?"] },
+    { title: "Chỉ số cần điền", items: ["DAU/login rate trong thời gian event", "Doanh thu gói nạp liên quan", "Số ticket CS và loại ticket", "Chi phí/phát thưởng thực tế"] },
+    { title: "Bài học cho lần sau", items: ["Cần đổi rule, phần thưởng, timing hay thông điệp không?", "Có rủi ro lách luật mới cần thêm vào template không?"] }
   ]
 };
 
 const PRODUCTION_SYSTEM_TEMPLATE = {
   name: "Production System Release",
-  description: "D�ng cho release hệ thống production, kh�ng mặc định c� người phụ tr�ch kinh doanh.",
+  description: "Dùng cho release hệ thống production, không mặc định có người phụ trách kinh doanh.",
   briefGuide: [
-    "Mục ti�u release, phạm vi thay đổi, hệ thống bị ảnh hưởng.",
-    "Thời gian deploy, người phụ tr�ch, người trực sự cố.",
-    "Kế hoạch test, rollout, monitoring v� alert.",
+    "Mục tiêu release, phạm vi thay đổi, hệ thống bị ảnh hưởng.",
+    "Thời gian deploy, người phụ trách, người trực sự cố.",
+    "Kế hoạch test, rollout, monitoring và alert.",
     "Rollback plan, runbook incident, ngưỡng dừng.",
-    "Ảnh hưởng tới user/service/data v� phương �n th�ng b�o.",
-    "Sau release đo uptime, lỗi, incident v� b�i học vận h�nh."
+    "Ảnh hưởng tới user/service/data và phương án thông báo.",
+    "Sau release đo uptime, lỗi, incident và bài học vận hành."
   ],
   riskGroups: [
-    { key: "scope", label: "Phạm vi thay đổi", maxScore: 2, checks: ["muc tieu", "scope", "pham vi", "service", "he thong"], missing: "Chưa r� phạm vi thay đổi, hệ thống bị ảnh hưởng hoặc mục ti�u release.", requirements: ["Mục ti�u release r�", "Hệ thống/service bị ảnh hưởng", "Phạm vi thay đổi v� ngo�i phạm vi"] },
-    { key: "owner", label: "Người phụ tr�ch v� trực sự cố", maxScore: 2, checks: ["owner", "on-call", "truc", "incident commander", "lead"], missing: "Chưa r� người phụ tr�ch, người trực sự cố hoặc người quyết định rollback.", requirements: ["Release owner", "On-call/SRE", "Người quyết định rollback"] },
-    { key: "tech", label: "Test v� rollout", maxScore: 2, checks: ["test", "qa", "rollout", "canary", "staging"], missing: "Thiếu kế hoạch test, rollout hoặc m�i trường kiểm tra trước production.", requirements: ["Test plan", "Rollout/canary plan", "Kết quả staging/QA"] },
-    { key: "monitoring", label: "Monitoring v� alert", maxScore: 2, checks: ["monitoring", "dashboard", "alert", "log", "metric"], missing: "Thiếu dashboard, alert, log hoặc metric để biết release c� lỗi.", requirements: ["Dashboard theo d�i", "Alert ngưỡng lỗi", "Log/metric cần kiểm tra"] },
-    { key: "rollback", label: "Rollback v� incident response", maxScore: 2, checks: ["rollback", "runbook", "incident", "pause", "stop"], missing: "Chưa c� rollback plan, runbook incident hoặc ngưỡng dừng.", requirements: ["Rollback plan", "Runbook incident", "Ngưỡng dừng release"] },
-    { key: "security", label: "Security v� data", maxScore: 2, checks: ["security", "permission", "access", "data", "privacy"], missing: "Chưa thấy đ�nh gi� security, quyền truy cập hoặc rủi ro dữ liệu.", requirements: ["Security review", "Quyền truy cập", "Rủi ro data/privacy"] },
-    { key: "user", label: "Ảnh hưởng tới người d�ng", maxScore: 2, checks: ["user", "customer", "downtime", "sla", "communication"], missing: "Chưa r� user/service bị ảnh hưởng, downtime hoặc phương �n th�ng b�o.", requirements: ["User/service bị ảnh hưởng", "SLA/downtime dự kiến", "Th�ng b�o nếu c� sự cố"] },
-    { key: "learning", label: "Post-release learning", maxScore: 2, checks: ["postmortem", "lesson", "metric", "report", "review"], missing: "Chưa c� kế hoạch đo kết quả v� r�t b�i học sau release.", requirements: ["Chỉ số sau release", "C�u hỏi post-release", "Nơi lưu b�i học"] }
+    { key: "scope", label: "Phạm vi thay đổi", maxScore: 2, checks: ["muc tieu", "scope", "pham vi", "service", "he thong"], missing: "Chưa rõ phạm vi thay đổi, hệ thống bị ảnh hưởng hoặc mục tiêu release.", requirements: ["Mục tiêu release rõ", "Hệ thống/service bị ảnh hưởng", "Phạm vi thay đổi và ngoài phạm vi"] },
+    { key: "owner", label: "Người phụ trách và trực sự cố", maxScore: 2, checks: ["owner", "on-call", "truc", "incident commander", "lead"], missing: "Chưa rõ người phụ trách, người trực sự cố hoặc người quyết định rollback.", requirements: ["Release owner", "On-call/SRE", "Người quyết định rollback"] },
+    { key: "tech", label: "Test và rollout", maxScore: 2, checks: ["test", "qa", "rollout", "canary", "staging"], missing: "Thiếu kế hoạch test, rollout hoặc môi trường kiểm tra trước production.", requirements: ["Test plan", "Rollout/canary plan", "Kết quả staging/QA"] },
+    { key: "monitoring", label: "Monitoring và alert", maxScore: 2, checks: ["monitoring", "dashboard", "alert", "log", "metric"], missing: "Thiếu dashboard, alert, log hoặc metric để biết release có lỗi.", requirements: ["Dashboard theo dõi", "Alert ngưỡng lỗi", "Log/metric cần kiểm tra"] },
+    { key: "rollback", label: "Rollback và incident response", maxScore: 2, checks: ["rollback", "runbook", "incident", "pause", "stop"], missing: "Chưa có rollback plan, runbook incident hoặc ngưỡng dừng.", requirements: ["Rollback plan", "Runbook incident", "Ngưỡng dừng release"] },
+    { key: "security", label: "Security và data", maxScore: 2, checks: ["security", "permission", "access", "data", "privacy"], missing: "Chưa thấy đánh giá security, quyền truy cập hoặc rủi ro dữ liệu.", requirements: ["Security review", "Quyền truy cập", "Rủi ro data/privacy"] },
+    { key: "user", label: "Ảnh hưởng tới người dùng", maxScore: 2, checks: ["user", "customer", "downtime", "sla", "communication"], missing: "Chưa rõ user/service bị ảnh hưởng, downtime hoặc phương án thông báo.", requirements: ["User/service bị ảnh hưởng", "SLA/downtime dự kiến", "Thông báo nếu có sự cố"] },
+    { key: "learning", label: "Post-release learning", maxScore: 2, checks: ["postmortem", "lesson", "metric", "report", "review"], missing: "Chưa có kế hoạch đo kết quả và rút bài học sau release.", requirements: ["Chỉ số sau release", "Câu hỏi post-release", "Nơi lưu bài học"] }
   ],
   redTeam: [
-    { persona: "SRE on-call", worry: "Release g�y lỗi production nhưng đội trực kh�ng c� dashboard hoặc runbook r�.", evidence: "Brief thiếu monitoring, alert, rollback hoặc ph�n c�ng on-call.", fix: "Chốt dashboard, alert, runbook, người trực v� k�nh war room trước release." },
-    { persona: "Security reviewer", worry: "Thay đổi c� thể mở quyền truy cập sai hoặc rủi ro dữ liệu.", evidence: "Brief chưa c� security/access/data review.", fix: "Th�m checklist security, kiểm tra quyền, log truy cập v� data impact." },
-    { persona: "Data owner", worry: "Migration hoặc thay đổi dữ liệu c� thể g�y mất, lệch hoặc kh� kh�i phục.", evidence: "Brief chưa n�i backup, migration validation hoặc rollback data.", fix: "Chốt backup, validation query, người duyệt data v� phương �n kh�i phục." },
-    { persona: "Incident commander", worry: "Nếu release lỗi, team kh�ng biết ai quyết định rollback v� ngưỡng rollback l� g�.", evidence: "Brief thiếu incident owner, escalation path v� stop condition.", fix: "Chỉ định incident commander, ngưỡng rollback v� timeline xử l�." },
-    { persona: "End user representative", worry: "User bị downtime hoặc lỗi nhưng kh�ng được th�ng b�o r�.", evidence: "Brief thiếu user impact, SLA v� communication plan.", fix: "Th�m danh s�ch user/service bị ảnh hưởng, th�ng b�o v� FAQ nếu c� downtime." }
+    { persona: "SRE on-call", worry: "Release gây lỗi production nhưng đội trực không có dashboard hoặc runbook rõ.", evidence: "Brief thiếu monitoring, alert, rollback hoặc phân công on-call.", fix: "Chốt dashboard, alert, runbook, người trực và kênh war room trước release." },
+    { persona: "Security reviewer", worry: "Thay đổi có thể mở quyền truy cập sai hoặc rủi ro dữ liệu.", evidence: "Brief chưa có security/access/data review.", fix: "Thêm checklist security, kiểm tra quyền, log truy cập và data impact." },
+    { persona: "Data owner", worry: "Migration hoặc thay đổi dữ liệu có thể gây mất, lệch hoặc khó khôi phục.", evidence: "Brief chưa nói backup, migration validation hoặc rollback data.", fix: "Chốt backup, validation query, người duyệt data và phương án khôi phục." },
+    { persona: "Incident commander", worry: "Nếu release lỗi, team không biết ai quyết định rollback và ngưỡng rollback là gì.", evidence: "Brief thiếu incident owner, escalation path và stop condition.", fix: "Chỉ định incident commander, ngưỡng rollback và timeline xử lý." },
+    { persona: "End user representative", worry: "User bị downtime hoặc lỗi nhưng không được thông báo rõ.", evidence: "Brief thiếu user impact, SLA và communication plan.", fix: "Thêm danh sách user/service bị ảnh hưởng, thông báo và FAQ nếu có downtime." }
   ],
   checklist: [
-    { task: "Chốt phạm vi release v� service bị ảnh hưởng", owner: "Release Owner", deadline: "T-2 ng�y", status: "Todo", priority: "High" },
-    { task: "Ho�n tất test plan, staging result v� rollout plan", owner: "QA Lead", deadline: "T-1 ng�y", status: "Todo", priority: "High" },
-    { task: "Chuẩn bị dashboard, alert v� log cần kiểm tra", owner: "SRE on-call", deadline: "T-1 ng�y", status: "Todo", priority: "High" },
-    { task: "Chốt rollback plan, runbook incident v� người quyết định rollback", owner: "Incident Commander", deadline: "T-1 ng�y", status: "Todo", priority: "High" },
-    { task: "Review security, quyền truy cập v� data impact", owner: "Security reviewer", deadline: "T-1 ng�y", status: "Todo", priority: "Medium" },
+    { task: "Chốt phạm vi release và service bị ảnh hưởng", owner: "Release Owner", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Hoàn tất test plan, staging result và rollout plan", owner: "QA Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Chuẩn bị dashboard, alert và log cần kiểm tra", owner: "SRE on-call", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Chốt rollback plan, runbook incident và người quyết định rollback", owner: "Incident Commander", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Review security, quyền truy cập và data impact", owner: "Security reviewer", deadline: "T-1 ngày", status: "Todo", priority: "Medium" },
     { task: "Tổng kết post-release: uptime, error rate, incident, lesson", owner: "Release Owner", deadline: "T+48 giờ", status: "Todo", priority: "Medium" }
   ],
   postmortem: [
-    { title: "Kết quả production", items: ["Release c� downtime kh�ng?", "Error rate/latency c� vượt ngưỡng kh�ng?", "C� incident hoặc rollback kh�ng?"] },
-    { title: "Vận h�nh sự cố", items: ["Alert c� bắt đ�ng kh�ng?", "Runbook c� đủ r� kh�ng?", "Ai mất nhiều thời gian chờ quyết định?"] },
-    { title: "B�i học release sau", items: ["Cần th�m test, alert, rollback hay security check n�o v�o template?", "C� bước n�o n�n tự động h�a trước release tiếp theo?"] }
+    { title: "Kết quả production", items: ["Release có downtime không?", "Error rate/latency có vượt ngưỡng không?", "Có incident hoặc rollback không?"] },
+    { title: "Vận hành sự cố", items: ["Alert có bắt đúng không?", "Runbook có đủ rõ không?", "Ai mất nhiều thời gian chờ quyết định?"] },
+    { title: "Bài học release sau", items: ["Cần thêm test, alert, rollback hay security check nào vào template?", "Có bước nào nên tự động hóa trước release tiếp theo?"] }
   ]
 };
 
 const GENERIC_LAUNCH_TEMPLATE = {
   name: "Generic Launch",
-  description: "D�ng cho launch kh�ng thuộc game event hoặc production release.",
+  description: "Dùng cho launch không thuộc game event hoặc production release.",
   briefGuide: [
-    "Mục ti�u, phạm vi, đối tượng bị ảnh hưởng.",
-    "Người phụ tr�ch, người duyệt, deadline.",
-    "Kế hoạch triển khai, truyền th�ng v� hỗ trợ.",
-    "Rủi ro vận h�nh, ph�p l�, quyền truy cập hoặc dữ liệu.",
-    "Phương �n quay lại nếu launch lỗi.",
-    "C�ch đo kết quả v� ghi b�i học."
+    "Mục tiêu, phạm vi, đối tượng bị ảnh hưởng.",
+    "Người phụ trách, người duyệt, deadline.",
+    "Kế hoạch triển khai, truyền thông và hỗ trợ.",
+    "Rủi ro vận hành, pháp lý, quyền truy cập hoặc dữ liệu.",
+    "Phương án quay lại nếu launch lỗi.",
+    "Cách đo kết quả và ghi bài học."
   ],
   riskGroups: [
-    { key: "scope", label: "Mục ti�u v� phạm vi", maxScore: 2, checks: ["muc tieu", "pham vi", "doi tuong", "kpi"], missing: "Chưa r� mục ti�u, phạm vi hoặc đối tượng ảnh hưởng.", requirements: ["Mục ti�u r�", "Phạm vi r�", "Ti�u ch� th�nh c�ng"] },
-    { key: "owner", label: "Người phụ tr�ch v� deadline", maxScore: 2, checks: ["owner", "deadline", "lead", "duyet"], missing: "Chưa r� người phụ tr�ch, người duyệt hoặc deadline.", requirements: ["Owner ch�nh", "Người duyệt", "Deadline"] },
-    { key: "execution", label: "Kế hoạch triển khai", maxScore: 2, checks: ["ke hoach", "timeline", "rollout", "trien khai"], missing: "Chưa c� kế hoạch triển khai đủ r�.", requirements: ["Timeline", "C�c bước triển khai", "Điều kiện go/no-go"] },
-    { key: "support", label: "Hỗ trợ v� truyền th�ng", maxScore: 2, checks: ["faq", "support", "cs", "truyen thong", "communication"], missing: "Thiếu kế hoạch hỗ trợ hoặc truyền th�ng cho người bị ảnh hưởng.", requirements: ["FAQ/support owner", "Th�ng điệp", "K�nh hỗ trợ"] },
-    { key: "risk", label: "Rủi ro v� phương �n quay lại", maxScore: 2, checks: ["risk", "rui ro", "rollback", "fallback", "pause"], missing: "Chưa c� rủi ro ch�nh hoặc phương �n quay lại.", requirements: ["Top risks", "Fallback/rollback", "Ngưỡng dừng"] },
-    { key: "learning", label: "B�i học sau launch", maxScore: 2, checks: ["lesson", "postmortem", "metric", "bao cao"], missing: "Chưa r� c�ch đo kết quả v� lưu b�i học.", requirements: ["Metric sau launch", "C�u hỏi tổng kết", "Nơi lưu b�i học"] }
+    { key: "scope", label: "Mục tiêu và phạm vi", maxScore: 2, checks: ["muc tieu", "pham vi", "doi tuong", "kpi"], missing: "Chưa rõ mục tiêu, phạm vi hoặc đối tượng ảnh hưởng.", requirements: ["Mục tiêu rõ", "Phạm vi rõ", "Tiêu chí thành công"] },
+    { key: "owner", label: "Người phụ trách và deadline", maxScore: 2, checks: ["owner", "deadline", "lead", "duyet"], missing: "Chưa rõ người phụ trách, người duyệt hoặc deadline.", requirements: ["Owner chính", "Người duyệt", "Deadline"] },
+    { key: "execution", label: "Kế hoạch triển khai", maxScore: 2, checks: ["ke hoach", "timeline", "rollout", "trien khai"], missing: "Chưa có kế hoạch triển khai đủ rõ.", requirements: ["Timeline", "Các bước triển khai", "Điều kiện go/no-go"] },
+    { key: "support", label: "Hỗ trợ và truyền thông", maxScore: 2, checks: ["faq", "support", "cs", "truyen thong", "communication"], missing: "Thiếu kế hoạch hỗ trợ hoặc truyền thông cho người bị ảnh hưởng.", requirements: ["FAQ/support owner", "Thông điệp", "Kênh hỗ trợ"] },
+    { key: "risk", label: "Rủi ro và phương án quay lại", maxScore: 2, checks: ["risk", "rui ro", "rollback", "fallback", "pause"], missing: "Chưa có rủi ro chính hoặc phương án quay lại.", requirements: ["Top risks", "Fallback/rollback", "Ngưỡng dừng"] },
+    { key: "learning", label: "Bài học sau launch", maxScore: 2, checks: ["lesson", "postmortem", "metric", "bao cao"], missing: "Chưa rõ cách đo kết quả và lưu bài học.", requirements: ["Metric sau launch", "Câu hỏi tổng kết", "Nơi lưu bài học"] }
   ],
   redTeam: [
-    { persona: "Người d�ng bị ảnh hưởng", worry: "Người d�ng kh�ng hiểu thay đổi hoặc bị gi�n đoạn.", evidence: "Brief thiếu đối tượng ảnh hưởng, th�ng b�o hoặc FAQ.", fix: "Bổ sung audience, th�ng điệp, FAQ v� k�nh hỗ trợ." },
-    { persona: "Người vận h�nh", worry: "Team vận h�nh kh�ng biết phải l�m g� khi launch lỗi.", evidence: "Brief thiếu owner, escalation hoặc phương �n quay lại.", fix: "Chốt owner, escalation path, rollback/fallback v� ngưỡng dừng." },
-    { persona: "Người duyệt rủi ro", worry: "Launch c� rủi ro quyền truy cập, dữ liệu, ph�p l� hoặc compliance.", evidence: "Brief chưa c� phần review rủi ro ngo�i vận h�nh.", fix: "Th�m checklist risk/compliance/data/privacy t�y bối cảnh." },
-    { persona: "Người đo hiệu quả", worry: "Sau launch kh�ng biết c� th�nh c�ng hay kh�ng.", evidence: "Brief thiếu KPI, metric hoặc c�u hỏi tổng kết.", fix: "Chốt metric, b�o c�o sau launch v� nơi lưu b�i học." }
+    { persona: "Người dùng bị ảnh hưởng", worry: "Người dùng không hiểu thay đổi hoặc bị gián đoạn.", evidence: "Brief thiếu đối tượng ảnh hưởng, thông báo hoặc FAQ.", fix: "Bổ sung audience, thông điệp, FAQ và kênh hỗ trợ." },
+    { persona: "Người vận hành", worry: "Team vận hành không biết phải làm gì khi launch lỗi.", evidence: "Brief thiếu owner, escalation hoặc phương án quay lại.", fix: "Chốt owner, escalation path, rollback/fallback và ngưỡng dừng." },
+    { persona: "Người duyệt rủi ro", worry: "Launch có rủi ro quyền truy cập, dữ liệu, pháp lý hoặc compliance.", evidence: "Brief chưa có phần review rủi ro ngoài vận hành.", fix: "Thêm checklist risk/compliance/data/privacy tùy bối cảnh." },
+    { persona: "Người đo hiệu quả", worry: "Sau launch không biết có thành công hay không.", evidence: "Brief thiếu KPI, metric hoặc câu hỏi tổng kết.", fix: "Chốt metric, báo cáo sau launch và nơi lưu bài học." }
   ],
   checklist: [
-    { task: "Chốt mục ti�u, phạm vi v� ti�u ch� th�nh c�ng", owner: "Launch Owner", deadline: "T-2 ng�y", status: "Todo", priority: "High" },
-    { task: "Chốt owner, người duyệt v� timeline triển khai", owner: "Launch Owner", deadline: "T-2 ng�y", status: "Todo", priority: "High" },
-    { task: "Chuẩn bị FAQ/th�ng b�o cho người bị ảnh hưởng", owner: "Support Owner", deadline: "T-1 ng�y", status: "Todo", priority: "Medium" },
-    { task: "Chốt rủi ro ch�nh v� phương �n quay lại", owner: "Ops Owner", deadline: "T-1 ng�y", status: "Todo", priority: "High" },
-    { task: "Tổng kết kết quả v� b�i học", owner: "Launch Owner", deadline: "T+48 giờ", status: "Todo", priority: "Medium" }
+    { task: "Chốt mục tiêu, phạm vi và tiêu chí thành công", owner: "Launch Owner", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Chốt owner, người duyệt và timeline triển khai", owner: "Launch Owner", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Chuẩn bị FAQ/thông báo cho người bị ảnh hưởng", owner: "Support Owner", deadline: "T-1 ngày", status: "Todo", priority: "Medium" },
+    { task: "Chốt rủi ro chính và phương án quay lại", owner: "Ops Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Tổng kết kết quả và bài học", owner: "Launch Owner", deadline: "T+48 giờ", status: "Todo", priority: "Medium" }
   ],
   postmortem: [
-    { title: "Kết quả launch", items: ["Mục ti�u c� đạt kh�ng?", "Ai bị ảnh hưởng nhiều nhất?", "C� vấn đề n�o ph�t sinh kh�ng?"] },
-    { title: "Vận h�nh", items: ["Owner/escalation c� r� kh�ng?", "Fallback c� cần d�ng kh�ng?", "Th�ng b�o/support c� đủ kh�ng?"] },
-    { title: "B�i học", items: ["Lần sau cần th�m ti�u ch� n�o?", "Template n�y cần sửa g�?"] }
+    { title: "Kết quả launch", items: ["Mục tiêu có đạt không?", "Ai bị ảnh hưởng nhiều nhất?", "Có vấn đề nào phát sinh không?"] },
+    { title: "Vận hành", items: ["Owner/escalation có rõ không?", "Fallback có cần dùng không?", "Thông báo/support có đủ không?"] },
+    { title: "Bài học", items: ["Lần sau cần thêm tiêu chí nào?", "Template này cần sửa gì?"] }
   ]
 };
 
@@ -247,7 +247,7 @@ const TEMPLATE_OPERATORS = [
     role: "Owner",
     access: "Template Admin",
     canEdit: true,
-    scope: "Duyệt cấu h�nh, chỉnh ti�u ch�, kh�i phục mẫu chuẩn."
+    scope: "Duyệt cấu hình, chỉnh tiêu chí, khôi phục mẫu chuẩn."
   },
   {
     id: "backend-pic",
@@ -255,7 +255,7 @@ const TEMPLATE_OPERATORS = [
     role: "Prompt/API owner",
     access: "Template Admin",
     canEdit: true,
-    scope: "Chỉnh khung rủi ro, nh�m phản biện, checklist v� format output AI."
+    scope: "Chỉnh khung rủi ro, nhóm phản biện, checklist và format output AI."
   },
   {
     id: "frontend-pic",
@@ -263,7 +263,7 @@ const TEMPLATE_OPERATORS = [
     role: "UI owner",
     access: "Viewer",
     canEdit: false,
-    scope: "Xem cấu h�nh để l�m UI/UX, kh�ng đổi luật chấm."
+    scope: "Xem cấu hình để làm UI/UX, không đổi luật chấm."
   },
   {
     id: "launch-reviewer",
@@ -271,7 +271,7 @@ const TEMPLATE_OPERATORS = [
     role: "Reviewer",
     access: "Viewer",
     canEdit: false,
-    scope: "Xem template v� g�p � trong buổi review."
+    scope: "Xem template và góp ý trong buổi review."
   }
 ];
 const TEMPLATE_EDITING_LOCKED = true;
@@ -291,46 +291,46 @@ const STATUS_ORDER = ["running", "upcoming", "completed"];
 const STATUS_LABELS = {
   running: "Đang chạy",
   upcoming: "Sắp chạy",
-  completed: "Đ� chạy"
+  completed: "Đã chạy"
 };
 const STATUS_HINTS = {
-  running: "Launch đang active hoặc đang chuẩn bị s�t giờ.",
-  upcoming: "Launch chưa chạy, c�n thời gian sửa brief.",
-  completed: "Launch đ� chạy xong, cần lưu kết quả v� b�i học."
+  running: "Launch đang active hoặc đang chuẩn bị sát giờ.",
+  upcoming: "Launch chưa chạy, còn thời gian sửa brief.",
+  completed: "Launch đã chạy xong, cần lưu kết quả và bài học."
 };
 const COLOR_LABELS = {
   Green: "Xanh",
-  Yellow: "V�ng",
+  Yellow: "Vàng",
   Red: "Đỏ"
 };
 const PERSONA_LABELS = {
-  "Angry user": "Người chơi bức x�c",
-  "Exploit hunter": "Người t�m c�ch l�ch luật",
-  "CS lead": "Trưởng nh�m CS",
+  "Angry user": "Người chơi bức xúc",
+  "Exploit hunter": "Người tìm cách lách luật",
+  "CS lead": "Trưởng nhóm CS",
   "Tech on-call": "Kỹ thuật trực sự cố",
-  "Business owner": "Người phụ tr�ch kinh doanh",
+  "Business owner": "Người phụ trách kinh doanh",
   "SRE on-call": "SRE trực sự cố",
-  "Security reviewer": "Người r� so�t bảo mật",
-  "Data owner": "Người phụ tr�ch dữ liệu",
-  "Incident commander": "Chỉ huy xử l� sự cố",
-  "End user representative": "Đại diện người d�ng cuối",
-  "Economy reviewer": "Người r� so�t Economy",
-  "Người chơi bức x�c": "Người chơi bức x�c",
-  "Người t�m c�ch l�ch luật": "Người t�m c�ch l�ch luật",
-  "Trưởng nh�m CS": "Trưởng nh�m CS",
+  "Security reviewer": "Người rà soát bảo mật",
+  "Data owner": "Người phụ trách dữ liệu",
+  "Incident commander": "Chỉ huy xử lý sự cố",
+  "End user representative": "Đại diện người dùng cuối",
+  "Economy reviewer": "Người rà soát Economy",
+  "Người chơi bức xúc": "Người chơi bức xúc",
+  "Người tìm cách lách luật": "Người tìm cách lách luật",
+  "Trưởng nhóm CS": "Trưởng nhóm CS",
   "Kỹ thuật trực sự cố": "Kỹ thuật trực sự cố",
-  "Người phụ tr�ch kinh doanh": "Người phụ tr�ch kinh doanh",
+  "Người phụ trách kinh doanh": "Người phụ trách kinh doanh",
   "SRE trực sự cố": "SRE trực sự cố",
-  "Người r� so�t bảo mật": "Người r� so�t bảo mật",
-  "Người phụ tr�ch dữ liệu": "Người phụ tr�ch dữ liệu",
-  "Chỉ huy xử l� sự cố": "Chỉ huy xử l� sự cố",
-  "Đại diện người d�ng cuối": "Đại diện người d�ng cuối",
-  "Người r� so�t Economy": "Người r� so�t Economy"
+  "Người rà soát bảo mật": "Người rà soát bảo mật",
+  "Người phụ trách dữ liệu": "Người phụ trách dữ liệu",
+  "Chỉ huy xử lý sự cố": "Chỉ huy xử lý sự cố",
+  "Đại diện người dùng cuối": "Đại diện người dùng cuối",
+  "Người rà soát Economy": "Người rà soát Economy"
 };
 const STATUS_VALUE_LABELS = {
-  Todo: "Cần l�m",
-  Doing: "Đang l�m",
-  Done: "Đ� xong",
+  Todo: "Cần làm",
+  Doing: "Đang làm",
+  Done: "Đã xong",
   Blocked: "Đang kẹt"
 };
 const PRIORITY_LABELS = {
@@ -339,49 +339,49 @@ const PRIORITY_LABELS = {
   Low: "Thấp"
 };
 const RISK_LABELS = {
-  "Mục ti�u v� scope": "Mục ti�u v� phạm vi",
-  "Owner v� deadline": "Người phụ tr�ch v� hạn xử l�",
-  "Tech readiness": "Sẵn s�ng kỹ thuật",
-  "User impact": "Ảnh hưởng tới người d�ng",
-  "Business v� reward": "Kinh doanh v� phần thưởng",
-  "phần thưởng v� economy impact": "Phần thưởng v� Economy Impact",
-  "Phần thưởng v� economy impact": "Phần thưởng v� Economy Impact",
-  "Reward v� economy impact": "Phần thưởng v� Economy Impact",
-  "Reward and economy impact": "Phần thưởng v� Economy Impact",
-  "Tech stability v� exploit review": "Kỹ thuật Stability v� L�ch luật Review",
-  "kỹ thuật stability v� l�ch luật review": "Kỹ thuật Stability v� L�ch luật Review",
-  "Learning v� post-mortem": "B�i học sau launch"
+  "Mục tiêu và scope": "Mục tiêu và phạm vi",
+  "Owner và deadline": "Người phụ trách và hạn xử lý",
+  "Tech readiness": "Sẵn sàng kỹ thuật",
+  "User impact": "Ảnh hưởng tới người dùng",
+  "Business và reward": "Kinh doanh và phần thưởng",
+  "phần thưởng và economy impact": "Phần thưởng và Economy Impact",
+  "Phần thưởng và economy impact": "Phần thưởng và Economy Impact",
+  "Reward và economy impact": "Phần thưởng và Economy Impact",
+  "Reward and economy impact": "Phần thưởng và Economy Impact",
+  "Tech stability và exploit review": "Kỹ thuật Stability và Lách luật Review",
+  "kỹ thuật stability và lách luật review": "Kỹ thuật Stability và Lách luật Review",
+  "Learning và post-mortem": "Bài học sau launch"
 };
 const RISK_REQUIREMENTS = {
   scope: [
-    "Mục ti�u launch r�",
-    "Đối tượng �p dụng r�",
-    "KPI hoặc ti�u ch� th�nh c�ng"
+    "Mục tiêu launch rõ",
+    "Đối tượng áp dụng rõ",
+    "KPI hoặc tiêu chí thành công"
   ],
   owner: [
-    "Người phụ tr�ch ch�nh",
+    "Người phụ trách chính",
     "Deadline từng việc",
-    "Người c� quyền quyết định dừng/sửa"
+    "Người có quyền quyết định dừng/sửa"
   ],
   tech: [
     "Kế hoạch test",
-    "Theo d�i lỗi khi chạy",
-    "Phương �n rollback hoặc ngưỡng dừng"
+    "Theo dõi lỗi khi chạy",
+    "Phương án rollback hoặc ngưỡng dừng"
   ],
   user: [
-    "Th�ng điệp cho người d�ng",
+    "Thông điệp cho người dùng",
     "FAQ cho CS",
-    "C�ch xử l� khi người d�ng khiếu nại"
+    "Cách xử lý khi người dùng khiếu nại"
   ],
   business: [
-    "Tỷ lệ/phần thưởng/ng�n s�ch",
+    "Tỷ lệ/phần thưởng/ngân sách",
     "Giới hạn chống lạm dụng",
     "Ảnh hưởng tới doanh thu hoặc economy"
   ],
   learning: [
     "Chỉ số cần đo sau launch",
-    "C�u hỏi tổng kết",
-    "Nơi lưu b�i học cho lần sau"
+    "Câu hỏi tổng kết",
+    "Nơi lưu bài học cho lần sau"
   ]
 };
 GAME_EVENT_TEMPLATE.riskGroups = GAME_EVENT_TEMPLATE.riskGroups.map((group) => ({
@@ -389,11 +389,11 @@ GAME_EVENT_TEMPLATE.riskGroups = GAME_EVENT_TEMPLATE.riskGroups.map((group) => (
   requirements: RISK_REQUIREMENTS[group.key] || []
 }));
 const OWNER_LABELS = {
-  "Business owner": "Phụ tr�ch kinh doanh",
-  "Business Owner": "Phụ tr�ch kinh doanh",
-  "Game Economy Owner": "Phụ tr�ch Economy Game",
+  "Business owner": "Phụ trách kinh doanh",
+  "Business Owner": "Phụ trách kinh doanh",
+  "Game Economy Owner": "Phụ trách Economy Game",
   "Tech Lead": "Lead kỹ thuật",
-  "Tech Owner": "Phụ tr�ch kỹ thuật",
+  "Tech Owner": "Phụ trách kỹ thuật",
   "Tech on-call": "Kỹ thuật trực sự cố",
   "QA Lead": "Lead QA",
   "CS Lead": "Lead CS",
@@ -402,11 +402,11 @@ const OWNER_LABELS = {
 const TYPE_LABELS = {
   "Game event": "Sự kiện game",
   "Campaign marketing": "Chiến dịch marketing",
-  "Feature release": "Ra mắt t�nh năng",
+  "Feature release": "Ra mắt tính năng",
   "Production system release": "Release hệ thống production",
-  "Internal tool": "C�ng cụ nội bộ",
-  "Ops/process change": "Thay đổi quy tr�nh vận h�nh",
-  "Partnership/commercial launch": "Hợp t�c / thương mại",
+  "Internal tool": "Công cụ nội bộ",
+  "Ops/process change": "Thay đổi quy trình vận hành",
+  "Partnership/commercial launch": "Hợp tác / thương mại",
   "Emergency hotfix": "Hotfix khẩn cấp"
 };
 
@@ -422,55 +422,55 @@ const BASE_TEMPLATE_OPTIONS = [
 ];
 const PROTECTED_BASE_TEMPLATE_IDS = Object.freeze(BASE_TEMPLATE_OPTIONS.map((item) => item.id));
 
-const marketingCampaignBrief = `T�n launch: Midweek Top-up Campaign - chiến dịch nạp giữa tuần cho nh�m người chơi trả ph� thấp v� trung b�nh.
+const marketingCampaignBrief = `Tên launch: Midweek Top-up Campaign - chiến dịch nạp giữa tuần cho nhóm người chơi trả phí thấp và trung bình.
 
-Mục ti�u: Tăng doanh thu g�i nạp nhỏ trong 4 ng�y, k�ch hoạt lại người chơi c� lịch sử nạp nhưng 14 ng�y gần nhất chưa nạp.
+Mục tiêu: Tăng doanh thu gói nạp nhỏ trong 4 ngày, kích hoạt lại người chơi có lịch sử nạp nhưng 14 ngày gần nhất chưa nạp.
 
 Thời gian: Dự kiến chạy từ 15/06/2026 đến 18/06/2026.
 
-Đối tượng: Người chơi level 20 trở l�n, từng nạp trong 90 ng�y gần nhất, kh�ng thuộc nh�m refund/abuse.
+Đối tượng: Người chơi level 20 trở lên, từng nạp trong 90 ngày gần nhất, không thuộc nhóm refund/abuse.
 
-Offer: Nạp g�i 99k hoặc 199k nhận th�m coupon v� vật phẩm ti�u hao. C� giới hạn 1 lần/ng�y/người chơi.
+Offer: Nạp gói 99k hoặc 199k nhận thêm coupon và vật phẩm tiêu hao. Có giới hạn 1 lần/ngày/người chơi.
 
-K�nh truyền th�ng: In-game popup, inbox, fanpage post v� push notification.
+Kênh truyền thông: In-game popup, inbox, fanpage post và push notification.
 
-Việc đ� c�:
-- Growth phụ tr�ch target segment v� tracking.
-- Business phụ tr�ch ng�n s�ch ưu đ�i.
-- LiveOps phụ tr�ch lịch chạy trong game.
+Việc đã có:
+- Growth phụ trách target segment và tracking.
+- Business phụ trách ngân sách ưu đãi.
+- LiveOps phụ trách lịch chạy trong game.
 
-Vấn đề c�n mở:
-- Chưa chốt ng�n s�ch coupon tối đa.
-- Chưa c� guardrail nếu doanh thu tăng nhưng refund cũng tăng.
-- Chưa c� CS FAQ về điều kiện nhận coupon.
-- Chưa chốt dashboard theo d�i conversion, refund, coupon claim.
-- Chưa c� ngưỡng dừng nếu coupon bị nhận sai hoặc claim tr�ng.
+Vấn đề còn mở:
+- Chưa chốt ngân sách coupon tối đa.
+- Chưa có guardrail nếu doanh thu tăng nhưng refund cũng tăng.
+- Chưa có CS FAQ về điều kiện nhận coupon.
+- Chưa chốt dashboard theo dõi conversion, refund, coupon claim.
+- Chưa có ngưỡng dừng nếu coupon bị nhận sai hoặc claim trùng.
 - Chưa chốt post-campaign report sau 48 giờ.`;
 
-const mayLoginStreakBrief = `T�n launch: May Login Streak - sự kiện đăng nhập 7 ng�y li�n tiếp trong th�ng 5.
+const mayLoginStreakBrief = `Tên launch: May Login Streak - sự kiện đăng nhập 7 ngày liên tiếp trong tháng 5.
 
-Trạng th�i: Đ� chạy xong từ 28/05/2026 đến 31/05/2026.
+Trạng thái: Đã chạy xong từ 28/05/2026 đến 31/05/2026.
 
-Mục ti�u ban đầu:
-- Tăng tỷ lệ quay lại game trong nh�m người chơi casual.
-- Khuyến kh�ch người chơi đăng nhập đủ 7 ng�y để nhận reward cuối.
-- Giữ chi ph� reward thấp, kh�ng ảnh hưởng economy.
+Mục tiêu ban đầu:
+- Tăng tỷ lệ quay lại game trong nhóm người chơi casual.
+- Khuyến khích người chơi đăng nhập đủ 7 ngày để nhận reward cuối.
+- Giữ chi phí reward thấp, không ảnh hưởng economy.
 
-Đối tượng: Người chơi level 10 trở l�n, kh�ng y�u cầu nạp.
+Đối tượng: Người chơi level 10 trở lên, không yêu cầu nạp.
 
-Cơ chế: Mỗi ng�y đăng nhập nhận một phần qu� nhỏ. Nếu đủ chuỗi 7 ng�y, người chơi nhận th�m rương tổng kết.
+Cơ chế: Mỗi ngày đăng nhập nhận một phần quà nhỏ. Nếu đủ chuỗi 7 ngày, người chơi nhận thêm rương tổng kết.
 
 Kết quả thực tế:
-- Login rate tăng nhẹ trong 2 ng�y đầu.
-- Ticket CS tăng trong 6 giờ đầu v� một số người chơi hiểu nhầm điều kiện reset ng�y.
-- Reward kh�ng vượt ng�n s�ch.
-- Kh�ng c� lỗi nghi�m trọng về hệ thống.
+- Login rate tăng nhẹ trong 2 ngày đầu.
+- Ticket CS tăng trong 6 giờ đầu vì một số người chơi hiểu nhầm điều kiện reset ngày.
+- Reward không vượt ngân sách.
+- Không có lỗi nghiêm trọng về hệ thống.
 
 Điểm thiếu khi chuẩn bị:
-- FAQ cho CS c� nhưng chưa giải th�ch r� mốc reset ng�y.
-- In-game message chưa n�i r� đăng nhập phải li�n tục, kh�ng được bỏ ng�y.
-- Chưa c� ngưỡng pause nếu hệ thống ghi nhận login sai.
-- Post-mortem ban đầu chưa c� c�u hỏi về hiểu nhầm điều kiện event.`;
+- FAQ cho CS có nhưng chưa giải thích rõ mốc reset ngày.
+- In-game message chưa nói rõ đăng nhập phải liên tục, không được bỏ ngày.
+- Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai.
+- Post-mortem ban đầu chưa có câu hỏi về hiểu nhầm điều kiện event.`;
 
 const fallbackLaunches = [
   {
@@ -519,59 +519,59 @@ const fallbackLaunches = [
             color: "Yellow",
             score: 8,
             maxScore: 12,
-            title: "Launch đ� chạy được nhưng cần cải thiện chuẩn bị",
-            reason: "Sự kiện đạt mục ti�u giữ ch�n nhẹ v� kh�ng vượt ng�n s�ch, nhưng th�ng điệp reset ng�y, FAQ CS v� ngưỡng pause chưa đủ r�."
+            title: "Launch đã chạy được nhưng cần cải thiện chuẩn bị",
+            reason: "Sự kiện đạt mục tiêu giữ chân nhẹ và không vượt ngân sách, nhưng thông điệp reset ngày, FAQ CS và ngưỡng pause chưa đủ rõ."
           },
           riskBreakdown: [
-            { label: "Mục ti�u v� scope", score: 2, maxScore: 2, missing: "Mục ti�u v� đối tượng đ� đủ r�." },
-            { label: "Người phụ tr�ch v� hạn xử l�", score: 1, maxScore: 2, missing: "Chưa ghi r� owner trực trong 6 giờ đầu launch." },
-            { label: "Sẵn s�ng kỹ thuật", score: 1, maxScore: 2, missing: "Chưa c� ngưỡng pause nếu hệ thống ghi nhận login sai." },
-            { label: "User impact", score: 1, maxScore: 2, missing: "Th�ng điệp reset ng�y v� điều kiện chuỗi li�n tục chưa đủ r�." },
-            { label: "Business v� reward", score: 2, maxScore: 2, missing: "Reward kh�ng vượt ng�n s�ch." },
-            { label: "B�i học sau launch", score: 1, maxScore: 2, missing: "Post-mortem chưa c� c�u hỏi về hiểu nhầm điều kiện event." }
+            { label: "Mục tiêu và scope", score: 2, maxScore: 2, missing: "Mục tiêu và đối tượng đã đủ rõ." },
+            { label: "Người phụ trách và hạn xử lý", score: 1, maxScore: 2, missing: "Chưa ghi rõ owner trực trong 6 giờ đầu launch." },
+            { label: "Sẵn sàng kỹ thuật", score: 1, maxScore: 2, missing: "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai." },
+            { label: "User impact", score: 1, maxScore: 2, missing: "Thông điệp reset ngày và điều kiện chuỗi liên tục chưa đủ rõ." },
+            { label: "Business và reward", score: 2, maxScore: 2, missing: "Reward không vượt ngân sách." },
+            { label: "Bài học sau launch", score: 1, maxScore: 2, missing: "Post-mortem chưa có câu hỏi về hiểu nhầm điều kiện event." }
           ],
           topRisks: [
-            "Người chơi hiểu nhầm mốc reset ng�y v� điều kiện đăng nhập li�n tục.",
-            "CS FAQ chưa đủ r� cho c�c trường hợp mất chuỗi.",
-            "Chưa c� ngưỡng pause nếu hệ thống ghi nhận login sai."
+            "Người chơi hiểu nhầm mốc reset ngày và điều kiện đăng nhập liên tục.",
+            "CS FAQ chưa đủ rõ cho các trường hợp mất chuỗi.",
+            "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai."
           ],
           redTeam: [
             {
-              persona: "Người chơi bức x�c",
-              worry: "Người chơi bỏ một ng�y nhưng vẫn nghĩ m�nh đủ điều kiện nhận rương tổng kết.",
-              evidence: "Ticket CS tăng trong 6 giờ đầu v� hiểu nhầm điều kiện reset ng�y.",
-              fix: "Ghi r� mốc reset ng�y, điều kiện li�n tục v� v� dụ minh họa trong in-game message."
+              persona: "Người chơi bức xúc",
+              worry: "Người chơi bỏ một ngày nhưng vẫn nghĩ mình đủ điều kiện nhận rương tổng kết.",
+              evidence: "Ticket CS tăng trong 6 giờ đầu vì hiểu nhầm điều kiện reset ngày.",
+              fix: "Ghi rõ mốc reset ngày, điều kiện liên tục và ví dụ minh họa trong in-game message."
             },
             {
-              persona: "Trưởng nh�m CS",
-              worry: "CS mất thời gian giải th�ch lặp lại c�ng một lỗi hiểu nhầm.",
-              evidence: "FAQ c� nhưng chưa đủ case về mất chuỗi v� reset ng�y.",
-              fix: "Bổ sung macro trả lời theo từng trường hợp: bỏ ng�y, reset ng�y, claim rương tổng kết."
+              persona: "Trưởng nhóm CS",
+              worry: "CS mất thời gian giải thích lặp lại cùng một lỗi hiểu nhầm.",
+              evidence: "FAQ có nhưng chưa đủ case về mất chuỗi và reset ngày.",
+              fix: "Bổ sung macro trả lời theo từng trường hợp: bỏ ngày, reset ngày, claim rương tổng kết."
             }
           ],
           checklist: [
-            { task: "Viết lại in-game message về mốc reset ng�y v� điều kiện đăng nhập li�n tục", owner: "PM LiveOps", deadline: "Trước event tiếp theo", status: "Todo", priority: "High" },
-            { task: "Bổ sung CS FAQ cho case mất chuỗi, reset ng�y v� claim rương tổng kết", owner: "CS Lead", deadline: "Trước event tiếp theo", status: "Todo", priority: "High" },
-            { task: "Th�m alert nếu tỷ lệ claim reward thấp bất thường", owner: "Tech Owner", deadline: "Trước event tiếp theo", status: "Todo", priority: "Medium" }
+            { task: "Viết lại in-game message về mốc reset ngày và điều kiện đăng nhập liên tục", owner: "PM LiveOps", deadline: "Trước event tiếp theo", status: "Todo", priority: "High" },
+            { task: "Bổ sung CS FAQ cho case mất chuỗi, reset ngày và claim rương tổng kết", owner: "CS Lead", deadline: "Trước event tiếp theo", status: "Todo", priority: "High" },
+            { task: "Thêm alert nếu tỷ lệ claim reward thấp bất thường", owner: "Tech Owner", deadline: "Trước event tiếp theo", status: "Todo", priority: "Medium" }
           ],
           postmortem: [
-            { title: "B�i học ch�nh", items: ["Th�ng điệp điều kiện event phải c� v� dụ cụ thể.", "CS FAQ cần cover c�c hiểu nhầm phổ biến trước launch."] },
-            { title: "Cần sửa template", items: ["Th�m c�u hỏi kiểm tra mốc reset ng�y.", "Th�m checklist CS macro cho điều kiện nhận reward."] }
+            { title: "Bài học chính", items: ["Thông điệp điều kiện event phải có ví dụ cụ thể.", "CS FAQ cần cover các hiểu nhầm phổ biến trước launch."] },
+            { title: "Cần sửa template", items: ["Thêm câu hỏi kiểm tra mốc reset ngày.", "Thêm checklist CS macro cho điều kiện nhận reward."] }
           ]
         }
       }
     ],
-    postLaunchResult: "Ho�n th�nh launch. Login rate tăng nhẹ trong 2 ng�y đầu, reward kh�ng vượt ng�n s�ch, nhưng ticket CS tăng trong 6 giờ đầu v� người chơi hỏi mốc reset ng�y v� điều kiện giữ chuỗi.",
+    postLaunchResult: "Hoàn thành launch. Login rate tăng nhẹ trong 2 ngày đầu, reward không vượt ngân sách, nhưng ticket CS tăng trong 6 giờ đầu vì người chơi hỏi mốc reset ngày và điều kiện giữ chuỗi.",
     lessonsLearned: [
       {
         id: "lesson-local-1",
         createdAt: new Date("2026-06-01T10:00:00+07:00").toISOString(),
-        text: "Lu�n viết r� mốc reset ng�y, điều kiện giữ chuỗi li�n tục v� v� dụ minh họa trong in-game message."
+        text: "Luôn viết rõ mốc reset ngày, điều kiện giữ chuỗi liên tục và ví dụ minh họa trong in-game message."
       },
       {
         id: "lesson-local-2",
         createdAt: new Date("2026-06-01T10:05:00+07:00").toISOString(),
-        text: "CS FAQ phải c� macro ri�ng cho case mất chuỗi, claim rương tổng kết v� khiếu nại thiếu reward."
+        text: "CS FAQ phải có macro riêng cho case mất chuỗi, claim rương tổng kết và khiếu nại thiếu reward."
       }
     ]
   }
@@ -681,7 +681,7 @@ function syncLaunchRoleLock() {
   if (ROLE_SWITCH_LOCKED) {
     launchOperator.value = LOCKED_LAUNCH_ROLE;
     launchOperator.disabled = true;
-    launchOperator.title = "Bản review public đang kh�a vai tr� ở Human.";
+    launchOperator.title = "Bản review public đang khóa vai trò ở Human.";
   } else {
     launchOperator.disabled = false;
     launchOperator.removeAttribute("title");
@@ -828,7 +828,7 @@ function syncLaunchTypeOptionLabels() {
 function syncTemplateDisplayLabels() {
   if (templateName) {
     const template = activeTemplate();
-    templateName.textContent = `Bộ luật: ${templateDisplayName(template)}${template.customized ? " � Đ� t�y chỉnh" : ""}`;
+    templateName.textContent = `Bộ luật: ${templateDisplayName(template)}${template.customized ? " · Đã tùy chỉnh" : ""}`;
   }
   classificationEditor?.querySelectorAll("[data-type-template] option").forEach((option) => {
     option.textContent = templateDisplayName(baseTemplateById(option.value));
@@ -848,8 +848,8 @@ function renderTemplateSelectorOptions(template = activeTemplate(), editable = c
   templateSelector.value = selectedTemplateType(template);
   templateSelector.disabled = false;
   templateSelector.title = editable
-    ? "Chọn ph�n loại để cấu h�nh."
-    : "Bản review public chỉ cho xem cấu h�nh; vẫn c� thể đổi ph�n loại để đọc bộ luật.";
+    ? "Chọn phân loại để cấu hình."
+    : "Bản review public chỉ cho xem cấu hình; vẫn có thể đổi phân loại để đọc bộ luật.";
 }
 
 function renderTemplateNameEditor(editable = canEditTemplate()) {
@@ -861,10 +861,10 @@ function renderTemplateNameEditor(editable = canEditTemplate()) {
     return `
       <article class="catalog-row template-row" data-base-template="${escapeHTML(id)}">
         <label>
-          <span>${escapeHTML(protectedTemplate ? "Template mặc định" : "Template t�y chỉnh")}</span>
+          <span>${escapeHTML(protectedTemplate ? "Template mặc định" : "Template tùy chỉnh")}</span>
           <input type="text" value="${escapeHTML(templateDisplayName(template))}" data-template-label="${escapeHTML(template.name)}"${disabledAttr(editable)}>
         </label>
-        <button type="button" data-remove-base-template="${escapeHTML(id)}"${removable ? "" : " disabled"}>X�a</button>
+        <button type="button" data-remove-base-template="${escapeHTML(id)}"${removable ? "" : " disabled"}>Xóa</button>
       </article>
     `;
   }).join("");
@@ -882,14 +882,14 @@ function renderClassificationEditor(editable = canEditTemplate()) {
     return `
       <article class="catalog-row classification-row" data-launch-type="${escapeHTML(type)}">
         <label>
-          <span>T�n ph�n loại</span>
+          <span>Tên phân loại</span>
           <input type="text" value="${escapeHTML(typeLabel(type))}" data-type-label${disabledAttr(editable)}>
         </label>
         <label>
-          <span>D�ng bộ template</span>
+          <span>Dùng bộ template</span>
           <select data-type-template${disabledAttr(editable)}>${baseOptions}</select>
         </label>
-        <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>X�a</button>
+        <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>Xóa</button>
       </article>
     `;
   }).join("");
@@ -967,7 +967,7 @@ function parseRiskGroups(text) {
       maxScore: Number(maxScore) || 2,
       requirements: splitList(requirements, ";"),
       checks: splitList(checks, ","),
-      missing: missing || `Thiếu th�ng tin cho nh�m ${label}.`
+      missing: missing || `Thiếu thông tin cho nhóm ${label}.`
     };
   }).filter(Boolean);
 }
@@ -978,9 +978,9 @@ function parsePersonas(text) {
     if (!persona) return null;
     return {
       persona,
-      worry: worry || "Chưa c� lo ngại.",
-      evidence: evidence || "Chưa c� dấu hiệu cần kiểm tra.",
-      fix: fix || "Cần bổ sung c�ch xử l�."
+      worry: worry || "Chưa có lo ngại.",
+      evidence: evidence || "Chưa có dấu hiệu cần kiểm tra.",
+      fix: fix || "Cần bổ sung cách xử lý."
     };
   }).filter(Boolean);
 }
@@ -992,7 +992,7 @@ function parseChecklist(text) {
     return {
       task,
       owner: owner || "Launch Owner",
-      deadline: deadline || "T-1 ng�y",
+      deadline: deadline || "T-1 ngày",
       status: status || "Todo",
       priority: priority || "Medium"
     };
@@ -1052,7 +1052,7 @@ function collectRiskGroupsFromEditor() {
       maxScore: Math.max(1, Number(cardFieldValue(card, "maxScore")) || 2),
       requirements: splitEditorList(cardFieldValue(card, "requirements")),
       checks: splitEditorList(cardFieldValue(card, "checks"), "comma"),
-      missing: cardFieldValue(card, "missing") || `Thiếu th�ng tin cho nh�m ${label}.`
+      missing: cardFieldValue(card, "missing") || `Thiếu thông tin cho nhóm ${label}.`
     };
   }).filter(Boolean);
 }
@@ -1063,9 +1063,9 @@ function collectPersonasFromEditor() {
     if (!persona) return null;
     return {
       persona,
-      worry: cardFieldValue(card, "worry") || "Chưa c� lo ngại.",
-      evidence: cardFieldValue(card, "evidence") || "Chưa c� dấu hiệu cần kiểm tra.",
-      fix: cardFieldValue(card, "fix") || "Cần bổ sung c�ch xử l�."
+      worry: cardFieldValue(card, "worry") || "Chưa có lo ngại.",
+      evidence: cardFieldValue(card, "evidence") || "Chưa có dấu hiệu cần kiểm tra.",
+      fix: cardFieldValue(card, "fix") || "Cần bổ sung cách xử lý."
     };
   }).filter(Boolean);
 }
@@ -1077,7 +1077,7 @@ function collectChecklistFromEditor() {
     return {
       task,
       owner: cardFieldValue(card, "owner") || "Launch Owner",
-      deadline: cardFieldValue(card, "deadline") || "T-1 ng�y",
+      deadline: cardFieldValue(card, "deadline") || "T-1 ngày",
       status: cardFieldValue(card, "status") || "Todo",
       priority: cardFieldValue(card, "priority") || "Medium"
     };
@@ -1128,7 +1128,7 @@ function parseDateOnly(value) {
   return null;
 }
 
-function formatDateOnly(value, fallback = "Chưa c� ng�y") {
+function formatDateOnly(value, fallback = "Chưa có ngày") {
   const text = String(value || "").trim();
   if (!text) return fallback;
 
@@ -1230,12 +1230,12 @@ function offsetDateFromLaunch(deadline, launch = currentLaunch) {
 
 function formatDeadline(deadline, launch = currentLaunch) {
   const text = String(deadline || "").trim();
-  if (!text) return "Chưa c� hạn";
+  if (!text) return "Chưa có hạn";
   return offsetDateFromLaunch(text, launch) || formatDateOnly(text);
 }
 
 function formatDate(value) {
-  if (!value) return "Chưa c� ng�y";
+  if (!value) return "Chưa có ngày";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return `${padDatePart(date.getDate())}/${padDatePart(date.getMonth() + 1)}/${date.getFullYear()} ${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
@@ -1287,13 +1287,13 @@ function getInitials(text) {
 function sourceLabelFor(result, override) {
   if (override) return override;
   if (result?.source === "llm") return "Kết quả từ AI";
-  if (result?.source === "memory_sample") return "Dữ liệu mẫu đ� lưu";
-  if (result?.source === "fallback") return "Kết quả dự ph�ng";
+  if (result?.source === "memory_sample") return "Dữ liệu mẫu đã lưu";
+  if (result?.source === "fallback") return "Kết quả dự phòng";
   return "Bản local";
 }
 
 function colorLabel(color) {
-  return COLOR_LABELS[color] || color || "Chưa c�";
+  return COLOR_LABELS[color] || color || "Chưa có";
 }
 
 function personaLabel(persona) {
@@ -1302,11 +1302,11 @@ function personaLabel(persona) {
 
 function statusValueLabel(status) {
   const normalized = normalizeText(status);
-  if (normalized.includes("done") || normalized.includes("xong")) return "Đ� xong";
-  if (normalized.includes("doing") || normalized.includes("dang lam")) return "Đang l�m";
+  if (normalized.includes("done") || normalized.includes("xong")) return "Đã xong";
+  if (normalized.includes("doing") || normalized.includes("dang lam")) return "Đang làm";
   if (normalized.includes("block") || normalized.includes("ket")) return "Đang kẹt";
-  if (normalized.includes("todo") || normalized.includes("can lam")) return "Cần l�m";
-  return STATUS_VALUE_LABELS[status] || status || "Cần l�m";
+  if (normalized.includes("todo") || normalized.includes("can lam")) return "Cần làm";
+  return STATUS_VALUE_LABELS[status] || status || "Cần làm";
 }
 
 function priorityLabel(priority) {
@@ -1333,7 +1333,7 @@ function statusClassName(status) {
 }
 
 function riskLabel(label) {
-  return RISK_LABELS[label] || label || "Nh�m rủi ro";
+  return RISK_LABELS[label] || label || "Nhóm rủi ro";
 }
 
 function riskKey(label) {
@@ -1348,8 +1348,8 @@ function riskKey(label) {
 }
 
 function riskScoreMeaning(score, maxScore = 2) {
-  if (score >= maxScore) return `${maxScore}/${maxScore}: Đủ r� để giao việc v� chịu tr�ch nhiệm.`;
-  if (score > 0) return `${score}/${maxScore}: C� nhắc tới, nhưng c�n thiếu chi tiết để team l�m ngay.`;
+  if (score >= maxScore) return `${maxScore}/${maxScore}: Đủ rõ để giao việc và chịu trách nhiệm.`;
+  if (score > 0) return `${score}/${maxScore}: Có nhắc tới, nhưng còn thiếu chi tiết để team làm ngay.`;
   return `0/${maxScore}: Chưa thấy đủ bằng chứng trong brief.`;
 }
 
@@ -1361,7 +1361,7 @@ function riskRequirements(label) {
 }
 
 function typeLabel(type) {
-  return TYPE_LABELS[type] || type || "Chưa ph�n loại";
+  return TYPE_LABELS[type] || type || "Chưa phân loại";
 }
 
 function templateDisplayName(templateOrName) {
@@ -1370,30 +1370,30 @@ function templateDisplayName(templateOrName) {
 }
 
 function ownerLabel(owner) {
-  return OWNER_LABELS[owner] || friendlyText(owner || "Chưa g�n");
+  return OWNER_LABELS[owner] || friendlyText(owner || "Chưa gán");
 }
 
 function friendlyText(value) {
   return String(value ?? "")
-    .replace(/reward v� economy impact/gi, "Phần thưởng v� Economy Impact")
-    .replace(/phần thưởng v� economy impact/gi, "Phần thưởng v� Economy Impact")
-    .replace(/tech stability v� exploit review/gi, "Kỹ thuật Stability v� L�ch luật Review")
-    .replace(/kỹ thuật stability v� l�ch luật review/gi, "Kỹ thuật Stability v� L�ch luật Review")
+    .replace(/reward và economy impact/gi, "Phần thưởng và Economy Impact")
+    .replace(/phần thưởng và economy impact/gi, "Phần thưởng và Economy Impact")
+    .replace(/tech stability và exploit review/gi, "Kỹ thuật Stability và Lách luật Review")
+    .replace(/kỹ thuật stability và lách luật review/gi, "Kỹ thuật Stability và Lách luật Review")
     .replace(/reward table/gi, "bảng phần thưởng")
     .replace(/abnormal reward payout/gi, "chi trả phần thưởng bất thường")
-    .replace(/CS escalation/gi, "quy tr�nh chuyển CS")
-    .replace(/kill switch/gi, "n�t dừng khẩn cấp")
-    .replace(/multi-account/gi, "nhiều t�i khoản")
-    .replace(/refund abuse/gi, "lạm dụng ho�n tiền")
+    .replace(/CS escalation/gi, "quy trình chuyển CS")
+    .replace(/kill switch/gi, "nút dừng khẩn cấp")
+    .replace(/multi-account/gi, "nhiều tài khoản")
+    .replace(/refund abuse/gi, "lạm dụng hoàn tiền")
     .replace(/load test/gi, "kiểm thử tải")
     .replace(/error rate/gi, "tỷ lệ lỗi")
-    .replace(/spin success rate/gi, "tỷ lệ quay th�nh c�ng")
-    .replace(/reward delivery failure/gi, "lỗi ph�t thưởng")
+    .replace(/spin success rate/gi, "tỷ lệ quay thành công")
+    .replace(/reward delivery failure/gi, "lỗi phát thưởng")
     .replace(/abnormal phần thưởng payout/gi, "chi trả phần thưởng bất thường")
     .replace(/\btraffic\b/gi, "lưu lượng truy cập")
     .replace(/\blatency\b/gi, "độ trễ")
-    .replace(/\bdashboard\b/gi, "bảng theo d�i")
-    .replace(/\balert\b/gi, "cảnh b�o")
+    .replace(/\bdashboard\b/gi, "bảng theo dõi")
+    .replace(/\balert\b/gi, "cảnh báo")
     .replace(/\bflow\b/gi, "luồng")
     .replace(/\brule\b/gi, "quy định")
     .replace(/\bcap\b/gi, "giới hạn")
@@ -1401,31 +1401,31 @@ function friendlyText(value) {
     .replace(/item hiếm/gi, "vật phẩm hiếm")
     .replace(/\btech\b/gi, "kỹ thuật")
     .replace(/\bevent\b/gi, "sự kiện")
-    .replace(/Launch bản t�m tắt/gi, "Bản t�m tắt launch")
-    .replace(/phương �n quay lại plan/gi, "phương �n quay lại trạng th�i trước đ�")
+    .replace(/Launch bản tóm tắt/gi, "Bản tóm tắt launch")
+    .replace(/phương án quay lại plan/gi, "phương án quay lại trạng thái trước đó")
     .replace(/game event/gi, "sự kiện game")
     .replace(/template/gi, "mẫu")
-    .replace(/exploit/gi, "l�ch luật")
-    .replace(/bug/gi, "lỗi nghi�m trọng")
+    .replace(/exploit/gi, "lách luật")
+    .replace(/bug/gi, "lỗi nghiêm trọng")
     .replace(/launch\/running/gi, "chạy launch")
     .replace(/running/gi, "đang chạy")
-    .replace(/guardrail/gi, "điều kiện kiểm so�t")
-    .replace(/rollback/gi, "phương �n quay lại")
-    .replace(/owner/gi, "người phụ tr�ch")
-    .replace(/deadline/gi, "hạn xử l�")
+    .replace(/guardrail/gi, "điều kiện kiểm soát")
+    .replace(/rollback/gi, "phương án quay lại")
+    .replace(/owner/gi, "người phụ trách")
+    .replace(/deadline/gi, "hạn xử lý")
     .replace(/reward/gi, "phần thưởng")
     .replace(/scope/gi, "phạm vi")
-    .replace(/brief/gi, "bản t�m tắt")
-    .replace(/checklist/gi, "danh s�ch việc cần l�m")
+    .replace(/brief/gi, "bản tóm tắt")
+    .replace(/checklist/gi, "danh sách việc cần làm")
     .replace(/post-mortem/gi, "tổng kết sau launch")
     .replace(/metrics/gi, "chỉ số")
-    .replace(/monitoring/gi, "theo d�i hệ thống")
+    .replace(/monitoring/gi, "theo dõi hệ thống")
     .replace(/on-call/gi, "trực sự cố")
-    .replace(/fallback/gi, "phương �n dự ph�ng")
+    .replace(/fallback/gi, "phương án dự phòng")
     .replace(/macro/gi, "mẫu trả lời")
-    .replace(/escalation path/gi, "đường xử l� leo thang")
-    .replace(/Launch bản t�m tắt/gi, "Bản t�m tắt launch")
-    .replace(/phương �n quay lại plan/gi, "phương �n quay lại trạng th�i trước đ�");
+    .replace(/escalation path/gi, "đường xử lý leo thang")
+    .replace(/Launch bản tóm tắt/gi, "Bản tóm tắt launch")
+    .replace(/phương án quay lại plan/gi, "phương án quay lại trạng thái trước đó");
 }
 
 function headingText(value) {
@@ -1451,25 +1451,25 @@ function renderDecision({ color, score, maxScore = 12, title, reason, sourceLabe
   if (readinessMetric) readinessMetric.className = `metric score-metric ${className}`;
   if (readinessHelpButton) {
     const riskCount = (activeTemplate().riskGroups || []).length;
-    readinessHelpButton.dataset.tooltip = `Tổng điểm 0-${numericMax} từ ${riskCount} nh�m rủi ro trong cấu h�nh ph�n loại hiện tại. Điểm thấp nghĩa l� brief c�n thiếu dữ liệu để launch an to�n.`;
+    readinessHelpButton.dataset.tooltip = `Tổng điểm 0-${numericMax} từ ${riskCount} nhóm rủi ro trong cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.`;
   }
   scoreDial.style.setProperty("--score-percent", `${percent}%`);
   scoreColor.textContent = colorLabel(safeColor);
   scoreValue.textContent = `${numericScore}/${numericMax}`;
   if (scoreDialValue) scoreDialValue.textContent = `${numericScore}/${numericMax}`;
   scoreReason.textContent = friendlyText(reason || (safeColor === "Green"
-    ? "C� thể launch nếu kh�ng c� blocker nghi�m trọng."
+    ? "Có thể launch nếu không có blocker nghiêm trọng."
     : safeColor === "Yellow"
-      ? "Chưa n�n launch ngay. Cần sửa c�c mục thiếu trước."
-      : "Dừng launch. Cần l�m lại brief hoặc giảm scope."));
+      ? "Chưa nên launch ngay. Cần sửa các mục thiếu trước."
+      : "Dừng launch. Cần làm lại brief hoặc giảm scope."));
   decisionTitle.textContent = friendlyText(title || (safeColor === "Green"
-    ? "C� thể chuẩn bị launch"
+    ? "Có thể chuẩn bị launch"
     : safeColor === "Yellow"
-      ? "Chưa n�n launch ngay"
+      ? "Chưa nên launch ngay"
       : "Dừng launch"));
   launchGate.className = `gate-pill ${className}`;
   launchGate.textContent = safeColor === "Green"
-    ? "Kết luận: C� thể chạy c� điều kiện"
+    ? "Kết luận: Có thể chạy có điều kiện"
     : safeColor === "Yellow"
       ? "Kết luận: Tạm giữ để sửa"
       : "Kết luận: Dừng launch";
@@ -1478,7 +1478,7 @@ function renderDecision({ color, score, maxScore = 12, title, reason, sourceLabe
 
 function renderRiskBreakdown(items) {
   if (!items?.length) {
-    riskBreakdown.innerHTML = `<div class="empty-state">Chưa c� điểm rủi ro. Bấm Chạy ph�n t�ch để tạo.</div>`;
+    riskBreakdown.innerHTML = `<div class="empty-state">Chưa có điểm rủi ro. Bấm Chạy phân tích để tạo.</div>`;
     return;
   }
 
@@ -1486,7 +1486,7 @@ function renderRiskBreakdown(items) {
     const score = Number(item.score) || 0;
     const maxScore = Number(item.maxScore) || 2;
     const label = escapeHTML(friendlyText(riskLabel(item.label)));
-    const detail = score >= maxScore ? "Ổn cho bản t�m tắt launch n�y." : escapeHTML(friendlyText(item.missing));
+    const detail = score >= maxScore ? "Ổn cho bản tóm tắt launch này." : escapeHTML(friendlyText(item.missing));
     const requirements = riskRequirements(item.label);
 
     return `
@@ -1496,7 +1496,7 @@ function renderRiskBreakdown(items) {
         <p class="risk-meaning">${escapeHTML(riskScoreMeaning(score, maxScore))}</p>
         <small>${detail}</small>
         <div class="risk-requirements">
-          <b>Muốn đạt 2/2 cần c�:</b>
+          <b>Muốn đạt 2/2 cần có:</b>
           <ul>
             ${requirements.map((requirement) => `<li>${escapeHTML(requirement)}</li>`).join("")}
           </ul>
@@ -1508,7 +1508,7 @@ function renderRiskBreakdown(items) {
 
 function renderTopRisks(items) {
   if (!items?.length) {
-    topRisks.innerHTML = `<li>Chưa c� rủi ro. Bấm Chạy ph�n t�ch để tạo.</li>`;
+    topRisks.innerHTML = `<li>Chưa có rủi ro. Bấm Chạy phân tích để tạo.</li>`;
     return;
   }
   topRisks.innerHTML = items.map((item) => `<li>${escapeHTML(friendlyText(item))}</li>`).join("");
@@ -1553,10 +1553,10 @@ function buildLocalAnalysisResult(text = briefInput.value.trim(), source = "loca
       color,
       score: total,
       maxScore,
-      title: color === "Green" ? "C� thể chuẩn bị launch" : color === "Yellow" ? "Chưa n�n launch ngay" : "Dừng launch",
+      title: color === "Green" ? "Có thể chuẩn bị launch" : color === "Yellow" ? "Chưa nên launch ngay" : "Dừng launch",
       reason: missing.length
         ? `Cần bổ sung: ${missing.map((item) => friendlyText(item.missing)).join("; ")}.`
-        : "Brief đủ r� cho bản demo local."
+        : "Brief đủ rõ cho bản demo local."
     },
     riskBreakdown: results,
     topRisks: missing.map((item) => item.missing),
@@ -1568,7 +1568,7 @@ function buildLocalAnalysisResult(text = briefInput.value.trim(), source = "loca
 
 function renderRedTeam(cards = activeTemplate().redTeam) {
   if (!cards?.length) {
-    redTeamCards.innerHTML = `<div class="empty-state">Chưa c� g�c nh�n phản biện.</div>`;
+    redTeamCards.innerHTML = `<div class="empty-state">Chưa có góc nhìn phản biện.</div>`;
     return;
   }
 
@@ -1581,7 +1581,7 @@ function renderRedTeam(cards = activeTemplate().redTeam) {
       <div>
         <p><strong>Lo ngại:</strong> ${escapeHTML(friendlyText(card.worry))}</p>
         <p><strong>Dấu hiệu:</strong> ${escapeHTML(friendlyText(card.evidence))}</p>
-        <p><strong>C�ch xử l�:</strong> ${escapeHTML(friendlyText(card.fix))}</p>
+        <p><strong>Cách xử lý:</strong> ${escapeHTML(friendlyText(card.fix))}</p>
       </div>
     </article>
   `).join("");
@@ -1589,7 +1589,7 @@ function renderRedTeam(cards = activeTemplate().redTeam) {
 
 function renderChecklist(items = activeTemplate().checklist) {
   if (!items?.length) {
-    checklistRows.innerHTML = `<div class="empty-state">Chưa c� danh s�ch việc cần l�m.</div>`;
+    checklistRows.innerHTML = `<div class="empty-state">Chưa có danh sách việc cần làm.</div>`;
     return;
   }
 
@@ -1604,8 +1604,8 @@ function renderChecklist(items = activeTemplate().checklist) {
         <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
         <h4>${escapeHTML(friendlyText(task))}</h4>
         <div class="timeline-meta">
-          <span class="meta-chip owner-chip"><em>Phụ tr�ch</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
-          <span class="meta-chip status-chip ${statusClass}"><em>Trạng th�i</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
+          <span class="meta-chip owner-chip"><em>Phụ trách</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
+          <span class="meta-chip status-chip ${statusClass}"><em>Trạng thái</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
           <span class="pill risk-priority ${priorityClass}"><em>Mức rủi ro</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
         </div>
       </article>
@@ -1632,52 +1632,10 @@ function renderPostmortem(blocks) {
 function renderLocalAnalysis(sourceLabel = "Rule-based local preview") {
   const briefText = briefInput.value.trim();
   if (!briefText) {
-    renderEmptyAnalysis("Chưa c� brief để ph�n t�ch.");
+    renderEmptyAnalysis("Chưa có brief để phân tích.");
     return;
   }
   renderApiAnalysis(buildLocalAnalysisResult(briefText), sourceLabel);
-}
-
-
-function renderRagInsights(result) {
-  const ragBox = document.getElementById("ragInsights");
-  const ragContent = document.getElementById("ragContent");
-  if (!ragBox || !ragContent) return;
-
-  const productContext = result?.productContext || {};
-  const lessons = result?.lessonMatches || productContext.lessons || [];
-  const snapshot = result?.snapshotContext || productContext.snapshot || null;
-  const hits = result?.memoryHits || productContext.lessons || [];
-
-  if (!lessons.length && !snapshot && !hits.length) {
-    ragBox.style.display = "none";
-    return;
-  }
-
-  ragBox.style.display = "block";
-  let html = "";
-  
-  if (snapshot) {
-    html += <strong>D? li?u snapshot m?i nh?t:</strong><ul>;
-    if (snapshot.hotFindings && snapshot.hotFindings.length) {
-      snapshot.hotFindings.forEach(f => html += <li></li>);
-    } else if (snapshot.topIssue) {
-      html += <li>Top issue: </li>;
-    }
-    html += </ul>;
-  }
-  
-  if (lessons.length) {
-    html += <strong>B?i h?c kinh nghi?m t? ??ng kh?p:</strong><ul>;
-    lessons.forEach(l => {
-      const sev = l.severity ? <span style="font-weight:bold;color:red">[]</span>  : "";
-      html += <li><b></b>: </li>;
-    });
-    html += </ul>;
-  }
-  
-  if (!html) html = "<em>C? d? li?u n?n nh?ng kh?ng hi?n th? chi ti?t.</em>";
-  ragContent.innerHTML = html;
 }
 
 function renderApiAnalysis(result, sourceOverride) {
@@ -1699,7 +1657,6 @@ function renderApiAnalysis(result, sourceOverride) {
   renderRedTeam(result.redTeam || []);
   renderChecklist(result.checklist || []);
   renderPostmortem(result.postmortem || []);
-  renderRagInsights(result);
 }
 
 function renderEmptyAnalysis(reason) {
@@ -1707,7 +1664,7 @@ function renderEmptyAnalysis(reason) {
     color: "Yellow",
     score: 0,
     maxScore: 12,
-    title: "Chưa c� ph�n t�ch",
+    title: "Chưa có phân tích",
     reason,
     sourceLabel: "Đang chờ brief"
   });
@@ -1716,7 +1673,6 @@ function renderEmptyAnalysis(reason) {
   renderRedTeam([]);
   renderChecklist([]);
   renderPostmortem([]);
-  renderRagInsights(null);
 }
 
 function latestHistoryTimestamp(launch) {
@@ -1792,30 +1748,30 @@ function renderLaunchGroups() {
     const cards = items.length
       ? items.map((launch) => {
         const isActive = currentLaunch?.id === launch.id && !draftMode;
-        const launchNameText = launch.name || "Launch chưa đặt t�n";
+        const launchNameText = launch.name || "Launch chưa đặt tên";
         const analysisCount = Number(launch.analysisCount) || 0;
         const lessonCount = Number(launch.lessonCount) || 0;
         const lastSavedAt = launch.latestHistoryAt || launch.updatedAt || "";
-        const lastSavedLabel = lastSavedAt ? formatDate(lastSavedAt) : "Chưa c�";
+        const lastSavedLabel = lastSavedAt ? formatDate(lastSavedAt) : "Chưa có";
         const templateNameText = launch.templateName || templateDisplayName(defaultTemplateForType(launch.type || "Game event"));
         const readinessClass = statusClassFromDecision(launch.decision) || "unknown";
         const readinessLabel = launch.decision
           ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
-          : "Chưa c� điểm readiness";
+          : "Chưa có điểm readiness";
         return `
           <button class="launch-card ${isActive ? "active" : ""} readiness-${escapeHTML(readinessClass)}" type="button" data-launch-id="${escapeHTML(launch.id)}" aria-label="Mở chi tiết ${escapeHTML(launchNameText)}. ${escapeHTML(readinessLabel)}" title="${escapeHTML(readinessLabel)}">
             <strong>${escapeHTML(launchNameText)}</strong>
-            <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} � ${escapeHTML(templateNameText)}</small>
-            <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : "Chưa c� owner")} � ${escapeHTML(lastSavedLabel)}</small>
+            <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(templateNameText)}</small>
+            <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : "Chưa có owner")} · ${escapeHTML(lastSavedLabel)}</small>
             <span class="launch-card-history ${lastSavedAt ? "" : "empty"}">
-              <span>Lịch sử đ� lưu</span>
-              <strong>${escapeHTML(analysisCount)} ph�n t�ch � ${escapeHTML(lessonCount)} b�i học</strong>
-              <small>Mức sẵn s�ng: ${escapeHTML(readinessLabel)}</small>
+              <span>Lịch sử đã lưu</span>
+              <strong>${escapeHTML(analysisCount)} phân tích · ${escapeHTML(lessonCount)} bài học</strong>
+              <small>Mức sẵn sàng: ${escapeHTML(readinessLabel)}</small>
             </span>
           </button>
         `;
       }).join("")
-      : `<div class="empty-state">${isFiltering ? "Kh�ng c� launch ph� hợp." : STATUS_HINTS[status]}</div>`;
+      : `<div class="empty-state">${isFiltering ? "Không có launch phù hợp." : STATUS_HINTS[status]}</div>`;
 
     return `
       <section class="launch-group">
@@ -1863,41 +1819,41 @@ function renderLaunchSnapshot() {
   const lessons = launch?.lessonsLearned || [];
   const latest = analyses.length ? analyses[analyses.length - 1].result?.decision : null;
   launchMemoryStats.innerHTML = `
-    <strong>${escapeHTML(analyses.length)} lần ph�n t�ch</strong>
-    <strong>${escapeHTML(lessons.length)} b�i học</strong>
+    <strong>${escapeHTML(analyses.length)} lần phân tích</strong>
+    <strong>${escapeHTML(lessons.length)} bài học</strong>
   `;
   detailTitle.textContent = launch?.name || "Launch mới";
   detailSub.innerHTML = `
     <span class="meta-chip status">${escapeHTML(STATUS_LABELS[normalizeStatus(launch?.status)])}</span>
     <span class="meta-chip">${escapeHTML(typeLabel(launch?.type))}</span>
-    <span class="meta-chip">${escapeHTML(launch?.owner || "Chưa c� người phụ tr�ch")}</span>
+    <span class="meta-chip">${escapeHTML(launch?.owner || "Chưa có người phụ trách")}</span>
   `;
 
   launchSnapshot.innerHTML = `
     <div class="snapshot-item">
-      <span>Trạng th�i</span>
+      <span>Trạng thái</span>
       <strong>${escapeHTML(STATUS_LABELS[normalizeStatus(launch?.status)])}</strong>
       <small>${escapeHTML(STATUS_HINTS[normalizeStatus(launch?.status)])}</small>
     </div>
     <div class="snapshot-item">
       <span>Kết luận mới nhất</span>
-      <strong>${escapeHTML(latest ? `${colorLabel(latest.color)} ${latest.score}/${latest.maxScore || 12}` : "Chưa c�")}</strong>
-      <small>${analyses.length ? `Cập nhật: ${escapeHTML(formatDate(analyses[analyses.length - 1].createdAt))}` : "Bấm Chạy ph�n t�ch để lưu kết quả đầu ti�n."}</small>
+      <strong>${escapeHTML(latest ? `${colorLabel(latest.color)} ${latest.score}/${latest.maxScore || 12}` : "Chưa có")}</strong>
+      <small>${analyses.length ? `Cập nhật: ${escapeHTML(formatDate(analyses[analyses.length - 1].createdAt))}` : "Bấm Chạy phân tích để lưu kết quả đầu tiên."}</small>
     </div>
     <div class="snapshot-item">
-      <span>Người phụ tr�ch</span>
-      <strong>${escapeHTML(launch?.owner || "Chưa c�")}</strong>
-      <small>Người hoặc team chịu tr�ch nhiệm ch�nh.</small>
+      <span>Người phụ trách</span>
+      <strong>${escapeHTML(launch?.owner || "Chưa có")}</strong>
+      <small>Người hoặc team chịu trách nhiệm chính.</small>
     </div>
     <div class="snapshot-item">
       <span>Start Launch</span>
-      <strong>${escapeHTML(formatDateOnly(launch?.targetDate, "Chưa c�"))}</strong>
-      <small>Ng�y bắt đầu chạy launch.</small>
+      <strong>${escapeHTML(formatDateOnly(launch?.targetDate, "Chưa có"))}</strong>
+      <small>Ngày bắt đầu chạy launch.</small>
     </div>
     <div class="snapshot-item">
       <span>End Launch</span>
-      <strong>${escapeHTML(formatDateOnly(launch?.endDate, "Chưa c�"))}</strong>
-      <small>Ng�y kết th�c hoặc ng�y cần tổng kết.</small>
+      <strong>${escapeHTML(formatDateOnly(launch?.endDate, "Chưa có"))}</strong>
+      <small>Ngày kết thúc hoặc ngày cần tổng kết.</small>
     </div>
   `;
 }
@@ -1905,7 +1861,7 @@ function renderLaunchSnapshot() {
 function renderBriefGuide() {
   const template = activeTemplate();
   if (briefGuideDescription) {
-    briefGuideDescription.textContent = template.description || "Viết như một bản m� tả launch thật. Kh�ng cần văn hay, nhưng cần đủ dữ liệu để Agent chấm rủi ro.";
+    briefGuideDescription.textContent = template.description || "Viết như một bản mô tả launch thật. Không cần văn hay, nhưng cần đủ dữ liệu để Agent chấm rủi ro.";
   }
   if (briefGuideItems) {
     briefGuideItems.innerHTML = (template.briefGuide || DEFAULT_BRIEF_GUIDE)
@@ -1929,15 +1885,15 @@ function renderTemplatePermissionState() {
   const operator = activeTemplateOperator();
   const stateClass = canEditTemplate() ? "allowed" : "locked";
   const title = TEMPLATE_EDITING_LOCKED
-    ? "Đang kh�a chỉnh cấu h�nh cho bản review"
+    ? "Đang khóa chỉnh cấu hình cho bản review"
     : operator.canEdit
-      ? "C� quyền chỉnh cấu h�nh"
-      : "Chỉ được xem cấu h�nh";
+      ? "Có quyền chỉnh cấu hình"
+      : "Chỉ được xem cấu hình";
   const detail = TEMPLATE_EDITING_LOCKED
-    ? "Bạn b� review chỉ xem được template. C�c n�t th�m/x�a/lưu/duyệt suggestion đ� bị kh�a để tr�nh sửa nhầm dữ liệu demo."
+    ? "Bạn bè review chỉ xem được template. Các nút thêm/xóa/lưu/duyệt suggestion đã bị khóa để tránh sửa nhầm dữ liệu demo."
     : operator.canEdit
-      ? "Thay đổi lưu v�o cấu h�nh chung của ph�n loại đang chọn trong phi�n local. Khi l�n production cần backend/admin workflow ri�ng."
-      : "Bạn vẫn xem được to�n bộ cấu h�nh, nhưng kh�ng thể th�m/x�a/sửa ti�u ch� trong bản demo n�y.";
+      ? "Thay đổi lưu vào cấu hình chung của phân loại đang chọn trong phiên local. Khi lên production cần backend/admin workflow riêng."
+      : "Bạn vẫn xem được toàn bộ cấu hình, nhưng không thể thêm/xóa/sửa tiêu chí trong bản demo này.";
 
   templatePermissionState.className = `permission-state ${stateClass}`;
   templatePermissionState.innerHTML = `
@@ -1953,7 +1909,7 @@ function renderTemplateAdminList() {
     <article class="admin-row ${item.canEdit ? "can-edit" : "read-only"}">
       <div>
         <strong>${escapeHTML(item.name)}</strong>
-        <small>${escapeHTML(item.role)} � ${escapeHTML(item.scope)}</small>
+        <small>${escapeHTML(item.role)} · ${escapeHTML(item.scope)}</small>
       </div>
       <span>${escapeHTML(item.access)}</span>
     </article>
@@ -1962,7 +1918,7 @@ function renderTemplateAdminList() {
 
 function renderEditorActions(type, editable) {
   return `
-    <button type="button" class="danger-button" data-template-remove="${escapeHTML(type)}"${disabledAttr(editable)}>X�a</button>
+    <button type="button" class="danger-button" data-template-remove="${escapeHTML(type)}"${disabledAttr(editable)}>Xóa</button>
   `;
 }
 
@@ -1972,29 +1928,29 @@ function renderRiskGroupCard(group = {}, index = 0, editable = true) {
       <div class="editor-card-head">
         <div>
           <span class="config-index" data-index-label>R${index + 1}</span>
-          <strong>${escapeHTML(group.label || "Nh�m rủi ro mới")}</strong>
+          <strong>${escapeHTML(group.label || "Nhóm rủi ro mới")}</strong>
         </div>
         ${renderEditorActions("risk", editable)}
       </div>
       <div class="editor-grid risk-editor-grid">
         <label class="field">
-          <span>T�n nh�m</span>
+          <span>Tên nhóm</span>
           <input data-field="label" type="text" value="${escapeHTML(group.label || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field score-input">
-          <span>Điểm tối đa <button class="help-button inline" type="button" aria-label="Giải th�ch điểm tối đa" data-tooltip="Đ�y l� trọng số của nh�m rủi ro n�y. Tổng điểm readiness bằng tổng Điểm tối đa của tất cả nh�m. Agent chấm 0 đến mức n�y dựa tr�n ti�u ch� đạt điểm v� nội dung brief.">?</button></span>
+          <span>Điểm tối đa <button class="help-button inline" type="button" aria-label="Giải thích điểm tối đa" data-tooltip="Đây là trọng số của nhóm rủi ro này. Tổng điểm readiness bằng tổng Điểm tối đa của tất cả nhóm. Agent chấm 0 đến mức này dựa trên tiêu chí đạt điểm và nội dung brief.">?</button></span>
           <input data-field="maxScore" type="number" min="1" max="5" value="${escapeHTML(group.maxScore || 2)}"${disabledAttr(editable)}>
         </label>
         <label class="field wide">
-          <span>Ti�u ch� đạt điểm <button class="help-button inline" type="button" aria-label="Giải th�ch ti�u ch� đạt điểm" data-tooltip="Đ�y l� checklist điều kiện để nh�m n�y được điểm cao. AI thật sẽ đọc c�c ti�u ch� n�y trong prompt; demo local d�ng th�m từ kh�a để chấm nhanh.">?</button></span>
+          <span>Tiêu chí đạt điểm <button class="help-button inline" type="button" aria-label="Giải thích tiêu chí đạt điểm" data-tooltip="Đây là checklist điều kiện để nhóm này được điểm cao. AI thật sẽ đọc các tiêu chí này trong prompt; demo local dùng thêm từ khóa để chấm nhanh.">?</button></span>
           <textarea data-field="requirements" spellcheck="false"${disabledAttr(editable)}>${escapeHTML((group.requirements || []).join("\n"))}</textarea>
         </label>
         <label class="field wide">
-          <span>Từ kh�a demo local <button class="help-button inline" type="button" aria-label="Giải th�ch từ kh�a demo local" data-tooltip="Chỉ d�ng cho chế độ fallback/rule-based local. Nếu brief c� c�c từ kh�a n�y, app c� th�m bằng chứng để chấm điểm nh�m rủi ro. AI thật vẫn đọc to�n bộ ti�u ch� v� brief.">?</button></span>
+          <span>Từ khóa demo local <button class="help-button inline" type="button" aria-label="Giải thích từ khóa demo local" data-tooltip="Chỉ dùng cho chế độ fallback/rule-based local. Nếu brief có các từ khóa này, app có thêm bằng chứng để chấm điểm nhóm rủi ro. AI thật vẫn đọc toàn bộ tiêu chí và brief.">?</button></span>
           <textarea data-field="checks" spellcheck="false"${disabledAttr(editable)}>${escapeHTML((group.checks || []).join(", "))}</textarea>
         </label>
         <label class="field wide">
-          <span>Khi thiếu th� n�i g�? <button class="help-button inline" type="button" aria-label="Giải th�ch khi thiếu th� n�i g�" data-tooltip="Đ�y l� c�u Agent d�ng để giải th�ch khi brief chưa đủ dữ liệu cho nh�m rủi ro n�y. Human sửa c�u n�y rồi lưu cấu h�nh chung th� lần ph�n t�ch sau sẽ d�ng c�u mới.">?</button></span>
+          <span>Khi thiếu thì nói gì? <button class="help-button inline" type="button" aria-label="Giải thích khi thiếu thì nói gì" data-tooltip="Đây là câu Agent dùng để giải thích khi brief chưa đủ dữ liệu cho nhóm rủi ro này. Human sửa câu này rồi lưu cấu hình chung thì lần phân tích sau sẽ dùng câu mới.">?</button></span>
           <textarea data-field="missing" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(group.missing || "")}</textarea>
         </label>
       </div>
@@ -2015,19 +1971,19 @@ function renderPersonaCard(item = {}, index = 0, editable = true) {
       </div>
       <div class="editor-grid">
         <label class="field">
-          <span>Vai tr� phản biện</span>
+          <span>Vai trò phản biện</span>
           <input data-field="persona" type="text" value="${escapeHTML(displayPersona || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
-          <span>Lo ngại ch�nh</span>
+          <span>Lo ngại chính</span>
           <textarea data-field="worry" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(item.worry || "")}</textarea>
         </label>
         <label class="field">
-          <span>Dấu hiệu cần t�m</span>
+          <span>Dấu hiệu cần tìm</span>
           <textarea data-field="evidence" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(item.evidence || "")}</textarea>
         </label>
         <label class="field">
-          <span>C�ch xử l�</span>
+          <span>Cách xử lý</span>
           <textarea data-field="fix" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(item.fix || "")}</textarea>
         </label>
       </div>
@@ -2047,21 +2003,21 @@ function renderChecklistCard(item = {}, index = 0, editable = true) {
       <div class="checklist-topline">
         <span class="config-index" data-index-label>C${index + 1}</span>
         <label class="field task-field">
-          <span>Việc cần l�m</span>
+          <span>Việc cần làm</span>
           <input data-field="task" type="text" value="${escapeHTML(item.task || "")}"${disabledAttr(editable)}>
         </label>
       </div>
       <div class="checklist-meta-line">
         <label class="field">
-          <span>Phụ tr�ch</span>
+          <span>Phụ trách</span>
           <input data-field="owner" type="text" value="${escapeHTML(item.owner || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
           <span>Deadline</span>
-          <input data-field="deadline" type="text" value="${escapeHTML(item.deadline || "T-1 ng�y")}"${disabledAttr(editable)}>
+          <input data-field="deadline" type="text" value="${escapeHTML(item.deadline || "T-1 ngày")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
-          <span>Trạng th�i</span>
+          <span>Trạng thái</span>
           <select data-field="status"${disabledAttr(editable)}>
             ${Object.entries(STATUS_VALUE_LABELS).map(([value, label]) => optionHTML(value, label, status)).join("")}
           </select>
@@ -2084,17 +2040,17 @@ function renderLessonCard(block = {}, index = 0, editable = true) {
       <div class="editor-card-head">
         <div>
           <span class="config-index" data-index-label>L${index + 1}</span>
-          <strong>${escapeHTML(block.title || "Block b�i học mới")}</strong>
+          <strong>${escapeHTML(block.title || "Block bài học mới")}</strong>
         </div>
         ${renderEditorActions("lesson", editable)}
       </div>
       <div class="editor-grid">
         <label class="field">
-          <span>Ti�u đề block</span>
+          <span>Tiêu đề block</span>
           <input data-field="title" type="text" value="${escapeHTML(block.title || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
-          <span>C�u hỏi, mỗi d�ng một c�u</span>
+          <span>Câu hỏi, mỗi dòng một câu</span>
           <textarea data-field="items" spellcheck="false"${disabledAttr(editable)}>${escapeHTML((block.items || []).join("\n"))}</textarea>
         </label>
       </div>
@@ -2132,39 +2088,39 @@ function blankTemplateItem(type) {
   const next = Date.now().toString().slice(-4);
   if (type === "risk") {
     return {
-      label: `Nh�m rủi ro mới ${next}`,
+      label: `Nhóm rủi ro mới ${next}`,
       maxScore: 2,
-      requirements: ["Ti�u ch� cần c�"],
+      requirements: ["Tiêu chí cần có"],
       checks: ["tu khoa"],
-      missing: "Chưa đủ th�ng tin cho nh�m rủi ro n�y."
+      missing: "Chưa đủ thông tin cho nhóm rủi ro này."
     };
   }
   if (type === "persona") {
     return {
       persona: `Người phản biện mới ${next}`,
-      worry: "Điểm đ�ng lo nhất l� g�?",
-      evidence: "Dấu hiệu n�o trong brief cho thấy rủi ro n�y?",
-      fix: "Team cần l�m g� để giảm rủi ro?"
+      worry: "Điểm đáng lo nhất là gì?",
+      evidence: "Dấu hiệu nào trong brief cho thấy rủi ro này?",
+      fix: "Team cần làm gì để giảm rủi ro?"
     };
   }
   if (type === "checklist") {
     return {
-      task: `Việc cần l�m mới ${next}`,
+      task: `Việc cần làm mới ${next}`,
       owner: "Launch Owner",
-      deadline: "T-1 ng�y",
+      deadline: "T-1 ngày",
       status: "Todo",
       priority: "Medium"
     };
   }
   return {
-    title: `Block b�i học mới ${next}`,
-    items: ["C�u hỏi cần trả lời sau launch"]
+    title: `Block bài học mới ${next}`,
+    items: ["Câu hỏi cần trả lời sau launch"]
   };
 }
 
 function addTemplateEditorItem(type) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể chỉnh cấu h�nh.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể chỉnh cấu hình.";
     return;
   }
   const editable = true;
@@ -2189,7 +2145,7 @@ function addTemplateEditorItem(type) {
 
 function removeTemplateEditorItem(button) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể chỉnh cấu h�nh.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể chỉnh cấu hình.";
     return;
   }
   const card = button.closest("[data-template-item]");
@@ -2218,7 +2174,7 @@ function renderTemplateConfig() {
   renderTemplateCatalog(editable);
 
   templateName.dataset.baseName = template.name;
-  templateName.textContent = `Bộ luật: ${templateDisplayName(template)}${template.customized ? " � Đ� t�y chỉnh" : ""}`;
+  templateName.textContent = `Bộ luật: ${templateDisplayName(template)}${template.customized ? " · Đã tùy chỉnh" : ""}`;
   templateMaxScore.textContent = String(maxScore);
   templateRiskCount.textContent = String((template.riskGroups || []).length);
   templatePersonaCount.textContent = String((template.redTeam || []).length);
@@ -2248,7 +2204,7 @@ function renderTemplateConfig() {
 function renderHistory() {
   const analyses = currentLaunch?.analyses || [];
   if (!analyses.length) {
-    analysisHistory.innerHTML = `<div class="empty-state">Launch n�y chưa c� lịch sử. Bấm Chạy ph�n t�ch để tạo bản ghi đầu ti�n.</div>`;
+    analysisHistory.innerHTML = `<div class="empty-state">Launch này chưa có lịch sử. Bấm Chạy phân tích để tạo bản ghi đầu tiên.</div>`;
     return;
   }
 
@@ -2258,8 +2214,8 @@ function renderHistory() {
     return `
       <article class="history-card">
         <div>
-          <strong>#${analyses.length - index} � ${escapeHTML(label)}</strong>
-          <small>${escapeHTML(formatDate(analysis.createdAt))} � ${escapeHTML(sourceLabelFor(analysis.result))}</small>
+          <strong>#${analyses.length - index} · ${escapeHTML(label)}</strong>
+          <small>${escapeHTML(formatDate(analysis.createdAt))} · ${escapeHTML(sourceLabelFor(analysis.result))}</small>
         </div>
         <button type="button" data-analysis-id="${escapeHTML(analysis.id)}">Mở lại</button>
       </article>
@@ -2277,7 +2233,7 @@ function reportResult() {
 }
 
 function markdownList(items = [], mapper = (item) => item) {
-  if (!items.length) return "- Chưa c�";
+  if (!items.length) return "- Chưa có";
   return items.map((item) => `- ${mapper(item)}`).join("\n");
 }
 
@@ -2295,7 +2251,7 @@ function generateLaunchReportMarkdown() {
     return `${friendlyText(riskLabel(item.label))}: ${score}/${maxScore} - ${friendlyText(item.missing || "Ổn")}`;
   });
   const redTeamLines = markdownList(result?.redTeam || template.redTeam || [], (item) =>
-    `${personaLabel(item.persona)}: ${friendlyText(item.worry)} | C�ch xử l�: ${friendlyText(item.fix)}`
+    `${personaLabel(item.persona)}: ${friendlyText(item.worry)} | Cách xử lý: ${friendlyText(item.fix)}`
   );
   const checklistLines = markdownList(result?.checklist || template.checklist || [], (item) => {
     const row = Array.isArray(item)
@@ -2310,32 +2266,32 @@ function generateLaunchReportMarkdown() {
 
   return `# LaunchOps Report - ${launch?.name || "Launch mới"}
 
-## 1. T�m tắt launch
-- Ph�n loại: ${typeLabel(launch?.type)}
-- Trạng th�i: ${STATUS_LABELS[normalizeStatus(launch?.status)]}
-- Người phụ tr�ch: ${launch?.owner || "Chưa c�"}
-- Start Launch: ${formatDateOnly(launch?.targetDate, "Chưa c�")}
-- End Launch: ${formatDateOnly(launch?.endDate, "Chưa c�")}
+## 1. Tóm tắt launch
+- Phân loại: ${typeLabel(launch?.type)}
+- Trạng thái: ${STATUS_LABELS[normalizeStatus(launch?.status)]}
+- Người phụ trách: ${launch?.owner || "Chưa có"}
+- Start Launch: ${formatDateOnly(launch?.targetDate, "Chưa có")}
+- End Launch: ${formatDateOnly(launch?.endDate, "Chưa có")}
 - Template: ${template.name || "Template mặc định"}
 
 ## 2. Kết luận readiness
-- M�u: ${colorLabel(decision.color || "Yellow")}
+- Màu: ${colorLabel(decision.color || "Yellow")}
 - Điểm: ${decision.score ?? 0}/${decision.maxScore || templateMax(template)}
-- L� do: ${friendlyText(decision.reason || "Chưa c� ph�n t�ch")}
+- Lý do: ${friendlyText(decision.reason || "Chưa có phân tích")}
 
 ## 3. Top risks
 ${markdownList(result?.topRisks || [], (item) => friendlyText(item))}
 
-## 4. Điểm theo nh�m rủi ro
+## 4. Điểm theo nhóm rủi ro
 ${riskLines}
 
-## 5. Nh�m phản biện
+## 5. Nhóm phản biện
 ${redTeamLines}
 
 ## 6. Checklist
 ${checklistLines}
 
-## 7. B�i học đ� lưu
+## 7. Bài học đã lưu
 ${lessonLines}
 
 ## 8. Template version gần nhất
@@ -2362,9 +2318,9 @@ async function exportLaunchReport() {
   downloadTextFile(filename, markdown);
   try {
     await navigator.clipboard.writeText(markdown);
-    analysisSource.textContent = "Đ� export report v� copy Markdown v�o clipboard";
+    analysisSource.textContent = "Đã export report và copy Markdown vào clipboard";
   } catch {
-    analysisSource.textContent = "Đ� export report Markdown";
+    analysisSource.textContent = "Đã export report Markdown";
   }
 }
 
@@ -2379,7 +2335,7 @@ function ensureTemplateVersionHistory() {
     createdAt: new Date().toISOString(),
     author: "System",
     note: `Template gốc cho ${typeLabel(type)}`,
-    summary: `${(template.riskGroups || []).length} nh�m rủi ro � ${(template.redTeam || []).length} g�c phản biện � ${templateMax(template)} điểm`,
+    summary: `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
     template: cloneData(template)
   });
 }
@@ -2395,7 +2351,7 @@ function addTemplateVersion(note, source = "manual") {
     author: activeTemplateOperator().name,
     note,
     source,
-    summary: `${(template.riskGroups || []).length} nh�m rủi ro � ${(template.redTeam || []).length} g�c phản biện � ${templateMax(template)} điểm`,
+    summary: `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
     template: cloneData(template)
   });
 }
@@ -2408,13 +2364,13 @@ function renderTemplateVersionHistory() {
     ? versions.slice().reverse().map((item) => `
       <article class="version-row">
         <div>
-          <strong>v${escapeHTML(item.version)} � ${escapeHTML(item.note || "Snapshot template")}</strong>
+          <strong>v${escapeHTML(item.version)} · ${escapeHTML(item.note || "Snapshot template")}</strong>
           <small>${escapeHTML(item.summary || "")}</small>
         </div>
-        <span>${escapeHTML(item.author || "Admin")} � ${escapeHTML(formatDate(item.createdAt))}</span>
+        <span>${escapeHTML(item.author || "Admin")} · ${escapeHTML(formatDate(item.createdAt))}</span>
       </article>
     `).join("")
-    : `<div class="empty-state">Chưa c� version template.</div>`;
+    : `<div class="empty-state">Chưa có version template.</div>`;
 }
 
 function suggestionExists(id) {
@@ -2444,8 +2400,8 @@ function ensureLessonSuggestions() {
       addSuggestionIfMissing({
         id: `risk-${slugify(label)}`,
         type: "riskRequirement",
-        title: `Bổ sung ti�u ch� cho ${label}`,
-        reason: friendlyText(risk.missing || "Nh�m n�y thường thiếu dữ liệu trong brief."),
+        title: `Bổ sung tiêu chí cho ${label}`,
+        reason: friendlyText(risk.missing || "Nhóm này thường thiếu dữ liệu trong brief."),
         target: label,
         payload: {
           label,
@@ -2462,31 +2418,31 @@ function ensureLessonSuggestions() {
     addSuggestionIfMissing({
       id: "checklist-cs-faq",
       type: "checklist",
-      title: "Th�m task CS FAQ v�o checklist",
-      reason: "History/lesson nhắc tới FAQ hoặc CS, n�n checklist cần c� việc chốt FAQ trước launch.",
-      payload: { task: "Chốt CS FAQ v� mẫu trả lời trước launch", owner: "CS Lead", deadline: "T-1 ng�y", status: "Todo", priority: "High" }
+      title: "Thêm task CS FAQ vào checklist",
+      reason: "History/lesson nhắc tới FAQ hoặc CS, nên checklist cần có việc chốt FAQ trước launch.",
+      payload: { task: "Chốt CS FAQ và mẫu trả lời trước launch", owner: "CS Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" }
     });
   }
   if (combined.includes("rollback") || combined.includes("pause") || combined.includes("nguong dung")) {
     addSuggestionIfMissing({
       id: "checklist-rollback-threshold",
       type: "checklist",
-      title: "Th�m task rollback/ngưỡng dừng",
-      reason: "History/lesson nhắc tới rollback hoặc ngưỡng dừng, n�n checklist cần bắt buộc c� mục n�y.",
-      payload: { task: "Chốt rollback plan v� ngưỡng dừng launch", owner: "Tech Lead", deadline: "T-1 ng�y", status: "Todo", priority: "High" }
+      title: "Thêm task rollback/ngưỡng dừng",
+      reason: "History/lesson nhắc tới rollback hoặc ngưỡng dừng, nên checklist cần bắt buộc có mục này.",
+      payload: { task: "Chốt rollback plan và ngưỡng dừng launch", owner: "Tech Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" }
     });
   }
   if (combined.includes("reward") || combined.includes("phan thuong")) {
     addSuggestionIfMissing({
       id: "persona-economy-reviewer",
       type: "persona",
-      title: "Th�m người r� so�t Economy/Reward",
-      reason: "History/lesson nhắc tới reward, n�n cần một g�c phản biện chuy�n kiểm tra tỷ lệ, ng�n s�ch v� lạm dụng.",
+      title: "Thêm người rà soát Economy/Reward",
+      reason: "History/lesson nhắc tới reward, nên cần một góc phản biện chuyên kiểm tra tỷ lệ, ngân sách và lạm dụng.",
       payload: {
-        persona: "Người r� so�t Economy",
-        worry: "Reward hoặc tỷ lệ c� thể g�y vượt ng�n s�ch, mất c�n bằng hoặc bị lạm dụng.",
-        evidence: "Brief thiếu tỷ lệ, ng�n s�ch, giới hạn hoặc guardrail phần thưởng.",
-        fix: "Chốt reward table, ng�n s�ch tối đa, giới hạn v� log bất thường trước launch."
+        persona: "Người rà soát Economy",
+        worry: "Reward hoặc tỷ lệ có thể gây vượt ngân sách, mất cân bằng hoặc bị lạm dụng.",
+        evidence: "Brief thiếu tỷ lệ, ngân sách, giới hạn hoặc guardrail phần thưởng.",
+        fix: "Chốt reward table, ngân sách tối đa, giới hạn và log bất thường trước launch."
       }
     });
   }
@@ -2497,13 +2453,13 @@ function renderLessonSuggestions() {
   ensureLessonSuggestions();
   const suggestions = (currentLaunch?.lessonSuggestions || []).filter((item) => item.status !== "dismissed");
   if (!suggestions.length) {
-    lessonSuggestions.innerHTML = `<div class="empty-state">Chưa c� đề xuất. Sau khi c� ph�n t�ch hoặc b�i học, AI sẽ đề xuất cập nhật template để admin duyệt.</div>`;
+    lessonSuggestions.innerHTML = `<div class="empty-state">Chưa có đề xuất. Sau khi có phân tích hoặc bài học, AI sẽ đề xuất cập nhật template để admin duyệt.</div>`;
     return;
   }
 
   const permissionNote = `
     <div class="suggestion-note">
-      AI chỉ đề xuất cập nhật template để Human tham khảo. Chỉ Admin mới được bấm Duyệt v�o template.
+      AI chỉ đề xuất cập nhật template để Human tham khảo. Chỉ Admin mới được bấm Duyệt vào template.
     </div>
   `;
   lessonSuggestions.innerHTML = permissionNote + suggestions.map((item) => {
@@ -2517,7 +2473,7 @@ function renderLessonSuggestions() {
           <p>${escapeHTML(friendlyText(item.reason))}</p>
         </div>
         <div class="suggestion-actions">
-          <button type="button" data-suggestion-apply="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>${accepted ? "Đ� duyệt" : "Duyệt v�o template"}</button>
+          <button type="button" data-suggestion-apply="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>${accepted ? "Đã duyệt" : "Duyệt vào template"}</button>
           <button type="button" data-suggestion-dismiss="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>Bỏ qua</button>
         </div>
       </article>
@@ -2531,7 +2487,7 @@ function findSuggestion(id) {
 
 function applyLessonSuggestion(id) {
   if (!canApproveTemplateSuggestion()) {
-    analysisSource.textContent = "AI suggestion chỉ l� tham khảo. Chỉ Admin mới được duyệt v�o template.";
+    analysisSource.textContent = "AI suggestion chỉ là tham khảo. Chỉ Admin mới được duyệt vào template.";
     return;
   }
   if (!currentLaunch) return;
@@ -2580,7 +2536,7 @@ function applyLessonSuggestion(id) {
   currentLaunch.template = defaultTemplateForType(selectedConfigType);
   addTemplateVersion(`Duyệt AI suggestion: ${suggestion.title}`, "ai_suggestion");
   renderLaunchWorkspace();
-  analysisSource.textContent = `Đ� duyệt suggestion v� cập nhật cấu h�nh chung cho ${typeLabel(selectedConfigType)}`;
+  analysisSource.textContent = `Đã duyệt suggestion và cập nhật cấu hình chung cho ${typeLabel(selectedConfigType)}`;
 }
 
 function dismissLessonSuggestion(id) {
@@ -2589,7 +2545,7 @@ function dismissLessonSuggestion(id) {
   suggestion.status = "dismissed";
   suggestion.dismissedAt = new Date().toISOString();
   renderLaunchWorkspace();
-  analysisSource.textContent = "Đ� bỏ qua suggestion";
+  analysisSource.textContent = "Đã bỏ qua suggestion";
 }
 
 function renderLessons() {
@@ -2602,30 +2558,30 @@ function renderLessons() {
         <small>${escapeHTML(formatDate(lesson.createdAt))}</small>
       </div>
     `).join("")
-    : `<div class="empty-state">Chưa c� b�i học n�o. Khi launch xong, ghi b�i học ở đ�y để lần sau agent c� th�m ngữ cảnh.</div>`;
+    : `<div class="empty-state">Chưa có bài học nào. Khi launch xong, ghi bài học ở đây để lần sau agent có thêm ngữ cảnh.</div>`;
 
   lessonsPanel.innerHTML = `
     <section class="lesson-box">
       <h3>Kết quả sau launch</h3>
       <textarea id="postResultInput" spellcheck="false">${escapeHTML(postResult)}</textarea>
       <label class="field">
-        <span>Đổi trạng th�i sau khi lưu</span>
+        <span>Đổi trạng thái sau khi lưu</span>
         <select id="postResultStatus">
-          <option value="completed" ${normalizeStatus(currentLaunch?.status) === "completed" ? "selected" : ""}>Đ� chạy</option>
+          <option value="completed" ${normalizeStatus(currentLaunch?.status) === "completed" ? "selected" : ""}>Đã chạy</option>
           <option value="running" ${normalizeStatus(currentLaunch?.status) === "running" ? "selected" : ""}>Đang chạy</option>
           <option value="upcoming" ${normalizeStatus(currentLaunch?.status) === "upcoming" ? "selected" : ""}>Sắp chạy</option>
         </select>
       </label>
     </section>
     <section class="lesson-box">
-      <h3>B�i học r�t ra</h3>
+      <h3>Bài học rút ra</h3>
       <div class="lesson-list">${lessonItems}</div>
       <label class="field brief-field">
-        <span>Th�m b�i học mới</span>
-        <textarea id="lessonInput" spellcheck="false" placeholder="V� dụ: Lần sau phải chốt CS FAQ trước T-1."></textarea>
+        <span>Thêm bài học mới</span>
+        <textarea id="lessonInput" spellcheck="false" placeholder="Ví dụ: Lần sau phải chốt CS FAQ trước T-1."></textarea>
       </label>
       <div class="actions">
-        <button id="saveLesson" type="button" class="primary">Lưu kết quả / b�i học</button>
+        <button id="saveLesson" type="button" class="primary">Lưu kết quả / bài học</button>
       </div>
     </section>
   `;
@@ -2678,7 +2634,7 @@ function applyLaunchPermissions() {
   const status = currentLaunchStatus();
   const roleLabel = activeLaunchRole() === "admin" ? "Admin" : activeLaunchRole() === "ai" ? "AI" : "Human";
   if (!canEdit && analysisSource) {
-    analysisSource.textContent = `${roleLabel}: launch ${STATUS_LABELS[status]} chỉ Admin được sửa/x�a. Human chỉ được lưu kết quả v� b�i học.`;
+    analysisSource.textContent = `${roleLabel}: launch ${STATUS_LABELS[status]} chỉ Admin được sửa/xóa. Human chỉ được lưu kết quả và bài học.`;
   }
 }
 
@@ -2686,12 +2642,12 @@ function renderLatestAnalysisOrPreview() {
   const analyses = currentLaunch?.analyses || [];
   const latest = analyses.length ? analyses[analyses.length - 1] : null;
   if (latest?.result) {
-    renderApiAnalysis(latest.result, `Lịch sử đ� lưu � ${formatDate(latest.createdAt)}`);
+    renderApiAnalysis(latest.result, `Lịch sử đã lưu · ${formatDate(latest.createdAt)}`);
     return;
   }
 
   if (briefInput.value.trim()) {
-    renderLocalAnalysis(backendAvailable ? "Xem thử local: chưa lưu lịch sử" : "Dự ph�ng local: backend chưa bật");
+    renderLocalAnalysis(backendAvailable ? "Xem thử local: chưa lưu lịch sử" : "Dự phòng local: backend chưa bật");
     return;
   }
 
@@ -2770,7 +2726,7 @@ async function selectLaunch(id) {
     renderLatestAnalysisOrPreview();
   } catch (error) {
     console.warn("Cannot load launch detail.", error);
-    renderEmptyAnalysis("Kh�ng mở được launch n�y. Kiểm tra backend local.");
+    renderEmptyAnalysis("Không mở được launch này. Kiểm tra backend local.");
   }
 }
 
@@ -2794,17 +2750,17 @@ function startNewLaunch() {
   };
   setFormFromLaunch(currentLaunch);
   renderLaunchWorkspace();
-  renderEmptyAnalysis("Nhập brief rồi bấm Lưu launch hoặc Chạy ph�n t�ch.");
+  renderEmptyAnalysis("Nhập brief rồi bấm Lưu launch hoặc Chạy phân tích.");
 }
 
 async function saveCurrentLaunch({ silent = false } = {}) {
   if (!canEditLaunch()) {
-    analysisSource.textContent = "Launch đang chạy/đ� chạy chỉ Admin được sửa. Human chỉ được lưu kết quả v� b�i học ở tab B�i học.";
+    analysisSource.textContent = "Launch đang chạy/đã chạy chỉ Admin được sửa. Human chỉ được lưu kết quả và bài học ở tab Bài học.";
     throw new Error("Launch edit is not allowed for this role/status.");
   }
   const launchData = collectLaunchFromForm();
   if (!canSaveLaunchData(launchData)) {
-    analysisSource.textContent = "Human/AI chỉ được lưu launch ở trạng th�i Sắp chạy. Launch đang chạy/đ� chạy chỉ Admin được sửa.";
+    analysisSource.textContent = "Human/AI chỉ được lưu launch ở trạng thái Sắp chạy. Launch đang chạy/đã chạy chỉ Admin được sửa.";
     throw new Error("Only Admin can save running/completed launch metadata.");
   }
   if (!launchData.id) launchData.id = slugify(launchData.name);
@@ -2843,11 +2799,11 @@ async function saveCurrentLaunch({ silent = false } = {}) {
     }
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
-    if (!silent) analysisSource.textContent = backendAvailable ? "Đ� lưu launch v�o bộ nhớ local" : "Dự ph�ng local: chưa lưu bền vững";
+    if (!silent) analysisSource.textContent = backendAvailable ? "Đã lưu launch vào bộ nhớ local" : "Dự phòng local: chưa lưu bền vững";
     return currentLaunch;
   } catch (error) {
     console.warn("Save launch failed.", error);
-    analysisSource.textContent = "Lưu chưa th�nh c�ng: backend chưa sẵn s�ng";
+    analysisSource.textContent = "Lưu chưa thành công: backend chưa sẵn sàng";
     throw error;
   } finally {
     saveLaunchButton.disabled = false;
@@ -2858,13 +2814,13 @@ async function saveCurrentLaunch({ silent = false } = {}) {
 
 async function deleteCurrentLaunch() {
   if (!canDeleteLaunch()) {
-    analysisSource.textContent = "Bạn kh�ng c� quyền x�a launch n�y. Launch đang chạy/đ� chạy chỉ Admin được x�a.";
+    analysisSource.textContent = "Bạn không có quyền xóa launch này. Launch đang chạy/đã chạy chỉ Admin được xóa.";
     return;
   }
   const launchId = currentLaunch?.id;
-  const launchLabel = currentLaunch?.name || "launch n�y";
+  const launchLabel = currentLaunch?.name || "launch này";
   if (!launchId) return;
-  if (!window.confirm(`X�a ${launchLabel}? H�nh động n�y chỉ �p dụng trong bản demo/local hiện tại.`)) return;
+  if (!window.confirm(`Xóa ${launchLabel}? Hành động này chỉ áp dụng trong bản demo/local hiện tại.`)) return;
 
   if (backendAvailable) {
     await fetchJson(`${API_BASE}/launches/${encodeURIComponent(launchId)}`, { method: "DELETE" });
@@ -2875,7 +2831,7 @@ async function deleteCurrentLaunch() {
 
   launches = launches.filter((launch) => launch.id !== launchId);
   const next = launches.find((launch) => normalizeStatus(launch.status) === "running") || launches[0];
-  analysisSource.textContent = `Đ� x�a ${launchLabel}.`;
+  analysisSource.textContent = `Đã xóa ${launchLabel}.`;
   if (next) await selectLaunch(next.id);
   else startNewLaunch();
 }
@@ -2883,15 +2839,15 @@ async function deleteCurrentLaunch() {
 async function analyze() {
   const text = briefInput.value.trim();
   if (!text) {
-    renderEmptyAnalysis("Chưa c� brief để ph�n t�ch.");
-    setAnalysisRunStatus("error", "Xảy ra sự cố, vui l�ng thử lại hoặc b�o cho Admin");
+    renderEmptyAnalysis("Chưa có brief để phân tích.");
+    setAnalysisRunStatus("error", "Xảy ra sự cố, vui lòng thử lại hoặc báo cho Admin");
     return;
   }
 
   analyzeButton.disabled = true;
-  analyzeButton.textContent = "Đang ph�n t�ch...";
+  analyzeButton.textContent = "Đang phân tích...";
   analysisSource.textContent = "Đang gọi AI...";
-  setAnalysisRunStatus("running", "Hệ thống Agent đang ph�n t�ch dữ liệu vui l�ng chờ...");
+  setAnalysisRunStatus("running", "Hệ thống Agent đang phân tích dữ liệu vui lòng chờ...");
 
   try {
     const launch = currentLaunch?.id && !draftMode
@@ -2910,12 +2866,12 @@ async function analyze() {
       renderLaunchWorkspace();
       renderApiAnalysis(payload.result);
       activateTab("redTeam");
-      setAnalysisRunStatus("success", "Ho�n th�nh Ph�n T�ch");
+      setAnalysisRunStatus("success", "Hoàn thành Phân Tích");
       return;
     }
 
     const result = buildLocalAnalysisResult(text);
-    renderApiAnalysis(result, "Dự ph�ng local: backend/API chưa sẵn s�ng");
+    renderApiAnalysis(result, "Dự phòng local: backend/API chưa sẵn sàng");
     activateTab("redTeam");
     currentLaunch.analyses = currentLaunch.analyses || [];
     currentLaunch.analyses.push({
@@ -2926,16 +2882,16 @@ async function analyze() {
     });
     upsertLaunchSummary(currentLaunch);
     renderLaunchWorkspace();
-    setAnalysisRunStatus("success", "Ho�n th�nh Ph�n T�ch");
+    setAnalysisRunStatus("success", "Hoàn thành Phân Tích");
   } catch (error) {
     console.warn("Analyze failed, using local fallback.", error);
     const result = buildLocalAnalysisResult(text);
-    renderApiAnalysis(result, "Dự ph�ng local: backend/API chưa sẵn s�ng");
+    renderApiAnalysis(result, "Dự phòng local: backend/API chưa sẵn sàng");
     activateTab("redTeam");
-    setAnalysisRunStatus("error", "Xảy ra sự cố, vui l�ng thử lại hoặc b�o cho Admin");
+    setAnalysisRunStatus("error", "Xảy ra sự cố, vui lòng thử lại hoặc báo cho Admin");
   } finally {
     analyzeButton.disabled = false;
-    analyzeButton.textContent = "Chạy ph�n t�ch";
+    analyzeButton.textContent = "Chạy phân tích";
   }
 }
 
@@ -2967,7 +2923,7 @@ async function runDemoMode() {
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
     activateTab("briefView");
-    analysisSource.textContent = "Demo mode: đ� nạp brief mẫu";
+    analysisSource.textContent = "Demo mode: đã nạp brief mẫu";
     await wait(500);
 
     const result = buildLocalAnalysisResult(badBrief, "demo_mode");
@@ -2980,18 +2936,18 @@ async function runDemoMode() {
     currentLaunch.lessonsLearned.push({
       id: `lesson-demo-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      text: "Demo lesson: cần chốt CS FAQ, rollback plan v� guardrail phần thưởng trước T-1."
+      text: "Demo lesson: cần chốt CS FAQ, rollback plan và guardrail phần thưởng trước T-1."
     });
     upsertLaunchSummary(currentLaunch);
     ensureLessonSuggestions();
     renderLaunchWorkspace();
-    renderApiAnalysis(result, "Demo mode: ph�n t�ch local");
+    renderApiAnalysis(result, "Demo mode: phân tích local");
     activateTab("redTeam");
     await wait(700);
     activateTab("checklist");
     await wait(700);
     activateTab("lessons");
-    analysisSource.textContent = "Demo mode: flow mẫu đ� sẵn s�ng để quay video";
+    analysisSource.textContent = "Demo mode: flow mẫu đã sẵn sàng để quay video";
   } finally {
     demoModeButton.disabled = false;
     demoModeButton.textContent = "Demo mode";
@@ -3000,7 +2956,7 @@ async function runDemoMode() {
 
 async function saveLesson() {
   if (!canSaveLaunchOutcome()) {
-    analysisSource.textContent = "Bạn kh�ng c� quyền lưu kết quả/b�i học cho launch n�y.";
+    analysisSource.textContent = "Bạn không có quyền lưu kết quả/bài học cho launch này.";
     return;
   }
   const postResultInput = document.getElementById("postResultInput");
@@ -3039,23 +2995,23 @@ async function saveLesson() {
 
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
-    analysisSource.textContent = backendAvailable ? "Đ� lưu b�i học v�o bộ nhớ local" : "Dự ph�ng local: b�i học chưa lưu bền vững";
+    analysisSource.textContent = backendAvailable ? "Đã lưu bài học vào bộ nhớ local" : "Dự phòng local: bài học chưa lưu bền vững";
   } catch (error) {
     console.warn("Save lesson failed.", error);
-    analysisSource.textContent = "Lưu b�i học chưa th�nh c�ng: backend chưa sẵn s�ng";
+    analysisSource.textContent = "Lưu bài học chưa thành công: backend chưa sẵn sàng";
   }
 }
 
 function showSavedAnalysis(analysisId) {
   const analysis = (currentLaunch?.analyses || []).find((item) => item.id === analysisId);
   if (!analysis) return;
-  renderApiAnalysis(analysis.result, `Lịch sử đ� lưu � ${formatDate(analysis.createdAt)}`);
+  renderApiAnalysis(analysis.result, `Lịch sử đã lưu · ${formatDate(analysis.createdAt)}`);
   activateTab("redTeam");
 }
 
 function saveTemplateConfig() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể lưu cấu h�nh.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể lưu cấu hình.";
     return;
   }
   const type = configTemplateType();
@@ -3065,15 +3021,15 @@ function saveTemplateConfig() {
   if (currentLaunch?.type === type) {
     currentLaunch.template = defaultTemplateForType(type);
   }
-  addTemplateVersion(`Admin lưu cấu h�nh chung cho ${typeLabel(type)}`, "manual_save");
+  addTemplateVersion(`Admin lưu cấu hình chung cho ${typeLabel(type)}`, "manual_save");
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = `Đ� lưu cấu h�nh chung cho ${typeLabel(type)}`;
+  analysisSource.textContent = `Đã lưu cấu hình chung cho ${typeLabel(type)}`;
 }
 
 function resetTemplateForSelectedType() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể nạp lại cấu h�nh.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể nạp lại cấu hình.";
     return;
   }
   const type = configTemplateType();
@@ -3082,10 +3038,10 @@ function resetTemplateForSelectedType() {
   if (currentLaunch?.type === type) {
     currentLaunch.template = defaultTemplateForType(type);
   }
-  addTemplateVersion(`Kh�i phục mẫu chuẩn cho ${typeLabel(type)}`, "reset_default");
+  addTemplateVersion(`Khôi phục mẫu chuẩn cho ${typeLabel(type)}`, "reset_default");
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = `Đ� nạp mẫu chuẩn cho ${typeLabel(type)}`;
+  analysisSource.textContent = `Đã nạp mẫu chuẩn cho ${typeLabel(type)}`;
 }
 
 function switchTemplateFromSelector() {
@@ -3095,8 +3051,8 @@ function switchTemplateFromSelector() {
   selectedConfigType = selectedType;
   renderTemplateConfig();
   analysisSource.textContent = canEditTemplate()
-    ? `Đang cấu h�nh ${typeLabel(selectedType)}`
-    : `Đang xem cấu h�nh ${typeLabel(selectedType)}. Bản review public kh�ng cho chỉnh sửa.`;
+    ? `Đang cấu hình ${typeLabel(selectedType)}`
+    : `Đang xem cấu hình ${typeLabel(selectedType)}. Bản review public không cho chỉnh sửa.`;
 }
 
 function uniqueLaunchTypeKey(label) {
@@ -3122,7 +3078,7 @@ function uniqueBaseTemplateId() {
 
 function addBaseTemplate() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể th�m template.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể thêm template.";
     return;
   }
   const id = uniqueBaseTemplateId();
@@ -3134,16 +3090,16 @@ function addBaseTemplate() {
   BASE_TEMPLATE_OPTIONS.push({ id, template });
   TEMPLATE_NAME_LABELS[template.name] = "Template mới";
   renderTemplateConfig();
-  analysisSource.textContent = "Đ� th�m template mới. Bạn c� thể đổi t�n rồi g�n cho ph�n loại cần d�ng.";
+  analysisSource.textContent = "Đã thêm template mới. Bạn có thể đổi tên rồi gán cho phân loại cần dùng.";
 }
 
 function removeBaseTemplate(id) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể x�a template.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể xóa template.";
     return;
   }
   if (PROTECTED_BASE_TEMPLATE_IDS.includes(id)) {
-    analysisSource.textContent = "Template mặc định đang được giữ lại để demo kh�ng mất dữ liệu mẫu.";
+    analysisSource.textContent = "Template mặc định đang được giữ lại để demo không mất dữ liệu mẫu.";
     return;
   }
   const index = BASE_TEMPLATE_OPTIONS.findIndex((item) => item.id === id);
@@ -3161,21 +3117,21 @@ function removeBaseTemplate(id) {
   }
   renderTemplateConfig();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = "Đ� x�a template t�y chỉnh. Ph�n loại đang d�ng template đ� được chuyển về Template launch chung.";
+  analysisSource.textContent = "Đã xóa template tùy chỉnh. Phân loại đang dùng template đó được chuyển về Template launch chung.";
 }
 
 function addLaunchType() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể th�m ph�n loại.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể thêm phân loại.";
     return;
   }
-  const label = "Ph�n loại mới";
+  const label = "Phân loại mới";
   const type = uniqueLaunchTypeKey(label);
   LAUNCH_TEMPLATES[type] = GENERIC_LAUNCH_TEMPLATE;
   TYPE_LABELS[type] = label;
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
   renderTemplateConfig();
-  analysisSource.textContent = "Đ� th�m ph�n loại mới. Bạn c� thể đổi t�n ngay trong bảng cấu h�nh.";
+  analysisSource.textContent = "Đã thêm phân loại mới. Bạn có thể đổi tên ngay trong bảng cấu hình.";
 }
 
 function updateTemplateLabel(input, { render = true } = {}) {
@@ -3185,7 +3141,7 @@ function updateTemplateLabel(input, { render = true } = {}) {
   TEMPLATE_NAME_LABELS[templateNameKey] = input.value.trim() || templateNameKey;
   if (render) {
     renderLaunchWorkspace();
-    analysisSource.textContent = "Đ� đổi t�n hiển thị template.";
+    analysisSource.textContent = "Đã đổi tên hiển thị template.";
   } else {
     syncTemplateDisplayLabels();
   }
@@ -3199,7 +3155,7 @@ function updateLaunchTypeLabel(input, { render = true } = {}) {
   if (render) {
     renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
     renderLaunchWorkspace();
-    analysisSource.textContent = "Đ� đổi t�n ph�n loại.";
+    analysisSource.textContent = "Đã đổi tên phân loại.";
   } else {
     syncLaunchTypeOptionLabels();
   }
@@ -3215,16 +3171,16 @@ function updateLaunchTypeTemplate(select) {
   }
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = `Đ� đổi bộ template gốc cho ${typeLabel(type)}.`;
+  analysisSource.textContent = `Đã đổi bộ template gốc cho ${typeLabel(type)}.`;
 }
 
 function removeLaunchType(type) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, kh�ng thể x�a ph�n loại.";
+    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể xóa phân loại.";
     return;
   }
   if (!launchTypeExists(type) || PROTECTED_LAUNCH_TYPES.includes(type)) {
-    analysisSource.textContent = "Ph�n loại mặc định đang được giữ lại để demo kh�ng mất dữ liệu mẫu.";
+    analysisSource.textContent = "Phân loại mặc định đang được giữ lại để demo không mất dữ liệu mẫu.";
     return;
   }
   delete LAUNCH_TEMPLATES[type];
@@ -3236,7 +3192,7 @@ function removeLaunchType(type) {
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = "Đ� x�a ph�n loại t�y chỉnh.";
+  analysisSource.textContent = "Đã xóa phân loại tùy chỉnh.";
 }
 
 function handleTemplateCatalogChange(event) {
@@ -3295,7 +3251,7 @@ function activateTab(target) {
   document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", !isConfigScreen && item.dataset.view === target));
   openTemplateConfigButton?.classList.toggle("active", isConfigScreen);
   if (openTemplateConfigButton) {
-    openTemplateConfigButton.textContent = isConfigScreen ? "Quay lại launch" : "Cấu h�nh ph�n loại";
+    openTemplateConfigButton.textContent = isConfigScreen ? "Quay lại launch" : "Cấu hình phân loại";
   }
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === target));
   if (isConfigScreen) {
@@ -3314,7 +3270,7 @@ function assistantContextSummary() {
     launchName: launch?.name || "Launch mới",
     launchType: typeLabel(launch?.type),
     status: STATUS_LABELS[normalizeStatus(launch?.status)],
-    owner: launch?.owner || "Chưa c� người phụ tr�ch",
+    owner: launch?.owner || "Chưa có người phụ trách",
     maxScore: templateMax(template),
     riskCount: (template.riskGroups || []).length,
     currentView: document.querySelector(".view.active")?.id || "briefView"
@@ -3349,19 +3305,19 @@ function assistantChecklistLine(item) {
   const row = Array.isArray(item)
     ? { task: item[0], owner: item[1], deadline: item[2], status: item[3], priority: item[4] }
     : item || {};
-  return `${friendlyText(row.task || "Việc cần l�m")} - ${ownerLabel(row.owner)} - ${formatDeadline(row.deadline)} - ${statusValueLabel(row.status)}`;
+  return `${friendlyText(row.task || "Việc cần làm")} - ${ownerLabel(row.owner)} - ${formatDeadline(row.deadline)} - ${statusValueLabel(row.status)}`;
 }
 
 function assistantNextAction(launch, result, postResult, lessons) {
   const brief = briefInput?.value.trim() || launch?.brief || "";
-  if (!brief) return "Nhập hoặc d�n brief trước để LaunchOps c� dữ liệu đọc.";
-  if (!result) return "Chạy ph�n t�ch trước launch để c� readiness, Red Team v� checklist.";
+  if (!brief) return "Nhập hoặc dán brief trước để LaunchOps có dữ liệu đọc.";
+  if (!result) return "Chạy phân tích trước launch để có readiness, Red Team và checklist.";
   const topRisk = result.topRisks?.[0];
-  if (topRisk) return `Xử l� rủi ro đầu ti�n: ${friendlyText(topRisk)}`;
-  if (normalizeStatus(launch?.status) !== "completed") return "Theo d�i launch; khi chạy xong th� nhập kết quả sau launch v� th�m b�i học.";
-  if (!postResult) return "Nhập kết quả sau launch, rồi để Agent ph�n t�ch sau launch trước khi lưu b�i học.";
-  if (!lessons.length) return "Th�m �t nhất một b�i học ngắn để lần launch sau c� context tốt hơn.";
-  return "Lưu lại quyết định/b�i học v� d�ng b�o c�o n�y cho lần launch sau.";
+  if (topRisk) return `Xử lý rủi ro đầu tiên: ${friendlyText(topRisk)}`;
+  if (normalizeStatus(launch?.status) !== "completed") return "Theo dõi launch; khi chạy xong thì nhập kết quả sau launch và thêm bài học.";
+  if (!postResult) return "Nhập kết quả sau launch, rồi để Agent phân tích sau launch trước khi lưu bài học.";
+  if (!lessons.length) return "Thêm ít nhất một bài học ngắn để lần launch sau có context tốt hơn.";
+  return "Lưu lại quyết định/bài học và dùng báo cáo này cho lần launch sau.";
 }
 
 function assistantLaunchSummaryReply() {
@@ -3374,37 +3330,37 @@ function assistantLaunchSummaryReply() {
   const postResult = currentLaunch?.postLaunchResult || document.getElementById("postResultInput")?.value.trim() || "";
   const brief = briefInput?.value.trim() || launch?.brief || "";
   const readinessLine = decision
-    ? `${colorLabel(decision.color || "Yellow")} ${decision.score ?? 0}/${decision.maxScore || templateMax(template)} - ${friendlyText(decision.title || decision.reason || "Đ� c� ph�n t�ch")}`
-    : "Chưa c� ph�n t�ch trước launch.";
+    ? `${colorLabel(decision.color || "Yellow")} ${decision.score ?? 0}/${decision.maxScore || templateMax(template)} - ${friendlyText(decision.title || decision.reason || "Đã có phân tích")}`
+    : "Chưa có phân tích trước launch.";
 
   return {
     reply: [
       `Tổng hợp launch hiện tại: ${launch?.name || "Launch mới"}`,
-      `- Ph�n loại: ${typeLabel(launch?.type)}`,
-      `- Trạng th�i: ${STATUS_LABELS[normalizeStatus(launch?.status)]}`,
-      `- Owner: ${launch?.owner || "Chưa c� owner"}`,
-      `- Thời gian: ${formatDateOnly(launch?.targetDate, "Chưa c�")} - ${formatDateOnly(launch?.endDate, "Chưa c�")}`,
-      `- Brief: ${brief ? friendlyText(brief).slice(0, 220) : "Chưa c� brief"}`,
-      `- Lịch sử: ${analyses.length} lần ph�n t�ch, ${lessons.length} b�i học`,
+      `- Phân loại: ${typeLabel(launch?.type)}`,
+      `- Trạng thái: ${STATUS_LABELS[normalizeStatus(launch?.status)]}`,
+      `- Owner: ${launch?.owner || "Chưa có owner"}`,
+      `- Thời gian: ${formatDateOnly(launch?.targetDate, "Chưa có")} - ${formatDateOnly(launch?.endDate, "Chưa có")}`,
+      `- Brief: ${brief ? friendlyText(brief).slice(0, 220) : "Chưa có brief"}`,
+      `- Lịch sử: ${analyses.length} lần phân tích, ${lessons.length} bài học`,
       "",
       "Readiness:",
       `- ${readinessLine}`,
-      decision?.reason ? `- L� do: ${friendlyText(decision.reason)}` : "",
+      decision?.reason ? `- Lý do: ${friendlyText(decision.reason)}` : "",
       "",
       "Top risks:",
-      assistantShortList(result?.topRisks || [], "Chưa c� top risk. H�y chạy ph�n t�ch trước launch.", (item) => friendlyText(item), 3),
+      assistantShortList(result?.topRisks || [], "Chưa có top risk. Hãy chạy phân tích trước launch.", (item) => friendlyText(item), 3),
       "",
       "Red Team:",
-      assistantShortList(result?.redTeam || [], "Chưa c� phản biện. H�y chạy ph�n t�ch trước launch.", (item) => `${personaLabel(item.persona)}: ${friendlyText(item.worry)}`, 3),
+      assistantShortList(result?.redTeam || [], "Chưa có phản biện. Hãy chạy phân tích trước launch.", (item) => `${personaLabel(item.persona)}: ${friendlyText(item.worry)}`, 3),
       "",
       "Checklist:",
-      assistantShortList(result?.checklist || [], "Chưa c� checklist. H�y chạy ph�n t�ch trước launch.", assistantChecklistLine, 4),
+      assistantShortList(result?.checklist || [], "Chưa có checklist. Hãy chạy phân tích trước launch.", assistantChecklistLine, 4),
       "",
       "Sau launch:",
       `- Kết quả: ${postResult ? friendlyText(postResult) : "Chưa nhập"}`,
-      `- B�i học: ${lessons.length ? friendlyText(lessons[lessons.length - 1].text) : "Chưa lưu b�i học"}`,
+      `- Bài học: ${lessons.length ? friendlyText(lessons[lessons.length - 1].text) : "Chưa lưu bài học"}`,
       "",
-      `Gợi � tiếp theo: ${assistantNextAction(launch, result, postResult, lessons)}`
+      `Gợi ý tiếp theo: ${assistantNextAction(launch, result, postResult, lessons)}`
     ].filter((line) => line !== "").join("\n"),
     options: assistantHomeOptions()
   };
@@ -3415,31 +3371,31 @@ function assistantExplainReply(rawText = "") {
   const context = assistantContextSummary();
   if (text.includes("readiness") || text.includes("diem") || text.includes("cham") || text.includes("rule") || text.includes("luat")) {
     return {
-      reply: `Readiness l� điểm sẵn s�ng trước launch. Hệ thống đọc brief theo bộ luật của ph�n loại hiện tại, chấm từng nh�m rủi ro rồi trả Green / Yellow / Red. Với launch "${context.launchName}", ph�n loại "${context.launchType}" đang c� tổng ${context.maxScore} điểm từ ${context.riskCount} nh�m rủi ro. Green l� c� thể chạy, Yellow l� cần sửa trước khi chạy, Red l� n�n dừng để xử l� rủi ro lớn.`,
+      reply: `Readiness là điểm sẵn sàng trước launch. Hệ thống đọc brief theo bộ luật của phân loại hiện tại, chấm từng nhóm rủi ro rồi trả Green / Yellow / Red. Với launch "${context.launchName}", phân loại "${context.launchType}" đang có tổng ${context.maxScore} điểm từ ${context.riskCount} nhóm rủi ro. Green là có thể chạy, Yellow là cần sửa trước khi chạy, Red là nên dừng để xử lý rủi ro lớn.`,
       options: assistantHomeOptions()
     };
   }
   if (text.includes("red team") || text.includes("phan bien")) {
     return {
-      reply: "Red Team l� phần phản biện trước launch. N� nh�n brief từ nhiều g�c như user, exploit, CS, tech/on-call v� business để chỉ ra điều dễ hỏng trước khi Human quyết định chạy.",
+      reply: "Red Team là phần phản biện trước launch. Nó nhìn brief từ nhiều góc như user, exploit, CS, tech/on-call và business để chỉ ra điều dễ hỏng trước khi Human quyết định chạy.",
       options: assistantHomeOptions()
     };
   }
   if (text.includes("checklist") || text.includes("viec can lam")) {
     return {
-      reply: "Checklist biến brief v� rủi ro th�nh việc cụ thể c� owner, deadline, trạng th�i v� độ ưu ti�n. Đ�y l� phần gi�p team kh�ng chỉ thấy rủi ro m� c�n biết cần l�m g� tiếp.",
+      reply: "Checklist biến brief và rủi ro thành việc cụ thể có owner, deadline, trạng thái và độ ưu tiên. Đây là phần giúp team không chỉ thấy rủi ro mà còn biết cần làm gì tiếp.",
       options: assistantHomeOptions()
     };
   }
   if (text.includes("lesson") || text.includes("bai hoc") || text.includes("post")) {
     return {
-      reply: "B�i học l� ph�n t�ch bắt buộc sau launch. Flow đ�ng l� nhập kết quả thực tế, để Agent ph�n t�ch sau launch v� đề xuất, sau đ� mới th�m lesson learned để d�ng lại cho launch sau.",
+      reply: "Bài học là phân tích bắt buộc sau launch. Flow đúng là nhập kết quả thực tế, để Agent phân tích sau launch và đề xuất, sau đó mới thêm lesson learned để dùng lại cho launch sau.",
       options: assistantHomeOptions()
     };
   }
   if (text.includes("brief") || text.includes("nap")) {
     return {
-      reply: "Brief n�n c� mục ti�u, đối tượng, thời gian, owner, k�nh truyền th�ng, impact/reward, rủi ro c�n mở v� rollback/pause plan. Kh�ng cần viết đẹp; cần đủ dữ liệu để Agent đọc v� chỉ ra phần c�n mơ hồ.",
+      reply: "Brief nên có mục tiêu, đối tượng, thời gian, owner, kênh truyền thông, impact/reward, rủi ro còn mở và rollback/pause plan. Không cần viết đẹp; cần đủ dữ liệu để Agent đọc và chỉ ra phần còn mơ hồ.",
       options: assistantHomeOptions()
     };
   }
@@ -3452,20 +3408,20 @@ function assistantHomeOptions() {
     { label: "Sửa launch hiện tại", value: "assistant:edit" },
     { label: "Tổng hợp launch", value: "assistant:summary" },
     { label: "Hỗ trợ", value: "assistant:support" },
-    { label: "Chạy ph�n t�ch", value: "assistant:analyze" },
-    { label: "Xem b�i học", value: "assistant:lessons" }
+    { label: "Chạy phân tích", value: "assistant:analyze" },
+    { label: "Xem bài học", value: "assistant:lessons" }
   ];
 }
 
 function assistantSupportReply() {
   return {
-    reply: "Bạn cần hỗ trợ hay giải th�ch về t�nh năng n�o của LaunchOps Command Center h�y chat tự do nh� m�nh sẽ giải th�ch v� hướng dẫn.",
+    reply: "Bạn cần hỗ trợ hay giải thích về tính năng nào của LaunchOps Command Center hãy chat tự do nhé mình sẽ giải thích và hướng dẫn.",
     options: [
       { label: "Tổng hợp launch", value: "assistant:summary" },
-      { label: "Giải th�ch readiness", value: "assistant:explain:readiness" },
-      { label: "Giải th�ch Red Team", value: "assistant:explain:red-team" },
-      { label: "Giải th�ch checklist", value: "assistant:explain:checklist" },
-      { label: "Giải th�ch b�i học", value: "assistant:explain:lessons" },
+      { label: "Giải thích readiness", value: "assistant:explain:readiness" },
+      { label: "Giải thích Red Team", value: "assistant:explain:red-team" },
+      { label: "Giải thích checklist", value: "assistant:explain:checklist" },
+      { label: "Giải thích bài học", value: "assistant:explain:lessons" },
       { label: "Tạo launch mới", value: "assistant:create" }
     ]
   };
@@ -3506,7 +3462,7 @@ function cleanAssistantField(value) {
 }
 
 function cleanAssistantBrief(value) {
-  const headingPattern = /(Mục ti�u|Thời gian|Đối tượng|Offer|K�nh truyền th�ng|Việc đ� c�|Vấn đề c�n mở|Điểm cần theo d�i trước khi chạy|T�m tắt brief|Ph�n c�ng hiện c�)\s*:/giu;
+  const headingPattern = /(Mục tiêu|Thời gian|Đối tượng|Offer|Kênh truyền thông|Việc đã có|Vấn đề còn mở|Điểm cần theo dõi trước khi chạy|Tóm tắt brief|Phân công hiện có)\s*:/giu;
   return String(value || "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
@@ -3568,20 +3524,20 @@ function parseAssistantLaunchDraft(rawText) {
   if (!wantsCreate) return null;
 
   const name = extractAssistantValue(rawText, [
-    /(?:t�n|ten|name)\s*(?:launch)?\s*(?:l�|la|:)?\s*[“"]?([^“”"\n]+?)(?=\s+(?:ph�n loại|phan loai|trạng th�i|trang thai|người phụ tr�ch|nguoi phu trach|owner|start launch|end launch|brief)\b|[,.;\n]|$)/iu,
-    /(?:tạo|tao|th�m|them)\s+(?:một\s+|mot\s+)?launch(?:\s+mới|\s+moi)?\s*[“"]?([^“”"\n,.;]+?)(?=\s+(?:ph�n loại|phan loai|trạng th�i|trang thai|người phụ tr�ch|nguoi phu trach|owner|start launch|end launch|brief)\b|[,.;\n]|$)/iu
+    /(?:tên|ten|name)\s*(?:launch)?\s*(?:là|la|:)?\s*[“"]?([^“”"\n]+?)(?=\s+(?:phân loại|phan loai|trạng thái|trang thai|người phụ trách|nguoi phu trach|owner|start launch|end launch|brief)\b|[,.;\n]|$)/iu,
+    /(?:tạo|tao|thêm|them)\s+(?:một\s+|mot\s+)?launch(?:\s+mới|\s+moi)?\s*[“"]?([^“”"\n,.;]+?)(?=\s+(?:phân loại|phan loai|trạng thái|trang thai|người phụ trách|nguoi phu trach|owner|start launch|end launch|brief)\b|[,.;\n]|$)/iu
   ]) || "Launch mới từ Assistant";
   const owner = extractAssistantValue(rawText, [
-    /(?:người phụ tr�ch|nguoi phu trach|owner|pic)\s*(?:l�|la|:)?\s*(.+?)(?=(?:\s|\n)*(?:start launch|end launch|brief)\b|[,.;\n]|$)/iu
+    /(?:người phụ trách|nguoi phu trach|owner|pic)\s*(?:là|la|:)?\s*(.+?)(?=(?:\s|\n)*(?:start launch|end launch|brief)\b|[,.;\n]|$)/iu
   ]);
   const targetDate = normalizeAssistantDate(extractAssistantValue(rawText, [
-    /(?:start launch|ng�y bắt đầu|ngay bat dau|bắt đầu|bat dau)\s*(?:l�|la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4})/iu
+    /(?:start launch|ngày bắt đầu|ngay bat dau|bắt đầu|bat dau)\s*(?:là|la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4})/iu
   ]));
   const endDate = normalizeAssistantDate(extractAssistantValue(rawText, [
-    /(?:end launch|ng�y kết th�c|ngay ket thuc|kết th�c|ket thuc)\s*(?:l�|la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4})/iu
+    /(?:end launch|ngày kết thúc|ngay ket thuc|kết thúc|ket thuc)\s*(?:là|la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4})/iu
   ]));
   const brief = extractAssistantBlock(rawText, [
-    /(?:brief|m� tả|mo ta|nội dung|noi dung)\s*[:：]\s*([\s\S]+)/iu
+    /(?:brief|mô tả|mo ta|nội dung|noi dung)\s*[:：]\s*([\s\S]+)/iu
   ]) || rawText.trim();
 
   return {
@@ -3615,7 +3571,7 @@ function assistantCancelOptions() {
 
 function assistantConfirmOptions() {
   return [
-    { label: "X�c nhận tạo launch", value: "wizard:create:confirm" },
+    { label: "Xác nhận tạo launch", value: "wizard:create:confirm" },
     { label: "Sửa lại brief", value: "wizard:create:editBrief" },
     { label: "Hủy", value: "assistant:cancel" }
   ];
@@ -3623,34 +3579,34 @@ function assistantConfirmOptions() {
 
 function formatAssistantDraftSummary(draft) {
   return [
-    "T�i đ� gom đủ th�ng tin tạo launch:",
+    "Tôi đã gom đủ thông tin tạo launch:",
     "",
-    `T�n launch: ${draft.name || "Chưa c�"}`,
-    `Ph�n loại: ${typeLabel(draft.type || "Game event")}`,
+    `Tên launch: ${draft.name || "Chưa có"}`,
+    `Phân loại: ${typeLabel(draft.type || "Game event")}`,
     `Template: ${draft.templateName || templateDisplayName(defaultTemplateForType(draft.type || "Game event"))}`,
-    `Owner: ${draft.owner || "Chưa c�"}`,
-    `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa c�")} - ${formatDateOnly(draft.endDate, "Chưa c�")}`,
+    `Owner: ${draft.owner || "Chưa có"}`,
+    `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa có")} - ${formatDateOnly(draft.endDate, "Chưa có")}`,
     "",
-    `Mục ti�u: ${draft.objective || "Chưa c�"}`,
+    `Mục tiêu: ${draft.objective || "Chưa có"}`,
     "",
     "Nội dung brief:",
-    draft.brief || "Chưa c�",
+    draft.brief || "Chưa có",
     "",
-    "Bạn x�c nhận tạo launch n�y kh�ng?"
+    "Bạn xác nhận tạo launch này không?"
   ].join("\n");
 }
 
 function composeAssistantLaunchBrief(draft) {
   const lines = [
-    `T�n launch: ${draft.name || "Launch mới"}`,
+    `Tên launch: ${draft.name || "Launch mới"}`,
     "",
-    `Ph�n loại: ${typeLabel(draft.type || "Game event")}`,
+    `Phân loại: ${typeLabel(draft.type || "Game event")}`,
     `Template sử dụng: ${draft.templateName || templateDisplayName(defaultTemplateForType(draft.type || "Game event"))}`,
     "",
-    `Mục ti�u: ${draft.objective || "Chưa c� mục ti�u r�."}`,
+    `Mục tiêu: ${draft.objective || "Chưa có mục tiêu rõ."}`,
     "",
-    `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa c�")} đến ${formatDateOnly(draft.endDate, "Chưa c�")}`,
-    `Owner: ${draft.owner || "Chưa c� owner."}`,
+    `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa có")} đến ${formatDateOnly(draft.endDate, "Chưa có")}`,
+    `Owner: ${draft.owner || "Chưa có owner."}`,
     "",
     "Nội dung brief:",
     cleanAssistantBrief(draft.brief || "")
@@ -3670,7 +3626,7 @@ function startCreateLaunchWizard() {
     }
   };
   return {
-    reply: "T�i sẽ hỗ trợ bạn tạo launch mới từng bước. Trước ti�n, launch n�y thuộc ph�n loại/function n�o?",
+    reply: "Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, launch này thuộc phân loại/function nào?",
     options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()]
   };
 }
@@ -3678,7 +3634,7 @@ function startCreateLaunchWizard() {
 function startEditLaunchWizard() {
   if (!canEditLaunch()) {
     return {
-      reply: "Launch đang chạy/đ� chạy chỉ Admin được sửa metadata hoặc brief. Với vai tr� Human hiện tại, bạn chỉ c� thể th�m kết quả sau launch v� b�i học ở tab B�i học.",
+      reply: "Launch đang chạy/đã chạy chỉ Admin được sửa metadata hoặc brief. Với vai trò Human hiện tại, bạn chỉ có thể thêm kết quả sau launch và bài học ở tab Bài học.",
       options: assistantHomeOptions()
     };
   }
@@ -3688,9 +3644,9 @@ function startEditLaunchWizard() {
     draft: {}
   };
   return {
-    reply: `Bạn muốn sửa phần n�o của launch hiện tại "${currentLaunch?.name || "Launch mới"}"?`,
+    reply: `Bạn muốn sửa phần nào của launch hiện tại "${currentLaunch?.name || "Launch mới"}"?`,
     options: [
-      { label: "T�n launch", value: "wizard:edit:field:name" },
+      { label: "Tên launch", value: "wizard:edit:field:name" },
       { label: "Owner", value: "wizard:edit:field:owner" },
       { label: "Start/End Launch", value: "wizard:edit:field:date" },
       { label: "Nội dung brief", value: "wizard:edit:field:brief" },
@@ -3699,10 +3655,10 @@ function startEditLaunchWizard() {
   };
 }
 
-function finishAssistantWizard(message = "Đ� hủy luồng hiện tại.") {
+function finishAssistantWizard(message = "Đã hủy luồng hiện tại.") {
   assistantWizard = null;
   return {
-    reply: `${message}\n\nBạn cần t�i hỗ trợ g� tiếp?`,
+    reply: `${message}\n\nBạn cần tôi hỗ trợ gì tiếp?`,
     options: assistantHomeOptions()
   };
 }
@@ -3712,7 +3668,7 @@ function handleCreateWizardInput(rawText) {
   const draft = assistantWizard?.draft || {};
   const normalized = normalizeText(value);
   if (value === "assistant:cancel" || normalized === "huy" || normalized === "cancel") {
-    return finishAssistantWizard("Đ� hủy tạo launch mới.");
+    return finishAssistantWizard("Đã hủy tạo launch mới.");
   }
 
   if (assistantWizard.step === "type") {
@@ -3724,7 +3680,7 @@ function handleCreateWizardInput(rawText) {
     draft.templateName = templateDisplayName(defaultTemplateForType(draft.type));
     assistantWizard.step = "template";
     return {
-      reply: `Đ� chọn ph�n loại: ${typeLabel(draft.type)}.\n\nTiếp theo bạn muốn d�ng template/bộ luật n�o?`,
+      reply: `Đã chọn phân loại: ${typeLabel(draft.type)}.\n\nTiếp theo bạn muốn dùng template/bộ luật nào?`,
       options: [...templateOptionsForAssistant(), ...assistantCancelOptions()]
     };
   }
@@ -3739,7 +3695,7 @@ function handleCreateWizardInput(rawText) {
     draft.template = cloneData(template);
     assistantWizard.step = "owner";
     return {
-      reply: `Đ� chọn template: ${draft.templateName}.\n\nOwner/người phụ tr�ch launch n�y l� ai?`,
+      reply: `Đã chọn template: ${draft.templateName}.\n\nOwner/người phụ trách launch này là ai?`,
       options: assistantCancelOptions()
     };
   }
@@ -3748,7 +3704,7 @@ function handleCreateWizardInput(rawText) {
     draft.owner = cleanAssistantField(value);
     assistantWizard.step = "name";
     return {
-      reply: "T�n launch l� g�?",
+      reply: "Tên launch là gì?",
       options: assistantCancelOptions()
     };
   }
@@ -3757,7 +3713,7 @@ function handleCreateWizardInput(rawText) {
     draft.name = cleanAssistantField(value) || "Launch mới từ Assistant";
     assistantWizard.step = "targetDate";
     return {
-      reply: "Start Launch l� ng�y n�o? Bạn nhập theo dạng dd/mm/yyyy, v� dụ 15/06/2026.",
+      reply: "Start Launch là ngày nào? Bạn nhập theo dạng dd/mm/yyyy, ví dụ 15/06/2026.",
       options: assistantCancelOptions()
     };
   }
@@ -3766,14 +3722,14 @@ function handleCreateWizardInput(rawText) {
     const dateValue = normalizeAssistantDate(value);
     if (!parseDateOnly(dateValue)) {
       return {
-        reply: "T�i chưa đọc được ng�y bắt đầu. H�y nhập theo dạng dd/mm/yyyy, v� dụ 15/06/2026.",
+        reply: "Tôi chưa đọc được ngày bắt đầu. Hãy nhập theo dạng dd/mm/yyyy, ví dụ 15/06/2026.",
         options: assistantCancelOptions()
       };
     }
     draft.targetDate = dateValue;
     assistantWizard.step = "endDate";
     return {
-      reply: "End Launch l� ng�y n�o? Bạn nhập theo dạng dd/mm/yyyy.",
+      reply: "End Launch là ngày nào? Bạn nhập theo dạng dd/mm/yyyy.",
       options: assistantCancelOptions()
     };
   }
@@ -3782,14 +3738,14 @@ function handleCreateWizardInput(rawText) {
     const dateValue = normalizeAssistantDate(value);
     if (!parseDateOnly(dateValue)) {
       return {
-        reply: "T�i chưa đọc được ng�y kết th�c. H�y nhập theo dạng dd/mm/yyyy, v� dụ 17/06/2026.",
+        reply: "Tôi chưa đọc được ngày kết thúc. Hãy nhập theo dạng dd/mm/yyyy, ví dụ 17/06/2026.",
         options: assistantCancelOptions()
       };
     }
     draft.endDate = dateValue;
     assistantWizard.step = "objective";
     return {
-      reply: "Mục ti�u ch�nh của launch n�y l� g�? V� dụ: tăng DAU cuối tuần, tăng conversion, giảm lỗi vận h�nh...",
+      reply: "Mục tiêu chính của launch này là gì? Ví dụ: tăng DAU cuối tuần, tăng conversion, giảm lỗi vận hành...",
       options: assistantCancelOptions()
     };
   }
@@ -3798,7 +3754,7 @@ function handleCreateWizardInput(rawText) {
     draft.objective = cleanAssistantBrief(value);
     assistantWizard.step = "brief";
     return {
-      reply: "B�y giờ h�y d�n nội dung brief. C� thể d�ng nhiều d�ng, gồm đối tượng, cơ chế, k�nh truyền th�ng, việc đ� c� v� vấn đề c�n mở.",
+      reply: "Bây giờ hãy dán nội dung brief. Có thể dùng nhiều dòng, gồm đối tượng, cơ chế, kênh truyền thông, việc đã có và vấn đề còn mở.",
       options: assistantCancelOptions()
     };
   }
@@ -3807,7 +3763,7 @@ function handleCreateWizardInput(rawText) {
     if (value === "wizard:create:editBrief") {
       assistantWizard.step = "brief";
       return {
-        reply: "D�n lại nội dung brief bạn muốn d�ng.",
+        reply: "Dán lại nội dung brief bạn muốn dùng.",
         options: assistantCancelOptions()
       };
     }
@@ -3823,7 +3779,7 @@ function handleCreateWizardInput(rawText) {
     if (value === "wizard:create:editBrief" || normalized.includes("sua brief")) {
       assistantWizard.step = "brief";
       return {
-        reply: "D�n lại nội dung brief bạn muốn d�ng.",
+        reply: "Dán lại nội dung brief bạn muốn dùng.",
         options: assistantCancelOptions()
       };
     }
@@ -3835,17 +3791,17 @@ function handleCreateWizardInput(rawText) {
       };
       assistantWizard = null;
       return {
-        reply: `Đ� x�c nhận. T�i sẽ tạo launch "${payload.name}".`,
+        reply: `Đã xác nhận. Tôi sẽ tạo launch "${payload.name}".`,
         action: { type: "createLaunch", payload }
       };
     }
     return {
-      reply: "Bạn muốn x�c nhận tạo launch, sửa lại brief hay hủy?",
+      reply: "Bạn muốn xác nhận tạo launch, sửa lại brief hay hủy?",
       options: assistantConfirmOptions()
     };
   }
 
-  return finishAssistantWizard("Luồng tạo launch bị lệch bước, t�i đ� hủy để tr�nh tạo sai.");
+  return finishAssistantWizard("Luồng tạo launch bị lệch bước, tôi đã hủy để tránh tạo sai.");
 }
 
 function applyAssistantEditDraft(field, value) {
@@ -3873,7 +3829,7 @@ function handleEditWizardInput(rawText) {
   const value = String(rawText || "").trim();
   const normalized = normalizeText(value);
   if (value === "assistant:cancel" || normalized === "huy" || normalized === "cancel") {
-    return finishAssistantWizard("Đ� hủy sửa launch.");
+    return finishAssistantWizard("Đã hủy sửa launch.");
   }
 
   if (assistantWizard.step === "field") {
@@ -3882,12 +3838,12 @@ function handleEditWizardInput(rawText) {
       : "brief";
     assistantWizard.draft.field = field;
     assistantWizard.step = "value";
-    const fieldLabel = field === "name" ? "t�n launch"
+    const fieldLabel = field === "name" ? "tên launch"
       : field === "owner" ? "owner"
         : field === "date" ? "Start/End Launch"
           : "nội dung brief";
     return {
-      reply: `Nhập gi� trị mới cho ${fieldLabel}. Với thời gian, nhập dạng 15/06/2026 - 17/06/2026.`,
+      reply: `Nhập giá trị mới cho ${fieldLabel}. Với thời gian, nhập dạng 15/06/2026 - 17/06/2026.`,
       options: assistantCancelOptions()
     };
   }
@@ -3896,9 +3852,9 @@ function handleEditWizardInput(rawText) {
     assistantWizard.draft.value = value;
     assistantWizard.step = "confirm";
     return {
-      reply: `T�i sẽ cập nhật phần n�y tr�n form nhưng chưa tự deploy hay đổi cấu h�nh chung.\n\nNội dung mới:\n${value}\n\nBạn x�c nhận sửa kh�ng?`,
+      reply: `Tôi sẽ cập nhật phần này trên form nhưng chưa tự deploy hay đổi cấu hình chung.\n\nNội dung mới:\n${value}\n\nBạn xác nhận sửa không?`,
       options: [
-        { label: "X�c nhận sửa", value: "wizard:edit:confirm" },
+        { label: "Xác nhận sửa", value: "wizard:edit:confirm" },
         { label: "Hủy", value: "assistant:cancel" }
       ]
     };
@@ -3909,14 +3865,14 @@ function handleEditWizardInput(rawText) {
       applyAssistantEditDraft(assistantWizard.draft.field, assistantWizard.draft.value);
       assistantWizard = null;
       return {
-        reply: "Đ� cập nhật v�o form launch hiện tại. Nếu muốn lưu bền vững, bấm `Lưu launch`.",
+        reply: "Đã cập nhật vào form launch hiện tại. Nếu muốn lưu bền vững, bấm `Lưu launch`.",
         options: assistantHomeOptions()
       };
     }
-    return finishAssistantWizard("Đ� hủy sửa launch.");
+    return finishAssistantWizard("Đã hủy sửa launch.");
   }
 
-  return finishAssistantWizard("Luồng sửa launch bị lệch bước, t�i đ� hủy để tr�nh sửa sai.");
+  return finishAssistantWizard("Luồng sửa launch bị lệch bước, tôi đã hủy để tránh sửa sai.");
 }
 
 function assistantWizardReply(rawText) {
@@ -3939,33 +3895,33 @@ function assistantWizardReply(rawText) {
   }
   if (value === "assistant:explain:readiness") {
     return {
-      reply: "Readiness l� mức sẵn s�ng của launch. Hệ thống đọc brief, chấm theo bộ ti�u ch� rủi ro v� trả Green / Yellow / Red để team biết n�n chạy, cần bổ sung hay n�n dừng lại chỉnh trước.",
+      reply: "Readiness là mức sẵn sàng của launch. Hệ thống đọc brief, chấm theo bộ tiêu chí rủi ro và trả Green / Yellow / Red để team biết nên chạy, cần bổ sung hay nên dừng lại chỉnh trước.",
       options: assistantHomeOptions()
     };
   }
   if (value === "assistant:explain:red-team") {
     return {
-      reply: "Red Team l� phần phản biện trước launch. N� nh�n brief từ nhiều g�c như user, exploit, CS, tech/on-call v� business để chỉ ra điều dễ hỏng trước khi Human quyết định chạy.",
+      reply: "Red Team là phần phản biện trước launch. Nó nhìn brief từ nhiều góc như user, exploit, CS, tech/on-call và business để chỉ ra điều dễ hỏng trước khi Human quyết định chạy.",
       options: assistantHomeOptions()
     };
   }
   if (value === "assistant:explain:checklist") {
     return {
-      reply: "Checklist l� danh s�ch việc cần l�m trước, trong v� sau launch. Mục ti�u l� biến brief th�nh task r� r�ng c� owner, deadline v� trạng th�i để tr�nh bị s�t việc.",
+      reply: "Checklist là danh sách việc cần làm trước, trong và sau launch. Mục tiêu là biến brief thành task rõ ràng có owner, deadline và trạng thái để tránh bị sót việc.",
       options: assistantHomeOptions()
     };
   }
   if (value === "assistant:explain:lessons") {
     return {
-      reply: "B�i học d�ng để lưu kết quả thực tế v� lesson learned sau launch. C�c b�i học n�y về sau c� thể l�m context để AI tư vấn khi Human chuẩn bị launch mới.",
+      reply: "Bài học dùng để lưu kết quả thực tế và lesson learned sau launch. Các bài học này về sau có thể làm context để AI tư vấn khi Human chuẩn bị launch mới.",
       options: assistantHomeOptions()
     };
   }
   if (value === "assistant:analyze") {
-    return { reply: "T�i sẽ chạy ph�n t�ch cho launch hiện tại nếu brief đ� c� nội dung.", action: "analyze" };
+    return { reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", action: "analyze" };
   }
   if (value === "assistant:lessons") {
-    return { reply: "T�i mở tab B�i học để bạn xem kết quả sau launch v� lessons learned.", action: "lessons" };
+    return { reply: "Tôi mở tab Bài học để bạn xem kết quả sau launch và lessons learned.", action: "lessons" };
   }
   if (assistantExplainIntent(text)) {
     return assistantExplainReply(value);
@@ -3990,7 +3946,7 @@ function isAssistantConfigActionIntent(text) {
 async function createLaunchFromAssistant(draft) {
   const status = normalizeStatus(draft?.status || "upcoming");
   if (status !== "upcoming" && !isLaunchAdmin()) {
-    appendAssistantMessage("bot", `Launch ${STATUS_LABELS[status]} chỉ Admin được tạo/sửa. Bản review public đang kh�a vai tr� ở Human, n�n t�i chưa lưu launch n�y. H�y tạo launch ở trạng th�i Sắp chạy.`);
+    appendAssistantMessage("bot", `Launch ${STATUS_LABELS[status]} chỉ Admin được tạo/sửa. Bản review public đang khóa vai trò ở Human, nên tôi chưa lưu launch này. Hãy tạo launch ở trạng thái Sắp chạy.`);
     return;
   }
 
@@ -4019,9 +3975,9 @@ async function createLaunchFromAssistant(draft) {
   renderLaunchWorkspace();
   activateTab("briefView");
   await saveCurrentLaunch({ silent: true });
-  renderEmptyAnalysis("Assistant đ� tạo launch mới. Kiểm tra brief rồi bấm Chạy ph�n t�ch khi cần.");
-  analysisSource.textContent = `Assistant đ� tạo launch "${currentLaunch.name}" ở trạng th�i ${STATUS_LABELS[normalizeStatus(currentLaunch.status)]}.`;
-  appendAssistantMessage("bot", `Đ� tạo launch "${currentLaunch.name}". T�i đ� mở tab T�m tắt để bạn kiểm tra brief.`);
+  renderEmptyAnalysis("Assistant đã tạo launch mới. Kiểm tra brief rồi bấm Chạy phân tích khi cần.");
+  analysisSource.textContent = `Assistant đã tạo launch "${currentLaunch.name}" ở trạng thái ${STATUS_LABELS[normalizeStatus(currentLaunch.status)]}.`;
+  appendAssistantMessage("bot", `Đã tạo launch "${currentLaunch.name}". Tôi đã mở tab Tóm tắt để bạn kiểm tra brief.`);
 }
 
 function scopedAssistantReply(rawText) {
@@ -4030,14 +3986,14 @@ function scopedAssistantReply(rawText) {
   const outsideScope = /(thoi tiet|weather|gia vang|bitcoin|coin|bong da|phim|nau an|code python|viet email|facebook|youtube|google|tin tuc)/.test(text);
   if (outsideScope) {
     return {
-      reply: "T�i chỉ hỗ trợ trong phạm vi LaunchOps Command Center: launch brief, readiness, phản biện, checklist, b�i học, cấu h�nh ph�n loại v� thao t�c trong web n�y."
+      reply: "Tôi chỉ hỗ trợ trong phạm vi LaunchOps Command Center: launch brief, readiness, phản biện, checklist, bài học, cấu hình phân loại và thao tác trong web này."
     };
   }
 
   const launchDraft = parseAssistantLaunchDraft(rawText);
   if (launchDraft) {
     return {
-      reply: `T�i sẽ tạo launch "${launchDraft.name}" trong LaunchOps Command Center.`,
+      reply: `Tôi sẽ tạo launch "${launchDraft.name}" trong LaunchOps Command Center.`,
       action: { type: "createLaunch", payload: launchDraft }
     };
   }
@@ -4047,59 +4003,59 @@ function scopedAssistantReply(rawText) {
 
   if (isAssistantConfigActionIntent(text)) {
     return {
-      reply: "Chat Box kh�ng c� quyền mở, sửa, th�m, x�a, lưu hoặc duyệt Cấu h�nh ph�n loại / config Web UI. T�i chỉ c� thể giải th�ch � nghĩa cấu h�nh để Human hoặc Admin thao t�c bằng UI ri�ng."
+      reply: "Chat Box không có quyền mở, sửa, thêm, xóa, lưu hoặc duyệt Cấu hình phân loại / config Web UI. Tôi chỉ có thể giải thích ý nghĩa cấu hình để Human hoặc Admin thao tác bằng UI riêng."
     };
   }
 
   if (isAssistantConfigIntent(text) && !isAssistantConfigActionIntent(text)) {
     return {
-      reply: "Cấu h�nh ph�n loại l� bộ luật chung cho từng loại launch: nh�m rủi ro, g�c phản biện, checklist v� b�i học. Bản review public chỉ cho xem để tr�nh người review sửa nhầm dữ liệu demo."
+      reply: "Cấu hình phân loại là bộ luật chung cho từng loại launch: nhóm rủi ro, góc phản biện, checklist và bài học. Bản review public chỉ cho xem để tránh người review sửa nhầm dữ liệu demo."
     };
   }
 
   if (text.includes("mo cau hinh") || text.includes("cau hinh phan loai")) {
     return {
-      reply: "Chat Box kh�ng c� quyền mở hoặc sửa Cấu h�nh ph�n loại. Phần đ� l� config chung của Web UI, chỉ Human/Admin thao t�c trực tiếp bằng n�t Cấu h�nh ph�n loại nếu được quyền."
+      reply: "Chat Box không có quyền mở hoặc sửa Cấu hình phân loại. Phần đó là config chung của Web UI, chỉ Human/Admin thao tác trực tiếp bằng nút Cấu hình phân loại nếu được quyền."
     };
   }
   if (text.includes("quay lai") || text.includes("tro lai launch")) {
-    return { reply: "T�i quay lại m�n launch đang l�m.", action: "backToLaunch" };
+    return { reply: "Tôi quay lại màn launch đang làm.", action: "backToLaunch" };
   }
   if (text.includes("tom tat")) return assistantLaunchSummaryReply();
-  if (text.includes("phan tich") || text.includes("red team")) return { reply: "T�i mở tab Ph�n t�ch.", action: "redTeam" };
-  if (text.includes("checklist") || text.includes("viec can lam")) return { reply: "T�i mở tab Việc cần l�m.", action: "checklist" };
-  if (text.includes("lich su")) return { reply: "T�i mở tab Lịch sử ph�n t�ch.", action: "history" };
-  if (text.includes("bai hoc") || text.includes("postmortem")) return { reply: "T�i mở tab B�i học.", action: "lessons" };
+  if (text.includes("phan tich") || text.includes("red team")) return { reply: "Tôi mở tab Phân tích.", action: "redTeam" };
+  if (text.includes("checklist") || text.includes("viec can lam")) return { reply: "Tôi mở tab Việc cần làm.", action: "checklist" };
+  if (text.includes("lich su")) return { reply: "Tôi mở tab Lịch sử phân tích.", action: "history" };
+  if (text.includes("bai hoc") || text.includes("postmortem")) return { reply: "Tôi mở tab Bài học.", action: "lessons" };
   if (text.includes("chay phan tich") || text.includes("analyze")) {
-    return { reply: "T�i sẽ chạy ph�n t�ch cho launch hiện tại nếu brief đ� c� nội dung.", action: "analyze" };
+    return { reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", action: "analyze" };
   }
 
   if (text.includes("diem toi da") || text.includes("phan diem") || text.includes("max score")) {
     return {
-      reply: `Điểm tối đa l� trọng số của từng nh�m rủi ro. Với ph�n loại hiện tại, tổng readiness l� ${context.maxScore} điểm từ ${context.riskCount} nh�m rủi ro. Agent chấm từng nh�m từ 0 đến điểm tối đa dựa tr�n ti�u ch� đạt điểm, từ kh�a demo local v� nội dung brief.`
+      reply: `Điểm tối đa là trọng số của từng nhóm rủi ro. Với phân loại hiện tại, tổng readiness là ${context.maxScore} điểm từ ${context.riskCount} nhóm rủi ro. Agent chấm từng nhóm từ 0 đến điểm tối đa dựa trên tiêu chí đạt điểm, từ khóa demo local và nội dung brief.`
     };
   }
 
   if (text.includes("hoc") || text.includes("human sua") || text.includes("nho cai moi") || text.includes("phan tich theo huong cu")) {
     return {
-      reply: "AI kh�ng tự train lại vĩnh viễn sau mỗi lần human sửa. N� sẽ ph�n t�ch theo c�i mới nếu phần sửa được lưu v�o Cấu h�nh ph�n loại hoặc được lưu th�nh b�i học/template v� gửi k�m trong request ph�n t�ch sau đ�. C�c ph�n t�ch cũ vẫn giữ nguy�n để l�m lịch sử; muốn d�ng logic mới th� chạy ph�n t�ch lại."
+      reply: "AI không tự train lại vĩnh viễn sau mỗi lần human sửa. Nó sẽ phân tích theo cái mới nếu phần sửa được lưu vào Cấu hình phân loại hoặc được lưu thành bài học/template và gửi kèm trong request phân tích sau đó. Các phân tích cũ vẫn giữ nguyên để làm lịch sử; muốn dùng logic mới thì chạy phân tích lại."
     };
   }
 
   if (text.includes("ngay") || text.includes("lich") || text.includes("start") || text.includes("end")) {
     return {
-      reply: "Start Launch v� End Launch l� ng�y bắt đầu/kết th�c launch. T�i đ� d�ng input ng�y của browser để c� n�t chọn lịch. Khi lưu, app lưu theo dạng chuẩn yyyy-mm-dd nhưng vẫn hiển thị ng�y dễ đọc ở c�c phần tổng quan."
+      reply: "Start Launch và End Launch là ngày bắt đầu/kết thúc launch. Tôi đã dùng input ngày của browser để có nút chọn lịch. Khi lưu, app lưu theo dạng chuẩn yyyy-mm-dd nhưng vẫn hiển thị ngày dễ đọc ở các phần tổng quan."
     };
   }
 
   if (text.includes("diem") || text.includes("muc san sang") || text.includes("readiness")) {
     return {
-      reply: `Mức sẵn s�ng hiện được t�nh theo cấu h�nh ph�n loại của launch. Launch "${context.launchName}" thuộc "${context.launchType}", tổng điểm tối đa hiện l� ${context.maxScore}. M�u Green/Yellow/Red dựa tr�n tỷ lệ điểm đạt được, kh�ng cố định 12 điểm.`
+      reply: `Mức sẵn sàng hiện được tính theo cấu hình phân loại của launch. Launch "${context.launchName}" thuộc "${context.launchType}", tổng điểm tối đa hiện là ${context.maxScore}. Màu Green/Yellow/Red dựa trên tỷ lệ điểm đạt được, không cố định 12 điểm.`
     };
   }
 
   return {
-    reply: `T�i c� thể hỗ trợ trong LaunchOps: giải th�ch điểm, cấu h�nh ph�n loại, phản biện, checklist, b�i học, hoặc thao t�c mở tab/chạy ph�n t�ch. Launch hiện tại l� "${context.launchName}" (${context.status}, ${context.launchType}).`
+    reply: `Tôi có thể hỗ trợ trong LaunchOps: giải thích điểm, cấu hình phân loại, phản biện, checklist, bài học, hoặc thao tác mở tab/chạy phân tích. Launch hiện tại là "${context.launchName}" (${context.status}, ${context.launchType}).`
   };
 }
 
@@ -4136,7 +4092,7 @@ async function applyAssistantAction(action) {
     return;
   }
   if (action === "openConfig") {
-    appendAssistantMessage("bot", "Chat Box kh�ng c� quyền mở hoặc sửa Cấu h�nh ph�n loại / config Web UI. Bạn c� thể d�ng n�t Cấu h�nh ph�n loại tr�n topbar nếu muốn xem trực tiếp.");
+    appendAssistantMessage("bot", "Chat Box không có quyền mở hoặc sửa Cấu hình phân loại / config Web UI. Bạn có thể dùng nút Cấu hình phân loại trên topbar nếu muốn xem trực tiếp.");
     return;
   }
   if (action === "backToLaunch") {
@@ -4149,7 +4105,7 @@ async function applyAssistantAction(action) {
   }
   if (action === "analyze") {
     if (!canEditLaunch()) {
-      appendAssistantMessage("bot", "Launch đang chạy/đ� chạy kh�ng cho Human/AI ghi th�m ph�n t�ch. H�y d�ng Admin nếu cần chạy lại ph�n t�ch.");
+      appendAssistantMessage("bot", "Launch đang chạy/đã chạy không cho Human/AI ghi thêm phân tích. Hãy dùng Admin nếu cần chạy lại phân tích.");
       return;
     }
     await analyze();
@@ -4163,7 +4119,7 @@ function openAssistantPanel() {
   if (assistantMessages && !assistantMessages.children.length) {
     appendAssistantMessage(
       "bot",
-      "T�i l� trợ l� LaunchOps. Bạn cần t�i hỗ trợ g�? T�i c� thể tạo launch mới theo từng bước, sửa launch hiện tại, chạy ph�n t�ch hoặc mở phần b�i học.",
+      "Tôi là trợ lý LaunchOps. Bạn cần tôi hỗ trợ gì? Tôi có thể tạo launch mới theo từng bước, sửa launch hiện tại, chạy phân tích hoặc mở phần bài học.",
       assistantHomeOptions()
     );
   }
@@ -4237,7 +4193,7 @@ async function handleAssistantUserMessage(message, displayText = message) {
     await applyAssistantAction(result.action);
   } catch (error) {
     console.warn("Assistant message failed.", error);
-    appendAssistantMessage("bot", "T�i chưa thao t�c được y�u cầu n�y. H�y kiểm tra brief hoặc backend rồi thử lại trong LaunchOps.", assistantHomeOptions());
+    appendAssistantMessage("bot", "Tôi chưa thao tác được yêu cầu này. Hãy kiểm tra brief hoặc backend rồi thử lại trong LaunchOps.", assistantHomeOptions());
   }
 }
 
@@ -4271,7 +4227,7 @@ assistantInput?.addEventListener("keydown", (event) => {
 
 appendAssistantMessage(
   "bot",
-  "T�i l� trợ l� LaunchOps. Bạn cần t�i hỗ trợ g�? T�i c� thể tạo launch mới theo từng bước, sửa launch hiện tại, chạy ph�n t�ch hoặc mở phần b�i học.",
+  "Tôi là trợ lý LaunchOps. Bạn cần tôi hỗ trợ gì? Tôi có thể tạo launch mới theo từng bước, sửa launch hiện tại, chạy phân tích hoặc mở phần bài học.",
   assistantHomeOptions()
 );
 
@@ -4288,7 +4244,7 @@ if (deleteLaunchButton) {
   deleteLaunchButton.addEventListener("click", () => {
     deleteCurrentLaunch().catch((error) => {
       console.warn("Delete launch failed.", error);
-      analysisSource.textContent = "X�a launch chưa th�nh c�ng.";
+      analysisSource.textContent = "Xóa launch chưa thành công.";
     });
   });
 }
@@ -4318,7 +4274,7 @@ if (exportReportButton) {
   exportReportButton.addEventListener("click", () => {
     exportLaunchReport().catch((error) => {
       console.warn("Export report failed.", error);
-      analysisSource.textContent = "Export report chưa th�nh c�ng.";
+      analysisSource.textContent = "Export report chưa thành công.";
     });
   });
 }
@@ -4453,48 +4409,48 @@ loadLaunches();
 const LAUNCHOPS_LANG_MAP = {
   vi: {
     title: "LaunchOps Command Center",
-    eyebrow: "V-Team ? VinhVNN ? GS9",
-    newLaunch: "T?o launch m?i",
-    openTemplateConfig: "C?u h?nh ph?n lo?i",
+    eyebrow: "V-Team · VinhVNN · GS9",
+    newLaunch: "Tạo launch mới",
+    openTemplateConfig: "Cấu hình phân loại",
     modeFriendly: "Friendly",
     modePro: "Pro",
-    statusAll: "T?t c?",
-    statusRunning: "?ang ch?y",
-    statusCompleted: "?? ch?y",
-    statusUpcoming: "S?p ch?y",
-    searchLabel: "T?m ki?m",
-    searchPlaceholder: "T?n ho?c ph?n lo?i",
-    statusLabel: "Tr?ng th?i",
-    roleLabel: "Vai tr?",
-    introTitle: "LaunchOps Command Center l? g??",
-    introSummary: "LaunchOps Command Center l? m?t Super Agent / Trung t?m ?i?u h?nh Launch gi?p team ki?m so?t r?i ro tr??c, trong v? sau khi ph?t h?nh s? ki?n, campaign, t?nh n?ng m?i ho?c h? th?ng n?i b?.",
-    closeIntro: "??ng",
+    statusAll: "Tất cả",
+    statusRunning: "Đang chạy",
+    statusCompleted: "Đã chạy",
+    statusUpcoming: "Sắp chạy",
+    searchLabel: "Tìm kiếm",
+    searchPlaceholder: "Tên hoặc phân loại",
+    statusLabel: "Trạng thái",
+    roleLabel: "Vai trò",
+    introTitle: "LaunchOps Command Center là gì?",
+    introSummary: "LaunchOps Command Center là một Super Agent / Trung tâm điều hành Launch giúp team kiểm soát rủi ro trước, trong và sau khi phát hành sự kiện, campaign, tính năng mới hoặc hệ thống nội bộ.",
+    closeIntro: "Đóng",
     tabBrief: "Brief",
-    tabAnalysis: "Ph?n t?ch",
-    tabChecklist: "Vi?c c?n l?m",
-    tabLessons: "B?i h?c",
-    tabHistory: "L?ch s?",
-    runAnalyze: "Ch?y ph?n t?ch",
-    saveLaunch: "L?u launch",
-    exportReport: "T?i b?o c?o",
-    demoMode: "N?p demo",
+    tabAnalysis: "Phân tích",
+    tabChecklist: "Việc cần làm",
+    tabLessons: "Bài học",
+    tabHistory: "Lịch sử",
+    runAnalyze: "Chạy phân tích",
+    saveLaunch: "Lưu launch",
+    exportReport: "Tải báo cáo",
+    demoMode: "Nạp demo",
     assistantTitle: "LaunchOps Assistant",
-    assistantInputPlaceholder: "H?i ho?c d?n brief trong LaunchOps",
-    assistantSend: "G?i",
-    assistantTitleKicker: "Tr? l? trong web",
-    assistantBtn: "Tr? l?",
+    assistantInputPlaceholder: "Hỏi hoặc dán brief trong LaunchOps",
+    assistantSend: "Gửi",
+    assistantTitleKicker: "Trợ lý trong web",
+    assistantBtn: "Trợ lý",
     friendlyKicker: "Friendly mode",
-    friendlyVizBriefGoal: "Ch?n m?t launch ? danh s?ch b?n tr?i, ki?m tra brief, r?i b?m 'Ch?y ph?n t?ch'.",
-    friendlyVizScoreReason: "Ch?y ph?n t?ch ?? xem l? do ?i?m, k?t lu?n v? ph?n c?n thi?u.",
-    friendlyAnalyzeBtn: "Ch?y ph?n t?ch",
-    friendlyPostReviewBtn: "Ph?n t?ch sau launch",
-    emptyStateAnalysis: "Ch?n launch, ki?m tra brief r?i b?m Ch?y ph?n t?ch.",
-    emptyStateHistory: "Launch n?y ch?a c? l?ch s?. B?m Ch?y ph?n t?ch ?? t?o b?n ghi ??u ti?n.",
-    emptyStateRisks: "Ch?a c? ?i?m r?i ro. B?m Ch?y ph?n t?ch ?? t?o."
+    friendlyVizBriefGoal: "Chọn một launch ở danh sách bên trái, kiểm tra brief, rồi bấm 'Chạy phân tích'.",
+    friendlyVizScoreReason: "Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.",
+    friendlyAnalyzeBtn: "Chạy phân tích",
+    friendlyPostReviewBtn: "Phân tích sau launch",
+    emptyStateAnalysis: "Chọn launch, kiểm tra brief rồi bấm Chạy phân tích.",
+    emptyStateHistory: "Launch này chưa có lịch sử. Bấm Chạy phân tích để tạo bản ghi đầu tiên.",
+    emptyStateRisks: "Chưa có điểm rủi ro. Bấm Chạy phân tích để tạo."
   },
   en: {
     title: "LaunchOps Command Center",
-    eyebrow: "V-Team ? VinhVNN ? GS9",
+    eyebrow: "V-Team · VinhVNN · GS9",
     newLaunch: "New Launch",
     openTemplateConfig: "Classification Config",
     modeFriendly: "Friendly",
@@ -4580,7 +4536,7 @@ function updateUILanguage(lang) {
 
   // Sidebar kicker
   const boardKicker = document.querySelector(".board-head .section-kicker");
-  if (boardKicker) boardKicker.textContent = lang === "vi" ? "Danh s?ch theo tr?ng th?i" : "Launches by Status";
+  if (boardKicker) boardKicker.textContent = lang === "vi" ? "Danh sách theo trạng thái" : "Launches by Status";
 
   // Role
   const roleSpan = document.querySelector(".role-label");
@@ -4593,7 +4549,7 @@ function updateUILanguage(lang) {
 
   // Detail header kicker
   const heroKicker = document.querySelector(".detail-hero .section-kicker");
-  if (heroKicker) heroKicker.textContent = lang === "vi" ? "Chi ti?t launch" : "Launch Details";
+  if (heroKicker) heroKicker.textContent = lang === "vi" ? "Chi tiết launch" : "Launch Details";
 
   // Intro modal
   const introTitleEl = document.getElementById("introTitle");
@@ -4642,11 +4598,11 @@ function updateUILanguage(lang) {
   const frVizKicker = document.querySelector(".friendly-viz-kicker");
   if (frVizKicker) frVizKicker.textContent = dict.friendlyKicker;
   const frVizBriefGoal = document.getElementById("friendlyVizBriefGoal");
-  if (frVizBriefGoal && frVizBriefGoal.textContent.includes("Ch?n m?t launch") || frVizBriefGoal && frVizBriefGoal.textContent.includes("Select a launch")) {
+  if (frVizBriefGoal && frVizBriefGoal.textContent.includes("Chọn một launch") || frVizBriefGoal && frVizBriefGoal.textContent.includes("Select a launch")) {
     frVizBriefGoal.textContent = dict.friendlyVizBriefGoal;
   }
   const frVizScoreReason = document.getElementById("friendlyVizScoreReason");
-  if (frVizScoreReason && frVizScoreReason.textContent.includes("Ch?y ph?n t?ch") || frVizScoreReason && frVizScoreReason.textContent.includes("Run analysis")) {
+  if (frVizScoreReason && frVizScoreReason.textContent.includes("Chạy phân tích") || frVizScoreReason && frVizScoreReason.textContent.includes("Run analysis")) {
     frVizScoreReason.textContent = dict.friendlyVizScoreReason;
   }
   const frAnalyzeBtn = document.getElementById("friendlyAnalyzeBrief");
@@ -4656,19 +4612,19 @@ function updateUILanguage(lang) {
 
   // Sync status
   const syncStatus = document.getElementById("analysisSource");
-  if (syncStatus && (syncStatus.textContent === "B?n local ?? s?n s?ng" || syncStatus.textContent === "Local backend ready")) {
-    syncStatus.textContent = lang === "vi" ? "B?n local ?? s?n s?ng" : "Local backend ready";
+  if (syncStatus && (syncStatus.textContent === "Bản local đã sẵn sàng" || syncStatus.textContent === "Local backend ready")) {
+    syncStatus.textContent = lang === "vi" ? "Bản local đã sẵn sàng" : "Local backend ready";
   }
 
   // If detailSub has default text, translate it
   const detailSub = document.getElementById("detailSub");
-  if (detailSub && (detailSub.textContent === "T?o ho?c ch?n launch tr??c khi ph?n t?ch." || detailSub.textContent === "Create or select a launch to start analysis.")) {
-    detailSub.textContent = lang === "vi" ? "T?o ho?c ch?n launch tr??c khi ph?n t?ch." : "Create or select a launch to start analysis.";
+  if (detailSub && (detailSub.textContent === "Tạo hoặc chọn launch trước khi phân tích." || detailSub.textContent === "Create or select a launch to start analysis.")) {
+    detailSub.textContent = lang === "vi" ? "Tạo hoặc chọn launch trước khi phân tích." : "Create or select a launch to start analysis.";
   }
 
   // Update dynamic render states if empty
   const scoreReason = document.getElementById("scoreReason");
-  if (scoreReason && (scoreReason.textContent === "Ch?n launch, ki?m tra brief r?i b?m Ch?y ph?n t?ch." || scoreReason.textContent === "Select a launch, check the brief, then click Run Analysis.")) {
+  if (scoreReason && (scoreReason.textContent === "Chọn launch, kiểm tra brief rồi bấm Chạy phân tích." || scoreReason.textContent === "Select a launch, check the brief, then click Run Analysis.")) {
     scoreReason.textContent = dict.emptyStateAnalysis;
   }
 }

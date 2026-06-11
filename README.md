@@ -1,73 +1,136 @@
-# LaunchOps Command Center ? Super Agent & Dashboard
+# LaunchOps Command Center
 
-LaunchOps Command Center l? m?t **Super Agent (Command Center)** chuy?n bi?t gi?p c?c solo developer v? team ki?m so?t r?i ro tr??c khi ra m?t chi?n d?ch, s? ki?n ingame, ho?c c?p nh?t s?n ph?m. 
+LaunchOps Command Center là một Super Agent giúp team kiểm tra rủi ro trước khi launch sự kiện, campaign, tính năng mới hoặc internal tool.
 
-H? th?ng kh?ng ph?i l? m?t chatbot th?ng th??ng m? l? m?t **Multi-Agent Pipeline** t?i gi?n t? ??ng li?n k?t c?c chuy?n gia:
-1.  **Mission Control Agent**: Ti?p nh?n brief, ph?n lo?i v? ph?n t?ch s? b?.
-2.  **Launch Readiness Agent**: Ch?m ?i?m m?c ?? s?n s?ng (Green / Yellow / Red) theo Rubric 6 nh?m r?i ro (M?c ti?u, Owner, Tech, User, Business, Post-mortem).
-3.  **Red Team Agent**: ??ng vai 5 persona (Angry user, Exploit hunter, CS lead, Tech on-call, Business owner) ph?n bi?n v? t?m l? h?ng c?a brief.
-4.  **Checklist Agent**: Chuy?n ??i r?i ro th?nh vi?c l?m c? th? c? Owner, Deadline v? Priority.
-5.  **Post-mortem Agent**: L?p s?n k?ch b?n v? c?u h?i r?t kinh nghi?m sau launch.
+Sản phẩm không phải chatbot chung chung. Hệ thống đọc launch brief, chấm readiness, phản biện bằng Red Team, tạo checklist có owner/deadline/status và chuẩn bị post-mortem để team học lại sau mỗi lần launch.
 
----
+## Demo flow
 
-## C?c t?nh n?ng ch?nh
+1. Dán một launch brief xấu, ví dụ `Lucky Wheel Weekend`.
+2. Hệ thống chấm điểm readiness: Green / Yellow / Red.
+3. Red Team Agent tạo 5 góc nhìn phản biện:
+   - Angry user
+   - Exploit hunter
+   - CS lead
+   - Tech on-call
+   - Business owner
+4. Checklist Agent tạo danh sách việc cần làm có owner, deadline, status và priority.
+5. Post-mortem Agent tạo câu hỏi và action items cho lần launch sau.
 
--   **Ph?n t?ch Multi-Agent c? Trace th?c t?**: Endpoint `/analyze` g?i tu?n t? qua c?c Agent logic v? tr? v? `agentsTrace` chi ti?t ph?c v? vi?c ??nh gi? t?nh minh b?ch c?a AI.
--   **??nh tuy?n Multi-Model t?i ?u tr?n GreenNode MaaS**:
-    -   *Readiness Agent*: DeepSeek V4 Pro
-    -   *Red Team Agent*: MiniMax M2.5
-    -   *Checklist Agent*: Qwen 3.7 Plus
-    -   *Post-mortem Agent*: Gemma 4 31B-IT
-    -   *Assistant Agent*: DeepSeek V4 Flash
--   **H? th?ng fallback an to?n**: N?u g?i LLM l?i ho?c timeout, h? th?ng t? ??ng s? d?ng b? ch?m ?i?m deterministic rule-based ?? ??m b?o giao di?n dashboard kh?ng bao gi? b? treo.
--   **Giao di?n 2 ch? ?? (Pro / Friendly)**:
-    -   *Pro Mode*: Hi?n th? ??y ?? tham s? k? thu?t, trace JSON v? log.
-    -   *Friendly Mode*: Tr?c quan h?a ti?n tr?nh qua Mascot ??ng v? ??n t?n hi?u tr?ng th?i (Green/Yellow/Red).
+## Multi-Agent pipeline
 
----
+Dự án chạy dưới dạng 1 Custom Agent container trên AgentBase, bên trong có 5 agent mode logic:
 
-## C?u tr?c m? ngu?n
+- Mission Control: nhận brief và điều phối pipeline.
+- Launch Readiness: chấm điểm readiness bằng rubric rủi ro.
+- Red Team: phản biện launch từ nhiều persona.
+- Checklist: biến rủi ro thành việc làm cụ thể.
+- Post-mortem: tạo câu hỏi tổng kết và bài học.
 
--   `server/app.py`: Backend ch?nh, ch?y Multi-Agent orchestrator v? qu?n l? API.
--   `server/db.py` & `schema.sql`: Qu?n l? SQLite l?u tr? c?c launch profile m?u, product snapshot v? b?i h?c kinh nghi?m.
--   `index.html`, `app.js`, `friendly-ui.js`: Giao di?n Web Dashboard hai ch? ??.
--   `data/`: Ch?a c?c t?i li?u m?u (brief t?t, brief x?u, rubric r?i ro).
+Response API có trường `agentsTrace` để chứng minh các bước agent đã chạy.
 
----
+## Multi-model routing
 
-## C?ch ch?y local
+Backend hỗ trợ định tuyến nhiều model trên GreenNode MaaS:
 
-1.  **C?u h?nh bi?n m?i tr??ng**: T?o file `.env` t?i th? m?c g?c c?a project:
-    ```env
-    LAUNCHOPS_AGENTBASE_API_KEY=your_key_here
-    LAUNCHOPS_AGENTBASE_BASE_URL=https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1
-    LAUNCHOPS_LLM_ENABLED=true
-    LAUNCHOPS_MULTI_MODEL_ENABLED=true
-    ```
-2.  **Ch?y Backend local**:
-    ```powershell
-    python server/app.py
-    ```
-    M?c ??nh backend ch?y t?i `http://127.0.0.1:8080`.
-3.  **Ch?y Frontend**:
-    ```powershell
-    python -m http.server 8787 --bind 127.0.0.1
-    ```
-    M? tr?nh duy?t: `http://127.0.0.1:8787/index.html`.
+- Readiness: `deepseek/deepseek-v4-pro`
+- Red Team: `minimax/minimax-m2.5`
+- Checklist: `qwen/qwen3.7-plus`
+- Post-mortem: `google/gemma-4-31b-it`
+- Assistant: `deepseek/deepseek-v4-flash`
 
----
+Nếu LLM lỗi hoặc timeout, hệ thống fallback về rule-based flow để demo không bị treo.
 
-## Tri?n khai tr?n AgentBase (Custom Agent)
+## API chính
 
-Project ?? ???c ??ng g?i s?n Docker.
-1.  **Build v? Push Image**:
-    ```bash
-    docker build -t launchops-command-center:local .
-    docker tag launchops-command-center:local vcr.vngcloud.vn/[repoName]/launchops-command-center:v1
-    docker push vcr.vngcloud.vn/[repoName]/launchops-command-center:v1
-    ```
-2.  **Kh?i ch?y Custom Runtime**:
-    ```bash
-    bash .agents/skills/agentbase/scripts/runtime.sh create       --name launchops-command-center       --image vcr.vngcloud.vn/[repoName]/launchops-command-center:v1       --from-cr       --flavor runtime-s2-general-2x4       --min-replicas 1 --max-replicas 1       --env-file .env
-    ```
+- `GET /health`: kiểm tra runtime sống.
+- `POST /analyze`: phân tích launch brief.
+- `POST /api/analyze`: alias cho frontend cũ.
+- `POST /invocations`: alias dự phòng cho runtime invocation style.
+
+Sample payload:
+
+```json
+{
+  "brief": "Tên launch: Lucky Wheel Weekend...",
+  "launch": {
+    "type": "game_event_h5",
+    "gameId": "demo_game"
+  }
+}
+```
+
+## Chạy local
+
+Chạy backend:
+
+```powershell
+python server/app.py
+```
+
+Chạy frontend:
+
+```powershell
+python -m http.server 8787 --bind 127.0.0.1
+```
+
+Mở:
+
+```text
+http://127.0.0.1:8787/index.html
+```
+
+## Cấu hình môi trường
+
+Tạo file `.env` ở thư mục gốc project. Không commit file này.
+
+```env
+LAUNCHOPS_AGENTBASE_API_KEY=your_key_here
+LAUNCHOPS_AGENTBASE_BASE_URL=https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1
+
+LAUNCHOPS_MODEL_READINESS=deepseek/deepseek-v4-pro
+LAUNCHOPS_MODEL_REDTEAM=minimax/minimax-m2.5
+LAUNCHOPS_MODEL_CHECKLIST=qwen/qwen3.7-plus
+LAUNCHOPS_MODEL_POSTMORTEM=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ASSISTANT=deepseek/deepseek-v4-flash
+LAUNCHOPS_MODEL_DEFAULT=qwen/qwen3.7-plus
+
+LAUNCHOPS_LLM_TIMEOUT_SECONDS=60
+LAUNCHOPS_LLM_ENABLED=true
+LAUNCHOPS_MULTI_MODEL_ENABLED=true
+```
+
+## Deploy lên AgentBase
+
+Image đã được build và push lên VNG Cloud Container Registry.
+
+Runtime public hiện tại:
+
+```text
+https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn
+```
+
+Health check:
+
+```text
+GET /health
+```
+
+Analyze:
+
+```text
+POST /analyze
+```
+
+## Ghi chú bảo mật
+
+Repo public không được chứa:
+
+- `.env`
+- `.greennode.json`
+- `.agentbase/`
+- API key
+- IAM client secret
+- runtime logs
+
+Nếu lỡ commit secret, cần rotate key ngay.
