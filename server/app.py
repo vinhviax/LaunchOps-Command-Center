@@ -26,6 +26,7 @@ APP_ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
+CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def now_iso() -> str:
@@ -416,6 +417,68 @@ def format_chatbot_reply(result: dict[str, Any]) -> str:
                 lines.append(f"- {task.get('task', 'Task')} | Owner: {task.get('owner', 'TBD')} | Due: {task.get('deadline', 'TBD')}")
     return "\n".join(lines)
 
+def is_caveman_enabled() -> bool:
+    return CAVEMAN_ENABLED
+
+def set_caveman_enabled(enabled: bool) -> None:
+    global CAVEMAN_ENABLED
+    CAVEMAN_ENABLED = enabled
+
+def chatbot_caveman_reply(argument: str) -> str:
+    value = argument.strip().lower()
+    if value in {"on", "1", "true", "yes", "enable", "enabled", "bat", "b?t"}:
+        set_caveman_enabled(True)
+        return "Caveman mode: on. Bot n?i ng?n. Kh?ng m?u m?. Ungh."
+    if value in {"off", "0", "false", "no", "disable", "disabled", "tat", "t?t"}:
+        set_caveman_enabled(False)
+        return "Caveman mode: off. Bot quay l?i gi?ng th??ng."
+    status = "on" if is_caveman_enabled() else "off"
+    return f"Caveman mode: {status}. Use: caveman on | caveman off"
+
+def to_caveman_style(text: str) -> str:
+    if not is_caveman_enabled():
+        return text
+    replacements = [
+        ("LaunchOps bot commands:", "Bot hang ?? hi?u l?nh:"),
+        ("LaunchOps status:", "Tr?ng th?i b? l?c:"),
+        ("Recent launches:", "L?ch s? s?n b?n:"),
+        ("LaunchOps config status:", "C?u h?nh ?? l?a:"),
+        ("- help: show commands", "- help: hi?n l?nh"),
+        ("- status: show launch workspace status", "- status: xem launch s?ng/ch?t"),
+        ("- list: show recent launches", "- list: xem l?ch s? s?n"),
+        ("- config: show webhook/runtime config status", "- config: xem ?? l?a runtime"),
+        ("- analyze <brief>: analyze a launch brief", "- analyze <brief>: c?n brief, t?m nguy"),
+        ("- caveman on|off: toggle terse caveman bot style", "- caveman on|off: b?t/t?t gi?ng hang ??"),
+        ("Tip: paste any launch brief directly to analyze it.", "M?o: n?m brief v?o. Bot c?n lu?n."),
+        ("- Total launches:", "- T?ng launch:"),
+        ("- Running:", "- ?ang ch?y:"),
+        ("- Upcoming:", "- S?p t?i:"),
+        ("- Completed:", "- ?? xong:"),
+        ("Send `list` to see recent launches or paste a brief to analyze.", "G? `list` xem l?ch s?. D?n brief ?? bot c?n."),
+        ("Top risks:", "Nguy hi?m:"),
+        ("Next tasks:", "Vi?c ph?i l?m:"),
+        ("Decision: Ch?a n?n launch ngay", "Quy?t ??nh: C?m ch?y. H?ng."),
+        ("Decision: C?n c?i thi?n k? l??ng", "Quy?t ??nh: S?a ti?p. Ch?a ngon."),
+        ("Decision: S?n s?ng ?? launch", "Quy?t ??nh: Ch?y ???c. Ngon."),
+        ("M?c ti?u, ??i t??ng ho?c scope c?n m? h?.", "M?c ti?u t?i. Kh?ng r? s?n con g?."),
+        ("Ch?a th?y owner/deadline r? cho c?c nh?m.", "Kh?ng t?c tr??ng. Kh?ng h?n xong."),
+        ("Reward, t? l? ho?c ng?n s?ch ch?a ?? guardrail.", "M?i/rule y?u. D? ch?t ??i."),
+        ("Ch?t scope, ??i t??ng, KPI th?nh c?ng", "Ch?t con m?i, ng??i s?n, d?u th?ng"),
+        ("Vi?t CS FAQ v? macro tr? l?i", "D?y CS n?i chuy?n"),
+        ("Chu?n b? rollback plan v? feature flag", "Chu?n b? ???ng ch?y tr?n"),
+        ("Ch?t ng?n s?ch, reward guardrail", "Chia m?i, kh?a lu?t"),
+    ]
+    caveman = text
+    for source, target in replacements:
+        caveman = caveman.replace(source, target)
+    caveman = re.sub(r"LaunchOps:\s*(Red|Yellow|Green)\s*\((\d+)/(\d+)\)", r"S?n s?ng: \1 (\2/\3)", caveman)
+    caveman = re.sub(r"Owner:", "Ch?:", caveman)
+    caveman = re.sub(r"Due:", "H?n:", caveman)
+    caveman = re.sub(r"owner:", "ch?:", caveman)
+    if not caveman.endswith("Ungh."):
+        caveman = f"{caveman}\n\nUngh."
+    return caveman
+
 def send_telegram_message(chat_id: str, text: str) -> bool:
     token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
     if not token or not chat_id:
@@ -447,6 +510,7 @@ def chatbot_help_reply() -> str:
         "- list: show recent launches",
         "- config: show webhook/runtime config status",
         "- analyze <brief>: analyze a launch brief",
+        "- caveman on|off: toggle terse caveman bot style",
         "Tip: paste any launch brief directly to analyze it.",
     ])
 
@@ -479,11 +543,13 @@ def chatbot_config_reply() -> str:
     webhook_auth = "on" if os.getenv("LAUNCHOPS_WEBHOOK_TOKEN", "").strip() else "off"
     telegram_send = "on" if os.getenv("TELEGRAM_BOT_TOKEN", "").strip() else "off"
     fast_mode = os.getenv("CHATBOT_FAST_MODE", "1").strip() or "1"
+    caveman_mode = "on" if is_caveman_enabled() else "off"
     return "\n".join([
         "LaunchOps config status:",
         f"- Webhook auth: {webhook_auth}",
         f"- Telegram sendMessage: {telegram_send}",
         f"- Chatbot fast mode: {fast_mode}",
+        f"- Caveman style: {caveman_mode}",
         "- Routes: /webhooks/telegram, /webhooks/zalo, /api/chatbot",
     ])
 
@@ -493,7 +559,7 @@ def parse_chatbot_command(message: str) -> tuple[str, str]:
         return "missing", ""
     head, _, rest = text.partition(" ")
     command = head.lower().lstrip("/")
-    if command in {"start", "help", "status", "list", "config"}:
+    if command in {"start", "help", "status", "list", "config", "caveman"}:
         return command, rest.strip()
     if command in {"analyze", "analyse", "phan-tich", "phantich"}:
         return "analyze", rest.strip()
@@ -519,6 +585,8 @@ def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, 
         reply = chatbot_list_reply()
     elif command == "config":
         reply = chatbot_config_reply()
+    elif command == "caveman":
+        reply = chatbot_caveman_reply(brief)
     else:
         if not brief:
             reply = "Missing brief. Use: analyze <launch brief>"
@@ -528,6 +596,8 @@ def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, 
             else:
                 result = orchestrate_launchops_analysis(brief, None)
             reply = format_chatbot_reply(result)
+    if command != "caveman":
+        reply = to_caveman_style(reply)
     delivered = send_chatbot_reply(provider, chat_id, reply)
     response = {"ok": True, "provider": provider, "chatId": chat_id, "command": command, "reply": reply, "delivered": delivered}
     if result is not None:
