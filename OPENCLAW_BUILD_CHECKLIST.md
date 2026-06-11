@@ -57,3 +57,12 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - [x] `list` shows recent saved launches.
 - [x] `config` shows webhook auth / Telegram send / fast mode status.
 - [x] Local test passed for all commands on `POST /webhooks/telegram`.
+
+## 2026-06-11 - Route B deploy attempt
+
+- [x] GitHub main updated with webhook fallback: commit `3459590`.
+- [x] Docker image `launchops-command-center:v2` built locally.
+- [x] Local container test passed for `GET /health` and `POST /webhooks/telegram`.
+- [ ] Push `v2` to VCR blocked: `docker login vcr.vngcloud.vn` returns `unauthorized` with current CR credential.
+- [ ] Runtime update to `v2` pending after registry auth is fixed.
+- [ ] Do not reset CR credential without Human approval; reset invalidates existing image pull auth.
