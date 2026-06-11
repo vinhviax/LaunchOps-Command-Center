@@ -1,6 +1,6 @@
 # Project Memory - Claw(a)thon / LaunchOps Command Center
 
-Last updated: 2026-06-11 (chiều - Antigravity session end)
+Last updated: 2026-06-11 (chieu muon - Antigravity session end)
 
 > Quy tắc file này (Human chốt 11/06): chỉ giữ quyết định/tiến độ từ **18:00 10/06/2026** trở đi. Lịch sử cũ hơn nằm trong `Backup/` (snapshot) và `Archive/`, không đọc lại trừ khi cần restore.
 
@@ -55,6 +55,14 @@ Last updated: 2026-06-11 (chiều - Antigravity session end)
 - Backup snapshots trong `Backup/` (mới nhất: `Clawathon_backup_launchops_rag_memory_final_20260611_0812`).
 
 ## 4. Tiến độ từ 18:00 ngày 10/06 (mới → cũ)
+### 11/06 chieu muon - AgentBase docs + GitHub clean sync (Antigravity)
+
+- Da doc tai lieu AgentBase chinh thuc qua MCP `vng-cloud-docs` + ban local: Service Contract yeu cau container listen port `8080`, `GET /health` tra HTTP 200; headers `X-GreenNode-AgentBase-User-Id` va `X-GreenNode-AgentBase-Session-Id` duoc tu dong tiem.
+- Xac nhan BTC/clients goi runtime qua endpoint HTTPS cua AgentBase, path do app dinh nghia; AgentBase khong bat buoc route `/invocations`. App hien co du `GET /health`, `POST /analyze`, `POST /api/analyze`, `POST /invocations`, `/tools`, `/tools/call`.
+- Phat hien GitHub `origin/main` con loi encoding that trong repo public (`?`, U+FFFD, BOM, `server/launchops.db` tracked). Khoi phuc file sach tu commit local `f44b40b`: `server/app.py`, `server/seed_db.py`, `server/db.py`, `app.js`, `index.html`, `README.md`, `i18n-clean.js`.
+- Bo tracking `server/launchops.db`; DB se tu seed khi container start. Bo BOM khoi `server/schema.sql`, `MEMORY.md`, `OPENCLAW_BUILD_CHECKLIST.md`.
+- Secret scan chi thay placeholder/env lookup, khong thay secret that. Commit `b605e37` da push thanh cong len GitHub `main`; local public repo hien clean va dong bo `origin/main`.
+
 ### 11/06 chiều - Yêu cầu tích hợp MCP VNG Cloud Docs (Antigravity)
 
 - Human yêu cầu dùng MCP server VNG Cloud Docs để đọc tài liệu AgentBase chính thức.
@@ -126,12 +134,10 @@ Last updated: 2026-06-11 (chiều - Antigravity session end)
 
 ## 5. Việc còn lại (theo thứ tự)
 
-1. **[Ngay] Restart Codex session** → MCP `vng-cloud-docs` đã thêm vào config.toml, chỉ cần restart để load → đọc docs AgentBase.
-2. **[Ư u tiên] Đồng bộ bản sửa lên production:**
-   - Secret scan: `git grep -n "API_KEY\\|SECRET\\|BEGIN PRIVATE KEY"`
-   - Commit + push repo public lên GitHub.
-   - Trên máy có Docker: pull GitHub → rebuild image tag `v2` → push registry → update runtime AgentBase.
-   - Verify `GET /health` 200 + `POST /analyze` đủ 5 phần từ endpoint public.
+1. **[Da xong] Doc docs AgentBase + route audit** -> Service Contract khop: port `8080`, `GET /health`, app tu dinh nghia path; `/invocations` da co lam alias du phong.
+2. **[Uu tien] Dong bo ban sua len production:**
+   - Tren may co Docker: pull GitHub ban sach moi nhat -> rebuild image tag `v2` -> push registry -> update runtime AgentBase.
+   - Verify endpoint public: `GET /health` 200 + `POST /analyze` hoac `POST /invocations` du 5 phan, tieng Viet sach.
 3. **Submission assets (P3):** form description 292 ký tự đã soạn (xem SUBMISSION_CHECKLIST.md); 3 screenshots; điền link video khi có.
 4. **Video 2-3 phút (P4):** theo `DEMO_SCRIPT.md` (bản 2:30). Upload YouTube/OneDrive, test mở bằng account VNG ẩn danh.
 5. **Freeze + nộp (P5):** re-verify endpoint sống; điền form trước 11:00 ngày 17/06; không sửa gì sau khi nộp.
