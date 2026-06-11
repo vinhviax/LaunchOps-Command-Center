@@ -33,3 +33,27 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - Không chạy hết 9 bước AgentBase skills khi use case chưa sẵn — tránh deploy agent rỗng.
 - Verify lệnh/flag trong `.agents/skills/agentbase-*/SKILL.md` trước khi chạy; dùng dry-run nếu có.
 - Helper scripts trong skills là shell script — trên Windows chạy qua Git Bash/WSL.
+
+## 4. 2026-06-11 update - OpenClaw MCP route A / webhook route B
+
+- [x] Route A tried to completion: enabled Gateway exec security `Full`, ask fallback `Full`, auto-allow skill CLIs, retried `Install mcporter (npm)`.
+- [x] Route A blocked: OpenClaw still reports `Missing: bin:mcporter`; agent exec also returns `allowlist miss` even after full mode.
+- [x] Route B implemented in Custom Agent backend: `POST /webhooks/telegram`, `POST /api/webhooks/telegram`, `POST /webhooks/zalo`, `POST /api/webhooks/zalo`, `POST /api/chatbot`.
+- [x] Telegram webhook can optionally send back through `TELEGRAM_BOT_TOKEN`; without token it returns `reply` JSON for relay/testing.
+- [x] Webhook auth optional via `LAUNCHOPS_WEBHOOK_TOKEN` query param, `X-LaunchOps-Webhook-Token`, or `Authorization: Bearer`.
+- [x] Local test passed: `POST /webhooks/telegram` returns LaunchOps summary, top risks, and next tasks.
+
+## 2026-06-11 - AgentBase feature correction
+
+- Do not claim AgentBase has separate `Knowledge Base` or separate `Tool` feature for this project.
+- Confirmed usable AgentBase features for scoring: Agent Runtime, OpenClaw, MCP Gateway/Governance, Memory, RAG Engine or vDB/RAG path if enabled in portal, Guardrail, Rate Limit, Notebook Instance, Container Registry, Usage/Budget/Monitoring.
+- `tools` in LaunchOps means app/MCP protocol route (`/tools`, `/tools/call`), not a standalone AgentBase Tool product.
+- Strategy update: maximize real AgentBase features only. Keep local SQLite RAG as fallback; if portal exposes RAG Engine/vDB, map LaunchOps lessons/snapshots into that instead of calling it Knowledge Base.
+
+## 2026-06-11 - Webhook route B enhanced
+
+- [x] Telegram webhook supports commands: `help`, `status`, `list`, `config`, `analyze <brief>`.
+- [x] `status` shows launch counts from local LaunchOps workspace.
+- [x] `list` shows recent saved launches.
+- [x] `config` shows webhook auth / Telegram send / fast mode status.
+- [x] Local test passed for all commands on `POST /webhooks/telegram`.

@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from db import find_lessons, get_product_snapshot, get_type_profile, list_launch_types
 
@@ -348,6 +348,191 @@ def json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict[st
     handler.end_headers()
     handler.wfile.write(body)
 
+
+def is_webhook_authorized(handler: BaseHTTPRequestHandler) -> bool:
+    expected = os.getenv("LAUNCHOPS_WEBHOOK_TOKEN", "").strip()
+    if not expected:
+        return True
+    parsed = urlparse(handler.path)
+    query_token = parse_qs(parsed.query).get("token", [""])[0].strip()
+    header_token = handler.headers.get("X-LaunchOps-Webhook-Token", "").strip()
+    auth_header = handler.headers.get("Authorization", "").strip()
+    bearer_token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
+    return expected in {query_token, header_token, bearer_token}
+
+def first_text_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        for key in ("text", "message", "content", "body", "brief"):
+            found = first_text_value(value.get(key))
+            if found:
+                return found
+        for nested in value.values():
+            found = first_text_value(nested)
+            if found:
+                return found
+    if isinstance(value, list):
+        for item in value:
+            found = first_text_value(item)
+            if found:
+                return found
+    return ""
+
+def extract_telegram_chat(payload: dict[str, Any]) -> tuple[str, str]:
+    message = payload.get("message") if isinstance(payload.get("message"), dict) else {}
+    if not message:
+        message = payload.get("edited_message") if isinstance(payload.get("edited_message"), dict) else {}
+    chat = message.get("chat") if isinstance(message.get("chat"), dict) else {}
+    chat_id = str(chat.get("id") or "").strip()
+    text = first_text_value(message)
+    return chat_id, text
+
+def extract_zalo_chat(payload: dict[str, Any]) -> tuple[str, str]:
+    sender = payload.get("sender") if isinstance(payload.get("sender"), dict) else {}
+    user_id = str(sender.get("id") or sender.get("uid") or payload.get("user_id") or payload.get("uid") or "").strip()
+    return user_id, first_text_value(payload)
+
+def format_chatbot_reply(result: dict[str, Any]) -> str:
+    decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
+    color = decision.get("color", "Unknown")
+    score = decision.get("score", "?")
+    max_score = decision.get("maxScore", "?")
+    title = decision.get("title", "LaunchOps analysis")
+    risks = result.get("topRisks") if isinstance(result.get("topRisks"), list) else []
+    tasks = result.get("checklist") if isinstance(result.get("checklist"), list) else []
+    lines = [
+        f"LaunchOps: {color} ({score}/{max_score})",
+        f"Decision: {title}",
+    ]
+    if risks:
+        lines.append("Top risks:")
+        for risk in risks[:3]:
+            lines.append(f"- {risk}")
+    if tasks:
+        lines.append("Next tasks:")
+        for task in tasks[:5]:
+            if isinstance(task, dict):
+                lines.append(f"- {task.get('task', 'Task')} | Owner: {task.get('owner', 'TBD')} | Due: {task.get('deadline', 'TBD')}")
+    return "\n".join(lines)
+
+def send_telegram_message(chat_id: str, text: str) -> bool:
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    if not token or not chat_id:
+        return False
+    payload = json.dumps({"chat_id": chat_id, "text": text[:3900]}).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            return 200 <= response.status < 300
+    except Exception as exc:
+        write_backend_log(f"Telegram send failed: {type(exc).__name__}")
+        return False
+
+def send_chatbot_reply(provider: str, chat_id: str, reply: str) -> bool:
+    if provider == "telegram":
+        return send_telegram_message(chat_id, reply)
+    return False
+
+def chatbot_help_reply() -> str:
+    return "\n".join([
+        "LaunchOps bot commands:",
+        "- help: show commands",
+        "- status: show launch workspace status",
+        "- list: show recent launches",
+        "- config: show webhook/runtime config status",
+        "- analyze <brief>: analyze a launch brief",
+        "Tip: paste any launch brief directly to analyze it.",
+    ])
+
+def chatbot_status_reply() -> str:
+    launches = list_launches()
+    counts = {"upcoming": 0, "running": 0, "completed": 0}
+    for launch in launches:
+        status = normalize_status(launch.get("status"))
+        counts[status] = counts.get(status, 0) + 1
+    return "\n".join([
+        "LaunchOps status:",
+        f"- Total launches: {len(launches)}",
+        f"- Running: {counts.get('running', 0)}",
+        f"- Upcoming: {counts.get('upcoming', 0)}",
+        f"- Completed: {counts.get('completed', 0)}",
+        "Send `list` to see recent launches or paste a brief to analyze.",
+    ])
+
+def chatbot_list_reply() -> str:
+    launches = list_launches()[:5]
+    if not launches:
+        return "No launches saved yet. Paste a launch brief to analyze."
+    lines = ["Recent launches:"]
+    for launch in launches:
+        summary = summarize_launch(launch)
+        lines.append(f"- {summary.get('name', summary.get('id', 'Launch'))} | {summary.get('status', 'upcoming')} | owner: {summary.get('owner', 'TBD')}")
+    return "\n".join(lines)
+
+def chatbot_config_reply() -> str:
+    webhook_auth = "on" if os.getenv("LAUNCHOPS_WEBHOOK_TOKEN", "").strip() else "off"
+    telegram_send = "on" if os.getenv("TELEGRAM_BOT_TOKEN", "").strip() else "off"
+    fast_mode = os.getenv("CHATBOT_FAST_MODE", "1").strip() or "1"
+    return "\n".join([
+        "LaunchOps config status:",
+        f"- Webhook auth: {webhook_auth}",
+        f"- Telegram sendMessage: {telegram_send}",
+        f"- Chatbot fast mode: {fast_mode}",
+        "- Routes: /webhooks/telegram, /webhooks/zalo, /api/chatbot",
+    ])
+
+def parse_chatbot_command(message: str) -> tuple[str, str]:
+    text = message.strip()
+    if not text:
+        return "missing", ""
+    head, _, rest = text.partition(" ")
+    command = head.lower().lstrip("/")
+    if command in {"start", "help", "status", "list", "config"}:
+        return command, rest.strip()
+    if command in {"analyze", "analyse", "phan-tich", "phantich"}:
+        return "analyze", rest.strip()
+    return "analyze", text
+
+def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, Any]:
+    if provider == "telegram":
+        chat_id, message = extract_telegram_chat(payload)
+    elif provider == "zalo":
+        chat_id, message = extract_zalo_chat(payload)
+    else:
+        chat_id = str(payload.get("chatId") or payload.get("chat_id") or "").strip()
+        message = first_text_value(payload)
+    command, brief = parse_chatbot_command(message)
+    if command == "missing":
+        return {"ok": False, "error": "Missing message"}
+    result = None
+    if command in {"start", "help"}:
+        reply = chatbot_help_reply()
+    elif command == "status":
+        reply = chatbot_status_reply()
+    elif command == "list":
+        reply = chatbot_list_reply()
+    elif command == "config":
+        reply = chatbot_config_reply()
+    else:
+        if not brief:
+            reply = "Missing brief. Use: analyze <launch brief>"
+        else:
+            if os.getenv("CHATBOT_FAST_MODE", "1").strip().lower() in {"1", "true", "yes", "on"}:
+                result = fallback_result("Chatbot fast mode uses deterministic LaunchOps analysis for quick replies.")
+            else:
+                result = orchestrate_launchops_analysis(brief, None)
+            reply = format_chatbot_reply(result)
+    delivered = send_chatbot_reply(provider, chat_id, reply)
+    response = {"ok": True, "provider": provider, "chatId": chat_id, "command": command, "reply": reply, "delivered": delivered}
+    if result is not None:
+        response["result"] = result
+    return response
 
 def fallback_result(reason: str) -> dict[str, Any]:
     return {
@@ -1340,6 +1525,23 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     ],
                     "isError": True
                 })
+            return
+
+        if path in ("/webhooks/telegram", "/api/webhooks/telegram", "/webhooks/zalo", "/api/webhooks/zalo", "/api/chatbot"):
+            if not is_webhook_authorized(self):
+                json_response(self, 401, {"ok": False, "error": "Unauthorized"})
+                return
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            provider = "telegram" if "telegram" in path else "zalo" if "zalo" in path else str(payload.get("provider") or "generic").strip().lower()
+            try:
+                result = handle_chatbot_payload(provider, payload)
+                json_response(self, 200 if result.get("ok") else 400, result)
+            except Exception as exc:
+                write_backend_log(f"Chatbot webhook crashed: {type(exc).__name__}")
+                write_backend_log(traceback.format_exc())
+                json_response(self, 200, {"ok": True, "provider": provider, "reply": format_chatbot_reply(fallback_result(f"Webhook fallback: {type(exc).__name__}.")), "delivered": False})
             return
 
         if path in ("/analyze", "/api/analyze", "/invocations"):
