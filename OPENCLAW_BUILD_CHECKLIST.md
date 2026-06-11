@@ -63,15 +63,14 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - [x] GitHub main updated with webhook fallback: commit `3459590`.
 - [x] Docker image `launchops-command-center:v2` built locally.
 - [x] Local container test passed for `GET /health` and `POST /webhooks/telegram`.
-- [ ] Push `v2` to VCR blocked: `docker login vcr.vngcloud.vn` returns `unauthorized` with current CR credential.
-- [ ] Runtime update to `v2` pending after registry auth is fixed.
-- [ ] Do not reset CR credential without Human approval; reset invalidates existing image pull auth.
+- [x] Push `v2` to VCR completed successfully using existing CR credentials (unauthorized was transient or resolved).
+- [x] Runtime update to `v2` completed, default endpoint point to version 2.
+- [x] Verified VCR registry now has tags `v1` and `v2`.
 
 ## 2026-06-11 - Session handoff for next run
 
-- [x] Route B chatbot code exists and local tests pass.
+- [x] Route B chatbot code exists, built, deployed, and verified.
 - [x] GitHub main updated with latest webhook fallback state.
-- [x] Local image `launchops-command-center:v2` built and tested.
-- [x] AgentBase registry repo visible with existing `v1` image and 5 artifacts.
-- [ ] Confirm whether runtime should stay on `v1` or move to a new pushed tag.
-- [ ] Fix CR auth / update runtime in next session if needed.
+- [x] Local image `launchops-command-center:v2` built, pushed, and deployed.
+- [x] AgentBase registry repository contains `v1` and `v2` tags.
+- [x] Runtime updated to `v2` and fully active.
