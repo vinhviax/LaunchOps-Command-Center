@@ -74,3 +74,13 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - [x] Local image `launchops-command-center:v4` built, pushed, v? deployed.
 - [x] AgentBase registry repository ch?a `v1`, `v2`, `v3` v? `v4` tags.
 - [x] Runtime updated l?n `v4` v? active v?i ??y ?? chatbot utilities.
+
+## 2026-06-11 - Runtime v6 / Route A backend prep
+
+- [x] Built and pushed `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v6`.
+- [x] Updated AgentBase Custom Agent runtime DEFAULT endpoint to version 6.
+- [x] Route B remains healthy after live tests.
+- [x] Added `POST /mcp` JSON-RPC adapter for MCP `tools/list` and `tools/call`.
+- [x] Live `/mcp` test passed from public runtime endpoint.
+- [ ] Configure OpenClaw native MCP client with `http://localhost:18081/launchops-server-111734/launchops_server_mcp`.
+- [ ] Verify Route A end-to-end: OpenClaw -> localhost:18081 sidecar -> MCP Gateway -> Custom Agent `/mcp`.
