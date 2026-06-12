@@ -862,9 +862,9 @@ def build_product_context(brief: str, launch_context: dict[str, Any] | None = No
         },
     }
 
-def readiness_agent(brief: str, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+def readiness_agent(brief: str, launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     template = normalize_template(launch_context)
-    if truthy_env("LAUNCHOPS_LLM_ENABLED"):
+    if not force_fast and truthy_env("LAUNCHOPS_LLM_ENABLED"):
         result = call_llm(brief, {**(launch_context or {}), "template": template}, "readiness")
     else:
         result = fallback_result("Readiness agent rule-based.")
@@ -873,10 +873,10 @@ def readiness_agent(brief: str, launch_context: dict[str, Any] | None = None) ->
     result["trace"].append({"agent": "readiness", "status": "ok", "score": result["decision"]["score"], "color": result["decision"]["color"], "llm": public_llm_config("readiness")})
     return result
 
-def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     template = normalize_template(launch_context)
     brief = str((launch_context or {}).get("brief") or "")
-    if truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
+    if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "redteam")
         if isinstance(llm_result.get("redTeam"), list) and len(llm_result["redTeam"]) >= 5:
             result["redTeam"] = llm_result["redTeam"][:5]
@@ -897,9 +897,9 @@ def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None
     result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "cards": len(red_team), "llm": public_llm_config("redteam")})
     return result
 
-def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     brief = str((launch_context or {}).get("brief") or "")
-    if truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
+    if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "checklist")
         if isinstance(llm_result.get("checklist"), list) and len(llm_result["checklist"]) >= 5:
             result["checklist"] = llm_result["checklist"]
@@ -918,9 +918,9 @@ def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | Non
     result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "tasks": len(result["checklist"]), "llm": public_llm_config("checklist")})
     return result
 
-def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     brief = str((launch_context or {}).get("brief") or "")
-    if truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
+    if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "postmortem")
         if isinstance(llm_result.get("postmortem"), list) and len(llm_result["postmortem"]) >= 3:
             result["postmortem"] = llm_result["postmortem"]
@@ -934,15 +934,15 @@ def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | No
     result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "blocks": len(result["postmortem"]), "llm": public_llm_config("postmortem")})
     return result
 
-def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     launch_context = launch_context or {}
     product_context = build_product_context(brief, launch_context)
     launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
-    result = readiness_agent(brief, launch_context)
+    result = readiness_agent(brief, launch_context, force_fast=force_fast)
     result["productContext"] = product_context
-    result = red_team_agent(result, launch_context)
-    result = checklist_agent(result, launch_context)
-    result = postmortem_agent(result, launch_context)
+    result = red_team_agent(result, launch_context, force_fast=force_fast)
+    result = checklist_agent(result, launch_context, force_fast=force_fast)
+    result = postmortem_agent(result, launch_context, force_fast=force_fast)
     result["agentsTrace"] = result.get("trace", [])
     result["source"] = result.get("source", "rule")
     result["llmRouting"] = {
@@ -1710,7 +1710,10 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 try:
                     launch_type = str(args.get("type") or "").strip()
                     launch_ctx = {"type": launch_type} if launch_type else None
-                    result = orchestrate_launchops_analysis(brief, launch_ctx)
+                    # MCP Gateway upstream timeout is 15s; the full 5-LLM pipeline takes ~100s
+                    # and would 504. Use the deterministic rule-based path (<1s) for MCP tool
+                    # calls — still returns real score + 5 personas + 8 tasks + 3 postmortem.
+                    result = orchestrate_launchops_analysis(brief, launch_ctx, force_fast=True)
                     json_response(self, 200, {
                         "jsonrpc": "2.0",
                         "id": req_id,
