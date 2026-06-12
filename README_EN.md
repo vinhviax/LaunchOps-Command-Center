@@ -1,136 +1,73 @@
 # LaunchOps Command Center
 
-LaunchOps Command Center is a Super Agent that helps teams detect launch risks before shipping an event, campaign, feature, or internal tool.
+> Updated: 2026-06-12 — production build: image `v14`, runtime version 16 on VNG AgentBase.
 
-It is not a generic chatbot. The system reads a launch brief, scores readiness, runs a Red Team review, generates an owner-based checklist, and prepares a post-mortem plan so the team can learn from every launch.
+LaunchOps Command Center is a **launch-risk Super Agent**: it reads a launch brief (game event, marketing campaign, feature release, hotfix...), scores readiness as Green/Yellow/Red, challenges the plan with a 5-persona Red Team, generates an owner/deadline/priority checklist, and prepares a post-mortem so the team learns from every launch.
 
-## Demo flow
+**Live demo:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
-1. Paste a risky launch brief, for example `Lucky Wheel Weekend`.
-2. The system scores readiness as Green / Yellow / Red.
-3. The Red Team Agent creates five critique cards:
-   - Angry user
-   - Exploit hunter
-   - CS lead
-   - Tech on-call
-   - Business owner
-4. The Checklist Agent turns risks into tasks with owner, deadline, status, and priority.
-5. The Post-mortem Agent drafts questions and action items for the next launch.
+## Architecture
 
-## Multi-agent pipeline
+Everything runs in **one Docker image** (`python:3.11-slim`, Python stdlib only — no framework, no heavy dependencies), deployed to a VNG AgentBase Agent Runtime:
 
-The project is deployed as one Custom Agent container on AgentBase. Inside that container, the backend runs five logical agent modes:
+- `GET /` — Web UI (Pro / Friendly modes, VI/EN)
+- `GET /health` — healthcheck (AgentBase Service Contract)
+- `POST /api/analyze` — full 5-agent LLM pipeline (~90–120s)
+- `POST /api/assistant` — single-call LLM chatbot (~3s)
+- `POST /api/launches/...` — launch CRUD + per-launch analyze
+- `POST /mcp` — MCP streamable-http (JSON-RPC: initialize / tools/list / tools/call)
+- `GET/DELETE /mcp` — **405 by spec (do not change)**
+- `POST /webhooks/telegram`, `/webhooks/zalo`
 
-- Mission Control: receives the brief and orchestrates the pipeline.
-- Launch Readiness: scores readiness using a launch risk rubric.
-- Red Team: challenges the launch from multiple personas.
-- Checklist: turns risks into concrete tasks.
-- Post-mortem: prepares review questions and lessons learned.
+OpenClaw (stdio-only MCP client) connects through the `npx mcp-remote <endpoint>/mcp` bridge, optionally via the IAM-protected MCP Gateway `launchops-server`.
 
-The API response includes `agentsTrace` to show the executed agent steps.
+## Multi-model agent pipeline
 
-## Multi-model routing
+Each agent calls its own model through the **OpenAI-compatible** `/v1/chat/completions` API on VNG MaaS — switching models is an env change, not a code change:
 
-The backend supports multi-model routing on GreenNode MaaS:
+| Agent | Env | Current model |
+|---|---|---|
+| Readiness | `LAUNCHOPS_MODEL_READINESS` | `deepseek/deepseek-v4-pro` |
+| Red Team | `LAUNCHOPS_MODEL_REDTEAM` | `minimax/minimax-m2.5` |
+| Checklist | `LAUNCHOPS_MODEL_CHECKLIST` | `qwen/qwen3.7-plus` |
+| Post-mortem | `LAUNCHOPS_MODEL_POSTMORTEM` | `google/gemma-4-31b-it` |
+| Assistant | `LAUNCHOPS_MODEL_ASSISTANT` | `deepseek/deepseek-v4-flash` |
 
-- Readiness: `deepseek/deepseek-v4-pro`
-- Red Team: `minimax/minimax-m2.5`
-- Checklist: `qwen/qwen3.7-plus`
-- Post-mortem: `google/gemma-4-31b-it`
-- Assistant: `deepseek/deepseek-v4-flash`
+- API responses carry `trace` + `agentsTrace` proving which agent ran on which model.
+- The final readiness score is always recomputed by a **deterministic rule** — the LLM explains risks, it does not freestyle the score.
+- Every agent falls back to local rules on LLM error/timeout — the pipeline never dies midway.
+- `POST /mcp tools/call` uses a **deterministic fast path (<1s)** to stay under the MCP Gateway's 15s timeout; `/api/analyze` is the full LLM path.
 
-If an LLM call fails or times out, the system falls back to the deterministic rule-based flow so the demo remains usable.
+## Web UI
 
-## Main API
-
-- `GET /health`: checks that the runtime is alive.
-- `POST /analyze`: analyzes a launch brief.
-- `POST /api/analyze`: legacy frontend alias.
-- `POST /invocations`: runtime invocation-style alias.
-
-Sample payload:
-
-```json
-{
-  "brief": "Launch name: Lucky Wheel Weekend...",
-  "launch": {
-    "type": "game_event_h5",
-    "gameId": "demo_game"
-  }
-}
-```
+- **Two modes:** Pro (full dashboard) and Friendly (guided NPC + step visualizer reading the real Pro DOM). Friendly is the default.
+- **Admin-only Log tab:** open the URL with `?role=admin` to reveal a per-launch Log tab — client events (save → API call → result/timeout) plus server traces (which agent ran on which model, where fallbacks happened). Turn off with `?role=human`.
+- A web analysis takes **~90–120s** (4 sequential LLM calls); the client timeout is 240s.
+- Cache-busting via the `?v=` query in `index.html` — bump it whenever JS/CSS change.
 
 ## Run locally
 
-Run backend:
+```bash
+# Rule mode (fast, no LLM) — best for UI work
+LAUNCHOPS_LLM_ENABLED=false PORT=8788 python server/app.py
 
-```powershell
-python server/app.py
+# Full LLM — requires .env with LAUNCHOPS_AGENTBASE_API_KEY + BASE_URL
+PORT=8788 python server/app.py
 ```
 
-Run frontend:
+Open `http://127.0.0.1:8788/` — UI and API share one origin. Env template: `.env.example`.
 
-```powershell
-python -m http.server 8787 --bind 127.0.0.1
-```
+## Deploy
 
-Open:
+1. Build & push: `docker build -t vcr.vngcloud.vn/111480-abp111734/launchops-command-center:vNN .` → `docker push ...`
+2. PATCH the runtime via the management API (mint an IAM token, mirror the latest version config, change only `imageUrl`). **Model/env changes are the same PATCH — no rebuild.**
+3. The DEFAULT endpoint auto-rolls to the new version (~15–40s). Verify by content (grep the `?v=` version in the served index), not by the `status` field right after PATCH.
 
-```text
-http://127.0.0.1:8787/index.html
-```
+## Repo layout
 
-## Environment config
+See `README.md` (Vietnamese) for the annotated file map, `CODEX_BRIEF.md` for contributor/agent ground rules, and `OPENCLAW_BUILD_CHECKLIST.md` for the OpenClaw/MCP integration details.
 
-Create a local `.env` file in the project root. Do not commit it.
+## Security
 
-```env
-LAUNCHOPS_AGENTBASE_API_KEY=your_key_here
-LAUNCHOPS_AGENTBASE_BASE_URL=https://maas-llm-aiplatform-hcm.api.vngcloud.vn/v1
-
-LAUNCHOPS_MODEL_READINESS=deepseek/deepseek-v4-pro
-LAUNCHOPS_MODEL_REDTEAM=minimax/minimax-m2.5
-LAUNCHOPS_MODEL_CHECKLIST=qwen/qwen3.7-plus
-LAUNCHOPS_MODEL_POSTMORTEM=google/gemma-4-31b-it
-LAUNCHOPS_MODEL_ASSISTANT=deepseek/deepseek-v4-flash
-LAUNCHOPS_MODEL_DEFAULT=qwen/qwen3.7-plus
-
-LAUNCHOPS_LLM_TIMEOUT_SECONDS=60
-LAUNCHOPS_LLM_ENABLED=true
-LAUNCHOPS_MULTI_MODEL_ENABLED=true
-```
-
-## AgentBase deployment
-
-The image has been built and pushed to VNG Cloud Container Registry.
-
-Current public runtime endpoint:
-
-```text
-https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn
-```
-
-Health check:
-
-```text
-GET /health
-```
-
-Analyze:
-
-```text
-POST /analyze
-```
-
-## Security notes
-
-The public repository must not include:
-
-- `.env`
-- `.greennode.json`
-- `.agentbase/`
-- API keys
-- IAM client secrets
-- runtime logs
-
-If a secret was committed by mistake, rotate it immediately.
+- Never commit `.env`, tokens, keys, logs, or DB files (`.gitignore` already covers them).
+- The public endpoint is intentionally unauthenticated for the hackathon demo; the MCP Gateway provides the IAM-protected path.

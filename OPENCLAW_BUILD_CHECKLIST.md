@@ -1,95 +1,51 @@
-# OpenClaw / AgentBase Build Checklist - LaunchOps Command Center
+# OpenClaw / MCP Integration — Trạng thái cuối (Route A HOÀN THÀNH)
 
-Cập nhật: 2026-06-11. Mục tiêu đã đạt: Custom Agent chạy thật trên AgentBase; OpenClaw là backup chatbot.
+> Cập nhật: 12/06/2026. Toàn chuỗi OpenClaw → MCP → LaunchOps đã chạy production, verify bằng tool call thật.
 
-## 1. Trạng thái AgentBase (chính)
+## Luồng đang chạy
 
-- [x] Custom Agent runtime **ACTIVE**, public endpoint:
-  `https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn`
-- [x] Docker image push: `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v1`
-- [x] MCP Gateway `launchops-server` + policy group ALLOW:
-  `https://gw-launchops-server-111734.agentbase-gateway.aiplatform.vngcloud.vn`
-  - Lưu ý: curl trực tiếp gateway bị 403/404 chưa kết luận hỏng — cần MCP client thật.
-- [x] Multi-model routing 5 model MaaS live OK (readiness/redteam/checklist/postmortem/assistant).
-- [ ] **Rebuild image bản đã sửa encoding 11/06** (image `v1` còn text tiếng Việt lỗi trong fallback/MCP tool):
-  1. Commit/push repo public sau secret scan.
-  2. Trên máy có Docker (vd `D:\Clawathon` PC kia): pull GitHub → `docker build` → tag `v2` → push registry.
-  3. Update runtime sang image mới → verify `GET /health` 200 + `POST /analyze` đủ 5 phần + MCP tool text sạch.
+```
+OpenClaw 2026.3.23 (container AgentBase, chỉ hỗ trợ stdio MCP)
+   │  stdio
+   ▼
+npx -y mcp-remote  ←— bridge stdio ↔ streamable-http
+   │  HTTPS
+   ▼
+https://endpoint-b5a0d6b4-...vngcloud.vn/mcp   (server: launchops-server 1.0.0)
+   │
+   ▼
+tool: analyze_launch_brief  (fast path deterministic <1s)
+```
 
-## 2. Trạng thái OpenClaw (backup)
+Đường thay thế qua MCP Gateway (IAM): `https://gw-launchops-server-111734.agentbase-gateway.aiplatform.vngcloud.vn` — gateway name thật là `launchops-server`, target `launchops_server_mcp`. Gateway timeout 15s nên tools/call PHẢI giữ fast path.
 
-- [x] OpenClaw 1-Click instance `vinhvnn-viax` ACTIVE.
-- [x] Kênh Zalo/Telegram cấu hình trên UI OpenClaw (token Human tự nhập trên portal, không paste vào chat/repo).
-- [x] Prompt bridge: bot đóng vai LaunchOps Command Center khi được hỏi.
-- [x] Đã xác nhận OpenClaw UI không có chỗ gắn external MCP Gateway.
-- [ ] Test bot: paste `data/bad_launch_brief.md` → output đủ 5 phần (Mission Control Summary / Readiness / Red Team 5 persona / Checklist / Post-mortem), bad → Yellow/Red.
-- [ ] Lưu output tốt nhất làm dự phòng video/README.
+## Config OpenClaw (đang dùng)
 
-Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `data/risk_rubric.md`, `data/agent_roles.md`. Test case: `data/bad_launch_brief.md` (chính), `data/good_launch_brief.md` (đối chiếu — score phải tốt hơn bad).
+```bash
+openclaw mcp set launchops_gateway '{"command":"npx","args":["-y","mcp-remote","https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/mcp"]}'
+# xong gõ /restart trong OpenClaw
+```
 
-## 3. Quy tắc an toàn
+- KHÔNG khai `url`/`transport` trực tiếp — OpenClaw bản này skip mọi server không phải stdio (log: `skipped server ... because only stdio MCP servers are supported`).
+- Container OpenClaw có node v24 + npx, npm registry thông.
 
-- Không ghi API key / IAM secret / bot token vào repo, README, prompt, screenshot, video.
-- Không chạy hết 9 bước AgentBase skills khi use case chưa sẵn — tránh deploy agent rỗng.
-- Verify lệnh/flag trong `.agents/skills/agentbase-*/SKILL.md` trước khi chạy; dùng dry-run nếu có.
-- Helper scripts trong skills là shell script — trên Windows chạy qua Git Bash/WSL.
+## 3 bug đã sửa để thông được (đừng làm vỡ lại)
 
-## 4. 2026-06-11 update - OpenClaw MCP route A / webhook route B
+1. **Server thiếu MCP handshake** — `/mcp` phải xử lý `initialize` → `notifications/initialized` (ack 202) → `tools/list` → `tools/call`, thêm `ping`. MCP client thật bắt buộc bắt tay trước; raw curl không lộ lỗi này.
+2. **OpenClaw chỉ-stdio** — mọi external HTTP MCP phải qua bridge `mcp-remote` (đã thử `mcporter` — fail).
+3. **GET /mcp trả 404 → phải 405.** SDK client (trong mcp-remote) mở GET SSE stream sau `initialized`; theo spec streamable-http, server không hỗ trợ SSE phải trả **405** (client bỏ qua êm), còn 404 bị coi là lỗi remote → client hủy kết nối → 0 tool. `DELETE /mcp` cũng trả 405. **KHÔNG đổi 2 route này.**
 
-- [x] Route A tried to completion: enabled Gateway exec security `Full`, ask fallback `Full`, auto-allow skill CLIs, retried `Install mcporter (npm)`.
-- [x] Route A blocked: OpenClaw still reports `Missing: bin:mcporter`; agent exec also returns `allowlist miss` even after full mode.
-- [x] Route B implemented in Custom Agent backend: `POST /webhooks/telegram`, `POST /api/webhooks/telegram`, `POST /webhooks/zalo`, `POST /api/webhooks/zalo`, `POST /api/chatbot`.
-- [x] Telegram webhook can optionally send back through `TELEGRAM_BOT_TOKEN`; without token it returns `reply` JSON for relay/testing.
-- [x] Webhook auth optional via `LAUNCHOPS_WEBHOOK_TOKEN` query param, `X-LaunchOps-Webhook-Token`, or `Authorization: Bearer`.
-- [x] Local test passed: `POST /webhooks/telegram` returns LaunchOps summary, top risks, and next tasks.
+## Lệnh debug OpenClaw (bản 2026.3.23)
 
-## 2026-06-11 - AgentBase feature correction
+- Lệnh có thật: `openclaw --help`, `openclaw doctor`, `openclaw logs`, `openclaw health`, `openclaw mcp list/set/show/unset` (KHÔNG có `mcp status/doctor/probe`).
+- Log runtime: `/tmp/openclaw/openclaw-YYYY-MM-DD.log` (KHÔNG phải `/root/.openclaw/logs/`).
+- Config: `/root/.openclaw/openclaw.json`.
+- Bot có exec (security full) → nhờ bot chạy lệnh shell và dán output để debug.
+- Test bridge độc lập: `npx -y mcp-remote <url>` rồi xem stderr — sạch là server OK.
 
-- Do not claim AgentBase has separate `Knowledge Base` or separate `Tool` feature for this project.
-- Confirmed usable AgentBase features for scoring: Agent Runtime, OpenClaw, MCP Gateway/Governance, Memory, RAG Engine or vDB/RAG path if enabled in portal, Guardrail, Rate Limit, Notebook Instance, Container Registry, Usage/Budget/Monitoring.
-- `tools` in LaunchOps means app/MCP protocol route (`/tools`, `/tools/call`), not a standalone AgentBase Tool product.
-- Strategy update: maximize real AgentBase features only. Keep local SQLite RAG as fallback; if portal exposes RAG Engine/vDB, map LaunchOps lessons/snapshots into that instead of calling it Knowledge Base.
+## Verify đã chạy (12/06/2026)
 
-## 2026-06-11 - Webhook route B enhanced
-
-- [x] Telegram webhook supports commands: `help`, `status`, `list`, `config`, `analyze <brief>`.
-- [x] `status` shows launch counts from local LaunchOps workspace.
-- [x] `list` shows recent saved launches.
-- [x] `config` shows webhook auth / Telegram send / fast mode status.
-- [x] Local test passed for all commands on `POST /webhooks/telegram`.
-
-## 2026-06-11 - Route B deploy attempt
-
-- [x] GitHub main updated with webhook fallback: commit `3459590`.
-- [x] Docker image `launchops-command-center:v2` built locally.
-- [x] Local container test passed for `GET /health` and `POST /webhooks/telegram`.
-- [x] Push `v2` to VCR completed successfully using existing CR credentials (unauthorized was transient or resolved).
-- [x] Runtime update to `v2` completed, default endpoint point to version 2.
-- [x] Verified VCR registry now has tags `v1` and `v2`.
-
-## 2026-06-11 - Session handoff for next run
-
-- [x] Route B chatbot code exists, built, deployed, v? verified.
-- [x] GitHub main updated v?i chatbot commands m?i (guardrail, infra, report) v? Caveman mode.
-- [x] Local image `launchops-command-center:v4` built, pushed, v? deployed.
-- [x] AgentBase registry repository ch?a `v1`, `v2`, `v3` v? `v4` tags.
-- [x] Runtime updated l?n `v4` v? active v?i ??y ?? chatbot utilities.
-
-## 2026-06-11 - Runtime v6 / Route A backend prep
-
-- [x] Built and pushed `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v6`.
-- [x] Updated AgentBase Custom Agent runtime DEFAULT endpoint to version 6.
-- [x] Route B remains healthy after live tests.
-- [x] Added `POST /mcp` JSON-RPC adapter for MCP `tools/list` and `tools/call`.
-- [x] Live `/mcp` test passed from public runtime endpoint.
-- [x] Configure OpenClaw native MCP client with `http://localhost:18081/launchops-server-111734/launchops_server_mcp`.
-- [ ] Verify Route A end-to-end: Đã cấu hình block `mcp` JSON trong OpenClaw, nhưng bot chưa nhận diện được tool. Cần test URL bypass Gateway hoặc kiểm tra lại file config OpenClaw ở phiên làm việc sau.: OpenClaw -> localhost:18081 sidecar -> MCP Gateway -> Custom Agent `/mcp`.
-
-## 2026-06-11 - Runtime v7 / Route B Zalo Bot reply
-
-- [x] Added `send_zalo_message()` for Route B.
-- [x] Added `ZALO_BOT_TOKEN` to `.env.example`.
-- [x] Built/pushed `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v7`.
-- [x] Updated AgentBase Custom Agent runtime DEFAULT endpoint to version 7.
-- [x] Verified `/webhooks/zalo` returns 200 with reply JSON.
-- [ ] Configure runtime env `ZALO_BOT_TOKEN` when Human has real Zalo Bot token, then verify outbound Zalo delivery.
+- [x] Python SDK + MCP Inspector connect / list / call OK.
+- [x] mcp-remote local: initialize → tools/list → tools/call, stderr sạch không error.
+- [x] OpenClaw bot thấy tool `analyze_launch_brief`, gọi thật với brief xấu → trả RED 0/18 + Red Team 5 persona.
+- [x] Gateway path với IAM token: tools/call 200 trong 0.23s.
