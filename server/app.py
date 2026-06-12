@@ -28,6 +28,20 @@ LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
 
+# Static Web UI served from APP_ROOT so AgentBase Runtime hosts the dashboard at the
+# same origin as the API (no external static host needed).
+STATIC_CONTENT_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+}
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -1646,6 +1660,24 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 return
             json_response(self, 200, {"ok": True, "launch": launch})
             return
+
+        # Serve bundled Web UI (static frontend) from APP_ROOT — top-level files only,
+        # whitelisted extensions, no path traversal. API routes above take precedence.
+        rel = "index.html" if path in ("", "/") else path.lstrip("/")
+        if "/" not in rel and ".." not in rel:
+            ctype = STATIC_CONTENT_TYPES.get(Path(rel).suffix.lower())
+            if ctype:
+                file_path = (APP_ROOT / rel).resolve()
+                if file_path.is_file() and file_path.parent == APP_ROOT.resolve():
+                    data = file_path.read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
 
         json_response(self, 404, {"ok": False, "error": "Not found"})
 
