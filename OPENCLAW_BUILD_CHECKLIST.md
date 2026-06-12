@@ -82,8 +82,8 @@ Prompt/rubric khi cần tinh chỉnh bot: `prompts/openclaw_backup_prompt.md`, `
 - [x] Route B remains healthy after live tests.
 - [x] Added `POST /mcp` JSON-RPC adapter for MCP `tools/list` and `tools/call`.
 - [x] Live `/mcp` test passed from public runtime endpoint.
-- [ ] Configure OpenClaw native MCP client with `http://localhost:18081/launchops-server-111734/launchops_server_mcp`.
-- [ ] Verify Route A end-to-end: OpenClaw -> localhost:18081 sidecar -> MCP Gateway -> Custom Agent `/mcp`.
+- [x] Configure OpenClaw native MCP client with `http://localhost:18081/launchops-server-111734/launchops_server_mcp`.
+- [ ] Verify Route A end-to-end: Đã cấu hình block `mcp` JSON trong OpenClaw, nhưng bot chưa nhận diện được tool. Cần test URL bypass Gateway hoặc kiểm tra lại file config OpenClaw ở phiên làm việc sau.: OpenClaw -> localhost:18081 sidecar -> MCP Gateway -> Custom Agent `/mcp`.
 
 ## 2026-06-11 - Runtime v7 / Route B Zalo Bot reply
 

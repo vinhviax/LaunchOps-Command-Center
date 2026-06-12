@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LaunchOps Command Center</title>
-  <link rel="stylesheet" href="styles.css?v=vng-redesign-20260608">
-  <link rel="stylesheet" href="friendly.css?v=vng-redesign-20260608">
-  <link rel="stylesheet" href="mission-control.css?v=vng-redesign-20260608">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css?v=redesign-20260611b">
+  <link rel="stylesheet" href="friendly.css?v=redesign-20260611b">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -97,7 +99,7 @@
       </div>
       <button id="openTemplateConfig" type="button" class="topbar-config-button pro-only">Cấu hình phân loại</button>
       <button id="newLaunch" type="button" class="primary">Tạo launch mới</button>
-      <div class="lang-switch" role="group" aria-label="Language / Ngôn ngữ" style="margin-right: 8px; display: inline-flex;"><button id="langViBtn" type="button" class="mode-btn active" data-lang="vi" style="padding: 4px 8px; border-radius: 4px 0 0 4px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-color); cursor: pointer;">VI</button><button id="langEnBtn" type="button" class="mode-btn" data-lang="en" style="padding: 4px 8px; border-radius: 0 4px 4px 0; border: 1px solid var(--border-color); border-left: none; background: var(--bg-surface); color: var(--text-color); cursor: pointer;">EN</button></div>
+      <div class="lang-switch" role="group" aria-label="Language / Ngôn ngữ"><button id="langViBtn" type="button" class="mode-btn active" data-lang="vi">VI</button><button id="langEnBtn" type="button" class="mode-btn" data-lang="en">EN</button></div>
       <div class="mode-switch" role="group" aria-label="Chọn giao diện">
         <button id="modeFriendlyBtn" type="button" class="mode-btn" data-mode="friendly" aria-pressed="false">Friendly</button>
         <button id="modeProBtn" type="button" class="mode-btn active" data-mode="pro" aria-pressed="true">Pro</button>
@@ -499,6 +501,37 @@
           <div id="riskBreakdown" class="risk-grid"></div>
         </div>
 
+        <div class="content-card rag-card" id="ragInsightsCard">
+          <div class="card-head">
+            <div>
+              <span class="section-kicker" id="ragKicker">Tri thức tham khảo · RAG</span>
+              <div class="title-row">
+                <h3 id="ragTitle">Bài học & dữ liệu sản phẩm liên quan</h3>
+                <button class="help-button" type="button" aria-label="Giải thích RAG insights" data-tooltip="Hệ thống đối chiếu từ khóa trong brief với kho bài học và snapshot sản phẩm (SQLite) để lôi ra kinh nghiệm cũ liên quan. Đây là phần tri thức RAG hỗ trợ quyết định, không phải kết quả chấm điểm.">?</button>
+              </div>
+            </div>
+          </div>
+          <div id="ragInsightsBody" class="rag-body">
+            <div class="empty-state">Chạy phân tích với backend để xem bài học quá khứ và dữ liệu sản phẩm liên quan.</div>
+          </div>
+        </div>
+
+        <div class="content-card trace-card" id="traceConsoleCard">
+          <div class="card-head">
+            <div>
+              <span class="section-kicker" id="traceKicker">Pipeline đa agent · Debug</span>
+              <div class="title-row">
+                <h3 id="traceTitle">Agents trace & JSON</h3>
+                <button class="help-button" type="button" aria-label="Giải thích agents trace" data-tooltip="Nhật ký từng agent trong pipeline (readiness, red team, checklist, post-mortem): trạng thái, nguồn rule/LLM và model định tuyến. Mở JSON đầy đủ để debug hoặc làm bằng chứng multi-agent.">?</button>
+              </div>
+            </div>
+            <button id="traceCopyBtn" class="trace-copy-btn" type="button">Copy JSON</button>
+          </div>
+          <div id="traceConsoleBody" class="trace-body">
+            <div class="empty-state">Chưa có trace. Bấm Chạy phân tích để xem pipeline 5 agent hoạt động.</div>
+          </div>
+        </div>
+
         <div id="launchSnapshot" class="snapshot-grid"></div>
       </section>
 
@@ -760,9 +793,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=assistant-wizard-20260607a"></script>
-  <script src="app.js?v=i18n-fix-20260611a"></script>
-  <script src="friendly-ui.js?v=i18n-fix-20260611a"></script>
-  <script src="i18n-clean.js?v=i18n-fix-20260611a"></script>
+  <script src="config.js?v=redesign-20260611b"></script>
+  <script src="app.js?v=redesign-20260611b"></script>
+  <script src="friendly-ui.js?v=redesign-20260611b"></script>
+  <script src="i18n-clean.js?v=redesign-20260611b"></script>
 </body>
 </html>

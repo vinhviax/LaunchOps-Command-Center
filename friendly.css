@@ -1,360 +1,62 @@
 /* ============================================================
-   friendly.css — Web UI redesign layer (2 mode: Pro / Friendly)
-   Thêm 2026-06-08. KHÔNG sửa styles.css gốc.
-   Rollback hoàn toàn: bỏ link friendly.css + friendly-ui.js trong index.html.
+   friendly.css — lớp giao diện Friendly mode (redesign 2026-06-11)
+   Load SAU styles.css. Chỉ chứa: mode switch, luật ẩn/hiện theo mode,
+   chrome scoped body.ui-mode-friendly và khối Visualize 5 bước.
+   Chrome chung (topbar/sidebar/hero/form) do styles.css quản —
+   KHÔNG thêm rule không scope đè lên DOM chung ở file này.
    ============================================================ */
 
-/* ---- Mode switch (segmented control trên topbar) ---- */
+/* ---- Mode switch (segmented control trên topbar tối) ---- */
 .mode-switch{
   display:inline-flex;
   align-items:stretch;
   flex:0 0 auto;
-  border:1.5px solid #1a1a1a;
+  border:1px solid var(--deep-line-strong);
   border-radius:999px;
   overflow:hidden;
-  background:#fff;
+  background:rgba(245,239,233,.05);
 }
 .mode-btn{
   appearance:none;
   -webkit-appearance:none;
   border:none;
+  border-radius:0;
   background:transparent;
-  min-width:64px;
-  padding:6px 13px;
+  min-width:68px;
+  min-height:34px;
+  padding:6px 14px;
   font:inherit;
-  font-weight:600;
-  font-size:13px;
+  font-weight:700;
+  font-size:12.5px;
   line-height:1.2;
   cursor:pointer;
-  color:#3a3f3a;
-  transition:background .15s ease,color .15s ease;
+  color:var(--deep-muted);
+  transition:background .16s var(--ease),color .16s var(--ease);
 }
-.mode-btn + .mode-btn{ border-left:1.5px solid #1a1a1a; }
-.mode-btn.active{ background:#c2431a; color:#fff; }
-.mode-btn:not(.active):hover{ background:rgba(10,138,74,.10); }
+.mode-btn + .mode-btn{ border-left:1px solid var(--deep-line); }
+.mode-btn.active{
+  background:linear-gradient(180deg,var(--accent),var(--accent-strong));
+  color:#fff;
+}
+.mode-btn:not(.active):hover{ background:rgba(245,239,233,.12); color:#fff; }
 .mode-btn:disabled{
   cursor:not-allowed;
-  opacity:.38;
-  background:#f1f2ee;
-  color:#7b8178;
+  opacity:.4;
 }
-.mode-btn:disabled:hover{ background:#f1f2ee; }
+.mode-btn:disabled:hover{ background:transparent; color:var(--deep-muted); }
 
-/* ---- Quy ước hiển thị theo mode ----
-   - Phần tử chỉ hiện ở Friendly mode: thêm class "friendly-only"
-   - Phần tử chỉ hiện ở Pro mode:       thêm class "pro-only"
-   Friendly layout chi tiết (traffic light, mascot, persona cards, stepper)
-   sẽ thêm ở B2/B3. */
+/* ---- Quy ước hiển thị theo mode ---- */
 body.ui-mode-pro .friendly-only{ display:none !important; }
 body.ui-mode-friendly .pro-only{ display:none !important; }
-
-/* ============================================================
-   B2 — Friendly panel: SVG mascot + traffic light + verdict
-   ============================================================ */
-.friendly-panel{
-  display:flex; gap:18px; flex-wrap:wrap; align-items:center;
-  margin:14px 0 4px; padding:16px 18px;
-  border:2px solid #1a1a1a; border-radius:14px;
-  background:#fff; box-shadow:4px 4px 0 #1a1a1a;
-}
-.friendly-mascot{ display:flex; align-items:center; gap:14px; flex:1 1 280px; }
-.mascot-svg{ width:96px; height:96px; flex-shrink:0; --accent:#f05a22; }
-.friendly-speech{
-  margin:0; font-size:15px; font-weight:600; line-height:1.4; color:#1a1a1a; max-width:340px;
-}
-
-/* mascot accent màu + chọn miệng theo trạng thái */
-.mascot-svg .m-accent-fill{ fill:var(--accent); }
-.mascot-svg .m-accent-stroke{ stroke:var(--accent); }
-.mascot-svg .m-mouth{ display:none; }
-.friendly-mascot[data-state="idle"] .mascot-svg{ --accent:#7a7e76; }
-.friendly-mascot[data-state="idle"] .m-think{ display:block; }
-.friendly-mascot[data-state="thinking"] .mascot-svg{ --accent:#245a9b; }
-.friendly-mascot[data-state="thinking"] .m-think{ display:block; }
-.friendly-mascot[data-state="green"] .mascot-svg{ --accent:#0a8a4a; }
-.friendly-mascot[data-state="green"] .m-happy{ display:block; }
-.friendly-mascot[data-state="yellow"] .mascot-svg{ --accent:#d9a400; }
-.friendly-mascot[data-state="yellow"] .m-warn{ display:block; }
-.friendly-mascot[data-state="red"] .mascot-svg{ --accent:#d64545; }
-.friendly-mascot[data-state="red"] .m-alert{ display:block; }
-
-/* traffic light */
-.friendly-verdict{ display:flex; align-items:center; gap:16px; }
-.traffic-light{
-  display:flex; flex-direction:column; gap:8px; padding:10px;
-  background:#1a1a1a; border-radius:14px;
-}
-.traffic-light .lamp{
-  width:26px; height:26px; border-radius:50%;
-  background:#3a3f3a; opacity:.32; transition:opacity .2s, box-shadow .2s;
-}
-.traffic-light .lamp-red{ background:#d64545; }
-.traffic-light .lamp-yellow{ background:#ffd23f; }
-.traffic-light .lamp-green{ background:#00c462; }
-.traffic-light[data-state="red"] .lamp-red{ opacity:1; box-shadow:0 0 14px #d64545; }
-.traffic-light[data-state="yellow"] .lamp-yellow{ opacity:1; box-shadow:0 0 14px #ffd23f; }
-.traffic-light[data-state="green"] .lamp-green{ opacity:1; box-shadow:0 0 14px #00c462; }
-.traffic-light[data-state="thinking"] .lamp{ animation:tl-blink 1s steps(1) infinite; }
-@keyframes tl-blink{ 0%,100%{ opacity:.6; } 50%{ opacity:.2; } }
-
-.friendly-verdict-text{ display:flex; flex-direction:column; }
-.friendly-verdict-text strong{ font-size:18px; line-height:1.2; }
-.friendly-verdict-text span{ font-size:14px; color:#3a3f3a; }
 
 /* Friendly mode: dọn bớt cho gọn (ẩn nút help inline, làm nhạt kicker) */
 body.ui-mode-friendly .help-button{ display:none !important; }
 body.ui-mode-friendly .section-kicker{ opacity:.7; }
 
-/* ============================================================
-   Visualize Friendly mode - 5 buoc ke chuyen tu DOM that
-   ============================================================ */
-.board-filters{
-  grid-template-columns:minmax(0,1fr) 92px;
-  gap:8px;
-}
-
-.topbar{
-  width:min(100%,1400px);
-  min-height:68px;
-  margin:0 auto;
-  padding:12px 28px;
-  gap:18px;
-}
-
-.topbar .eyebrow{
-  margin-bottom:3px;
-  font-size:10px;
-  letter-spacing:.06em;
-}
-
-.topbar h1{
-  font-size:24px;
-  line-height:1.12;
-}
-
-.topbar-actions{
-  gap:8px;
-}
-
-.topbar-actions > button,
-.topbar-actions .launch-operator select{
-  min-height:38px;
-  padding:8px 12px;
-  border-radius:9px;
-  font-size:13px;
-}
-
-.app-shell{
-  grid-template-columns:282px minmax(0,1fr);
-  gap:12px;
-  width:min(100%,1400px);
-  padding:12px 18px 28px;
-}
-
-.launch-board{
-  top:12px;
-  max-height:calc(100vh - 24px);
-  padding:12px;
-}
-
-.board-head{
-  margin-bottom:12px;
-  padding-bottom:10px;
-}
-
-.launch-groups{
-  gap:14px;
-}
-
-.launch-list{
-  gap:8px;
-}
-
-.launch-card{
-  --launch-ready:#cfd4ce;
-  position:relative;
-  min-height:80px;
-  overflow:hidden;
-  padding:10px 10px 10px 18px;
-  border-radius:9px;
-}
-
-.launch-card::before{
-  content:"";
-  position:absolute;
-  left:0;
-  top:10px;
-  bottom:10px;
-  width:5px;
-  border-radius:0 999px 999px 0;
-  background:var(--launch-ready);
-}
-
-.launch-card.readiness-green,
-.launch-card[data-friendly-readiness="green"]{
-  --launch-ready:#0e9d63;
-}
-
-.launch-card.readiness-yellow,
-.launch-card[data-friendly-readiness="yellow"]{
-  --launch-ready:#c98a00;
-}
-
-.launch-card.readiness-red,
-.launch-card[data-friendly-readiness="red"]{
-  --launch-ready:#c0392b;
-}
-
-.launch-card.readiness-green::before,
-.launch-card[data-friendly-readiness="green"]::before{
-  background:#0e9d63 !important;
-}
-
-.launch-card.readiness-yellow::before,
-.launch-card[data-friendly-readiness="yellow"]::before{
-  background:#c98a00 !important;
-}
-
-.launch-card.readiness-red::before,
-.launch-card[data-friendly-readiness="red"]::before{
-  background:#c0392b !important;
-}
-
-.launch-card.readiness-unknown::before,
-.launch-card[data-friendly-readiness="unknown"]::before{
-  background:#cfd4ce;
-}
-
-.launch-card.readiness-green.active,
-.launch-card[data-friendly-readiness="green"].active{
-  border-color:#0e9d63;
-  background:#edf8f2;
-}
-
-.launch-card.readiness-yellow.active,
-.launch-card[data-friendly-readiness="yellow"].active{
-  border-color:#c98a00;
-  background:#fff8e6;
-}
-
-.launch-card.readiness-red.active,
-.launch-card[data-friendly-readiness="red"].active{
-  border-color:#c0392b;
-  background:#fdf0ed;
-}
-
-.launch-card strong{
-  font-size:13px;
-  line-height:1.25;
-}
-
-.launch-card small{
-  font-size:11px;
-  line-height:1.32;
-}
-
-.detail-shell{
-  gap:12px;
-  padding:14px;
-}
-
-.detail-hero{
-  min-height:102px;
-  gap:12px;
-  padding-bottom:12px;
-}
-
-.detail-title-block{
-  min-height:78px;
-}
-
-.detail-title-block h2{
-  font-size:21px;
-}
-
-.detail-meta-row{
-  min-height:42px;
-  gap:5px;
-  margin-top:7px;
-}
-
-.detail-meta-row .meta-chip{
-  min-height:23px;
-  max-width:132px;
-  padding:4px 7px;
-  border-radius:7px;
-  font-size:10.5px;
-}
-
-.hero-metrics{
-  grid-template-columns:96px 128px;
-  max-width:232px;
-  gap:8px;
-}
-
-.metric{
-  min-height:64px;
-  padding:9px 10px;
-  border-radius:10px;
-}
-
-.metric strong{
-  font-size:15px;
-}
-
-.metric-lines{
-  gap:1px;
-}
-
-.metric-lines strong{
-  font-size:12.5px;
-  line-height:1.16;
-}
-
-.metric small{
-  font-size:10.5px;
-}
-
-.analysis-run-status{
-  min-height:22px;
-  padding:3px 8px;
-  font-size:11px;
-}
-
-.board-search span,
-.board-status-filter span,
-.app-shell .field span,
-.app-shell .metric span,
-.app-shell .snapshot-item span,
-.app-shell .section-kicker{
-  font-size:10px;
-  letter-spacing:.045em;
-}
-
-.board-search input,
-.board-status-filter select,
-.app-shell input,
-.app-shell select,
-.app-shell textarea{
-  border-radius:8px;
-  font-size:13px;
-}
-
-.board-search input,
-.board-status-filter select{
-  min-height:36px;
-  padding:8px 9px;
-}
-
-.app-shell button:not(.help-button):not(.mode-btn):not(.friendly-viz-step){
-  min-height:36px;
-  border-radius:9px;
-  padding:8px 12px;
-  font-size:13px;
-}
-
 body.ui-mode-friendly{
-  background:#f7f7f4;
+  background:
+    radial-gradient(1100px 460px at 100% -8%, rgba(240,90,34,.05), transparent 62%),
+    var(--bg);
   overflow-x:hidden;
 }
 
@@ -368,16 +70,9 @@ body.ui-mode-friendly .detail-shell > .view{
   display:none !important;
 }
 
+/* Hero ở Friendly: gọn hơn Pro một chút, layout dùng chung từ styles.css */
 body.ui-mode-friendly .detail-hero{
-  grid-template-columns:minmax(220px,1fr) 232px minmax(250px,auto);
-  grid-template-areas:"title metrics actions";
-  gap:12px;
-  align-items:center;
-  min-height:92px;
-  padding:12px 0 12px;
-  background:#fff;
-  border-color:rgba(23,24,26,.12);
-  box-shadow:0 20px 44px -28px rgba(23,24,26,.24);
+  padding:17px 20px;
 }
 
 body.ui-mode-friendly .detail-shell,
@@ -386,70 +81,8 @@ body.ui-mode-friendly .friendly-viz-stage{
   min-width:0;
 }
 
-body.ui-mode-friendly .hero-metrics{
-  grid-template-columns:96px 126px;
-  gap:8px;
-  justify-self:end;
-  max-width:232px;
-}
-
-body.ui-mode-friendly .metric{
-  min-height:58px;
-  padding:8px 9px;
-  border-radius:10px;
-}
-
-body.ui-mode-friendly .metric strong{
-  font-size:14px;
-}
-
-body.ui-mode-friendly .metric small{
-  font-size:10px;
-}
-
-body.ui-mode-friendly .metric-lines strong,
-.metric-lines strong{
-  font-size:12px !important;
-  line-height:1.14;
-}
-
-body.ui-mode-friendly .detail-title-block{
-  min-height:0;
-}
-
-body.ui-mode-friendly .detail-title-block h2{
-  font-size:22px;
-}
-
-body.ui-mode-friendly .detail-meta-row{
-  min-height:0;
-  margin-top:7px;
-  gap:5px;
-}
-
-body.ui-mode-friendly .detail-meta-row .meta-chip{
-  max-width:132px;
-  min-height:24px;
-  padding:4px 7px;
-  border-radius:7px;
-  font-size:10.5px;
-}
-
 body.ui-mode-friendly .detail-actions{
-  justify-self:end;
-  width:auto;
-}
-
-body.ui-mode-friendly .action-button-row{
-  justify-content:flex-end;
-  flex-wrap:wrap;
-  gap:7px;
-}
-
-body.ui-mode-friendly .action-button-row button{
-  min-width:0;
-  min-height:34px;
-  padding:7px 10px;
+  padding-top:11px;
 }
 
 body.ui-mode-friendly .launch-card{
@@ -481,17 +114,17 @@ body.ui-mode-friendly .launch-card::after{
 
 body.ui-mode-friendly .launch-card[data-friendly-readiness="green"]::before,
 body.ui-mode-friendly .launch-card.readiness-green::before{
-  background:#0e9d63;
+  background:var(--green);
 }
 
 body.ui-mode-friendly .launch-card[data-friendly-readiness="yellow"]::before,
 body.ui-mode-friendly .launch-card.readiness-yellow::before{
-  background:#c98a00;
+  background:#d9a400;
 }
 
 body.ui-mode-friendly .launch-card[data-friendly-readiness="red"]::before,
 body.ui-mode-friendly .launch-card.readiness-red::before{
-  background:#c0392b;
+  background:var(--red);
 }
 
 body.ui-mode-friendly .launch-card[data-friendly-readiness="green"]::after{
@@ -544,21 +177,21 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
 }
 
 .friendly-visualize{
-  --viz-ink:#17181a;
-  --viz-ink-soft:#3c3f3b;
-  --viz-muted:#73776f;
-  --viz-paper:#f7f7f4;
-  --viz-surface:#ffffff;
-  --viz-line:rgba(23,24,26,.10);
-  --viz-accent:#c2431a;
-  --viz-accent-soft:#feede6;
-  --viz-red:#c0392b;
-  --viz-amber:#c98a00;
-  --viz-green:#0e9d63;
-  --viz-radius-lg:24px;
+  --viz-ink:var(--ink);
+  --viz-ink-soft:#46413a;
+  --viz-muted:var(--muted);
+  --viz-paper:var(--bg-alt);
+  --viz-surface:var(--surface);
+  --viz-line:var(--line);
+  --viz-accent:var(--accent-strong);
+  --viz-accent-soft:var(--accent-soft);
+  --viz-red:var(--red);
+  --viz-amber:#d9a400;
+  --viz-green:var(--green);
+  --viz-radius-lg:20px;
   --viz-radius-md:14px;
-  --viz-ease:cubic-bezier(.16,1,.3,1);
-  --viz-shadow:0 24px 48px -24px rgba(20,32,24,.18);
+  --viz-ease:var(--ease);
+  --viz-shadow:var(--shadow);
   --viz-score:var(--viz-accent);
   color:var(--viz-ink);
   margin:12px 0 0;
