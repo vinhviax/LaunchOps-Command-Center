@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=redesign-20260611b">
-  <link rel="stylesheet" href="friendly.css?v=redesign-20260611b">
+  <link rel="stylesheet" href="styles.css?v=fix-20260612a">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260612a">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -348,6 +348,7 @@
         <button type="button" class="tab" data-view="checklist">Việc cần làm</button>
         <button type="button" class="tab" data-view="history">Lịch sử</button>
         <button type="button" class="tab" data-view="lessons">Bài học</button>
+        <button type="button" class="tab" data-view="runLog" id="runLogTab" hidden>Log</button>
       </nav>
 
       <section id="briefView" class="view active">
@@ -560,6 +561,21 @@
             </div>
           </div>
           <div id="analysisHistory" class="history-list"></div>
+        </div>
+      </section>
+
+      <section id="runLog" class="view">
+        <div class="content-card">
+          <div class="card-head">
+            <div>
+              <div class="title-row">
+                <h3>Log chạy phân tích (Admin)</h3>
+                <button class="help-button" type="button" aria-label="Giải thích log chạy" data-tooltip="Nhật ký từng bước của mỗi lần chạy phân tích cho launch này: client gọi gì, agent nào chạy, model nào, fallback ở đâu. Chỉ Admin xem được (mở bằng URL ?role=admin).">?</button>
+              </div>
+            </div>
+            <button id="copyRunLog" type="button">Copy log</button>
+          </div>
+          <div id="runLogBody" class="run-log"></div>
         </div>
       </section>
 
@@ -793,9 +809,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=redesign-20260611b"></script>
-  <script src="app.js?v=redesign-20260611b"></script>
-  <script src="friendly-ui.js?v=redesign-20260611b"></script>
-  <script src="i18n-clean.js?v=redesign-20260611b"></script>
+  <script src="config.js?v=fix-20260612a"></script>
+  <script src="app.js?v=fix-20260612a"></script>
+  <script src="friendly-ui.js?v=fix-20260612a"></script>
+  <script src="i18n-clean.js?v=fix-20260612a"></script>
 </body>
 </html>

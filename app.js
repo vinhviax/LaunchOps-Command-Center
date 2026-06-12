@@ -277,6 +277,17 @@ const TEMPLATE_OPERATORS = [
 const TEMPLATE_EDITING_LOCKED = true;
 const ROLE_SWITCH_LOCKED = true;
 const LOCKED_LAUNCH_ROLE = "human";
+// Admin bật bằng URL ?role=admin (nhớ trong session); ?role=human để tắt.
+const roleQueryParam = new URLSearchParams(window.location.search).get("role");
+if (roleQueryParam === "admin") window.sessionStorage.setItem("launchops_admin", "1");
+else if (roleQueryParam === "human") window.sessionStorage.removeItem("launchops_admin");
+function adminSessionEnabled() {
+  try {
+    return window.sessionStorage.getItem("launchops_admin") === "1";
+  } catch (error) {
+    return false;
+  }
+}
 
 function resolveApiBase() {
   const configuredApiBase = (window.LAUNCHOPS_API_BASE || "").trim();
@@ -677,16 +688,18 @@ let templateConfigVersions = {};
 let assistantWizard = null;
 
 function activeLaunchRole() {
-  if (ROLE_SWITCH_LOCKED) return LOCKED_LAUNCH_ROLE;
+  if (ROLE_SWITCH_LOCKED) return adminSessionEnabled() ? "admin" : LOCKED_LAUNCH_ROLE;
   return launchOperator?.value || "human";
 }
 
 function syncLaunchRoleLock() {
   if (!launchOperator) return;
   if (ROLE_SWITCH_LOCKED) {
-    launchOperator.value = LOCKED_LAUNCH_ROLE;
+    launchOperator.value = activeLaunchRole();
     launchOperator.disabled = true;
-    launchOperator.title = "Bản review public đang khóa vai trò ở Human.";
+    launchOperator.title = adminSessionEnabled()
+      ? "Đang ở chế độ Admin (bật qua URL ?role=admin)."
+      : "Bản review public đang khóa vai trò ở Human.";
   } else {
     launchOperator.disabled = false;
     launchOperator.removeAttribute("title");
@@ -2811,6 +2824,104 @@ function setAnalysisRunStatus(state, message) {
   analysisRunStatus.className = `analysis-run-status${state ? ` is-visible is-${state}` : ""}`;
 }
 
+// ----- Run log (tab Log, chỉ Admin) -----
+const runLogEvents = [];
+
+function logRunEvent(level, stage, message) {
+  runLogEvents.push({
+    time: new Date().toISOString(),
+    launchId: currentLaunch?.id || "(nháp)",
+    launchName: currentLaunch?.name || "Launch mới",
+    level,
+    stage,
+    message: String(message || "")
+  });
+  if (runLogEvents.length > 300) runLogEvents.splice(0, runLogEvents.length - 300);
+  if (document.getElementById("runLog")?.classList.contains("active")) renderRunLog();
+}
+
+function runLogTimeLabel(iso) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? String(iso || "") : date.toLocaleTimeString("vi-VN", { hour12: false });
+}
+
+function renderRunLog() {
+  const body = document.getElementById("runLogBody");
+  if (!body) return;
+  if (!isLaunchAdmin()) {
+    body.innerHTML = `<div class="empty-state">Log chỉ dành cho Admin.</div>`;
+    return;
+  }
+
+  const launchId = currentLaunch?.id || "(nháp)";
+  const clientRows = runLogEvents
+    .filter((event) => event.launchId === launchId)
+    .slice()
+    .reverse()
+    .map((event) => `
+      <div class="run-log-row is-${escapeHTML(event.level)}">
+        <span class="run-log-time">${escapeHTML(runLogTimeLabel(event.time))}</span>
+        <span class="run-log-stage">${escapeHTML(event.stage)}</span>
+        <span class="run-log-message">${escapeHTML(event.message)}</span>
+      </div>
+    `).join("");
+
+  const analyses = (currentLaunch?.analyses || []).slice().reverse();
+  const serverBlocks = analyses.map((entry) => {
+    const result = entry.result || {};
+    const traceRows = (result.trace || []).map((step) => {
+      const llm = step.llm || {};
+      const isFallback = step.status === "fallback" || step.source === "rule";
+      const details = [
+        llm.model ? `model=${llm.model}` : "",
+        step.source ? `source=${step.source}` : "",
+        step.reason ? `lý do: ${step.reason}` : ""
+      ].filter(Boolean).join(" · ");
+      return `
+        <div class="run-log-row is-${isFallback ? "warn" : "success"}">
+          <span class="run-log-stage">${escapeHTML(step.agent || "?")}</span>
+          <span class="run-log-message">${escapeHTML(`${step.status || "?"}${details ? ` — ${details}` : ""}`)}</span>
+        </div>
+      `;
+    }).join("");
+    return `
+      <article class="run-log-block">
+        <header>
+          <strong>${escapeHTML(formatDate(entry.createdAt))}</strong>
+          <span class="run-log-source is-${result.source === "llm" ? "success" : "warn"}">${escapeHTML(result.source || "?")}</span>
+          ${result.warning ? `<span class="run-log-warning">${escapeHTML(result.warning)}</span>` : ""}
+        </header>
+        ${traceRows || `<div class="run-log-row"><span class="run-log-message">Bản ghi này không có trace agent.</span></div>`}
+      </article>
+    `;
+  }).join("");
+
+  body.innerHTML = `
+    <h4 class="run-log-heading">Sự kiện phiên này (client)</h4>
+    ${clientRows || `<div class="empty-state">Chưa có sự kiện nào trong phiên này cho launch đang chọn.</div>`}
+    <h4 class="run-log-heading">Các lần phân tích đã lưu (server trace)</h4>
+    ${serverBlocks || `<div class="empty-state">Launch này chưa có lần phân tích nào được lưu.</div>`}
+  `;
+}
+
+function runLogPlainText() {
+  const launchId = currentLaunch?.id || "(nháp)";
+  const lines = [`# Run log - ${currentLaunch?.name || "Launch mới"} (${launchId})`, "", "## Client events"];
+  runLogEvents.filter((event) => event.launchId === launchId).forEach((event) => {
+    lines.push(`${event.time} [${event.level}] ${event.stage}: ${event.message}`);
+  });
+  lines.push("", "## Server traces");
+  (currentLaunch?.analyses || []).forEach((entry) => {
+    const result = entry.result || {};
+    lines.push(`--- ${entry.createdAt} source=${result.source || "?"}${result.warning ? ` warning=${result.warning}` : ""}`);
+    (result.trace || []).forEach((step) => {
+      const llm = step.llm || {};
+      lines.push(`  ${step.agent || "?"}: ${step.status || "?"}${llm.model ? ` model=${llm.model}` : ""}${step.reason ? ` reason=${step.reason}` : ""}`);
+    });
+  });
+  return lines.join("\n");
+}
+
 function applyLaunchPermissions() {
   const canEdit = canEditLaunch();
   const canOutcome = canSaveLaunchOutcome();
@@ -2825,6 +2936,9 @@ function applyLaunchPermissions() {
   setDisabled(analyzeButton, !canEdit);
   setDisabled(deleteLaunchButton, !canDeleteLaunch());
   if (deleteLaunchButton) deleteLaunchButton.hidden = !canDeleteLaunch();
+
+  const runLogTab = document.getElementById("runLogTab");
+  if (runLogTab) runLogTab.hidden = !isLaunchAdmin();
 
   const postResultInput = document.getElementById("postResultInput");
   const lessonInput = document.getElementById("lessonInput");
@@ -2927,6 +3041,7 @@ async function selectLaunch(id) {
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
     renderLatestAnalysisOrPreview();
+    if (document.getElementById("runLog")?.classList.contains("active")) renderRunLog();
   } catch (error) {
     console.warn("Cannot load launch detail.", error);
     renderEmptyAnalysis("Không mở được launch này. Kiểm tra backend local.");
@@ -3039,11 +3154,15 @@ async function deleteCurrentLaunch() {
   else startNewLaunch();
 }
 
+// Pipeline LLM thật chạy ~90-120s trên runtime; client phải chờ lâu hơn server.
+const ANALYZE_CLIENT_TIMEOUT_MS = 240000;
+
 async function analyze() {
   const text = briefInput.value.trim();
   if (!text) {
     renderEmptyAnalysis("Chưa có brief để phân tích.");
-    setAnalysisRunStatus("error", "Xảy ra sự cố, vui lòng thử lại hoặc báo cho Admin");
+    setAnalysisRunStatus("error", "Chưa có brief để phân tích. Nhập brief rồi chạy lại.");
+    logRunEvent("error", "analyze", "Bấm Chạy phân tích nhưng brief đang trống.");
     return;
   }
 
@@ -3052,17 +3171,19 @@ async function analyze() {
   analysisSource.textContent = "Đang gọi AI...";
   setAnalysisRunStatus("running", "Hệ thống Agent đang phân tích dữ liệu vui lòng chờ...");
   document.body.classList.add("is-analyzing");
+  const startedAt = Date.now();
+  logRunEvent("info", "analyze", `Bắt đầu phân tích "${currentLaunch?.name || "Launch mới"}" (backend=${backendAvailable ? "có" : "không"}).`);
 
   try {
-    const launch = currentLaunch?.id && !draftMode
-      ? await saveCurrentLaunch({ silent: true })
-      : await saveCurrentLaunch({ silent: true });
+    const launch = await saveCurrentLaunch({ silent: true });
+    logRunEvent("info", "save", `Đã lưu launch trước khi phân tích (id=${launch?.id || "?"}).`);
 
     if (backendAvailable && launch?.id) {
+      logRunEvent("info", "api", `POST ${API_BASE}/launches/${launch.id}/analyze (timeout client ${Math.round(ANALYZE_CLIENT_TIMEOUT_MS / 1000)}s)...`);
       const payload = await fetchJson(`${API_BASE}/launches/${encodeURIComponent(launch.id)}/analyze`, {
         method: "POST",
         body: JSON.stringify(collectLaunchFromForm()),
-        timeoutMs: 75000
+        timeoutMs: ANALYZE_CLIENT_TIMEOUT_MS
       });
       currentLaunch = payload.launch;
       upsertLaunchSummary(payload.summary || currentLaunch);
@@ -3071,6 +3192,7 @@ async function analyze() {
       renderApiAnalysis(payload.result);
       activateTab("redTeam");
       setAnalysisRunStatus("success", "Hoàn thành Phân Tích");
+      logRunEvent("success", "api", `Phân tích xong sau ${Math.round((Date.now() - startedAt) / 1000)}s, source=${payload.result?.source || "?"}${payload.result?.warning ? `, warning=${payload.result.warning}` : ""}.`);
       return;
     }
 
@@ -3087,12 +3209,19 @@ async function analyze() {
     upsertLaunchSummary(currentLaunch);
     renderLaunchWorkspace();
     setAnalysisRunStatus("success", "Hoàn thành Phân Tích");
+    logRunEvent("success", "local", "Phân tích bằng rule local (không gọi backend).");
   } catch (error) {
     console.warn("Analyze failed, using local fallback.", error);
+    const isTimeout = error?.name === "AbortError";
+    logRunEvent("error", "api", isTimeout
+      ? `Client hủy vì quá thời gian chờ ${Math.round(ANALYZE_CLIENT_TIMEOUT_MS / 1000)}s (server có thể vẫn đang chạy). Đã render kết quả rule local thay thế.`
+      : `${error?.name || "Error"}: ${error?.message || error}. Đã render kết quả rule local thay thế.`);
     const result = buildLocalAnalysisResult(text);
     renderApiAnalysis(result, "Dự phòng local: backend/API chưa sẵn sàng");
     activateTab("redTeam");
-    setAnalysisRunStatus("error", "Xảy ra sự cố, vui lòng thử lại hoặc báo cho Admin");
+    setAnalysisRunStatus("error", isTimeout
+      ? "Phân tích quá thời gian chờ — đang hiển thị kết quả dự phòng. Thử lại hoặc báo Admin."
+      : "Xảy ra sự cố, vui lòng thử lại hoặc báo cho Admin");
   } finally {
     document.body.classList.remove("is-analyzing");
     analyzeButton.disabled = false;
@@ -3459,6 +3588,7 @@ function activateTab(target) {
     openTemplateConfigButton.textContent = isConfigScreen ? "Quay lại launch" : "Cấu hình phân loại";
   }
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === target));
+  if (target === "runLog") renderRunLog();
   if (isConfigScreen) {
     selectedConfigType = launchTypeExists(currentLaunch?.type) ? currentLaunch.type : configTemplateType();
     renderTemplateConfig();
@@ -4351,6 +4481,16 @@ function focusIntroModal() {
 document.getElementById("newLaunch").addEventListener("click", () => {
   startNewLaunch();
   activateTab("briefView");
+});
+
+document.getElementById("copyRunLog")?.addEventListener("click", async (event) => {
+  try {
+    await navigator.clipboard.writeText(runLogPlainText());
+    event.target.textContent = "Đã copy";
+  } catch (error) {
+    event.target.textContent = "Copy lỗi";
+  }
+  window.setTimeout(() => { event.target.textContent = "Copy log"; }, 1500);
 });
 
 if (openTemplateConfigButton) {

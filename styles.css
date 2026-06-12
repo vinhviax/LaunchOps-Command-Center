@@ -3499,3 +3499,87 @@ body.is-analyzing #traceConsoleBody::after {
     scroll-behavior: auto;
   }
 }
+
+/* ========== 29. RUN LOG (tab Log, Admin) ========== */
+.run-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.run-log-heading {
+  margin: 10px 0 2px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.run-log-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.run-log-row.is-success { border-left-color: var(--green); }
+.run-log-row.is-error { border-left-color: var(--red); background: var(--red-soft); }
+.run-log-row.is-warn { border-left-color: var(--yellow); background: var(--yellow-soft); }
+
+.run-log-time {
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+
+.run-log-stage {
+  font-weight: 600;
+  color: var(--accent-strong);
+  white-space: nowrap;
+}
+
+.run-log-message {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  flex: 1 1 240px;
+}
+
+.run-log-block {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+}
+
+.run-log-block header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-sans);
+}
+
+.run-log-source {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.run-log-source.is-success { background: var(--green-soft); color: var(--green); }
+.run-log-source.is-warn { background: var(--yellow-soft); color: var(--yellow); }
+
+.run-log-warning {
+  color: var(--yellow);
+  font-size: 12px;
+}

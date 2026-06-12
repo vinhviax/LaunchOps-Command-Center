@@ -598,6 +598,17 @@
   function renderFriendlyDraftCards() {
     var groups = byId('launchGroups');
     if (!groups || renderingFriendlyDraftCards) return;
+    // Draft Friendly chỉ tồn tại trong Friendly mode; ở Pro phải gỡ khỏi sidebar
+    // (nếu không nó cướp highlight .active của launch thật sau mỗi lần re-render).
+    if (!document.body.classList.contains('ui-mode-friendly')) {
+      renderingFriendlyDraftCards = true;
+      try {
+        [].slice.call(document.querySelectorAll('[data-friendly-draft-id]')).forEach(function (card) { card.remove(); });
+      } finally {
+        renderingFriendlyDraftCards = false;
+      }
+      return;
+    }
     renderingFriendlyDraftCards = true;
     try {
       var visible = {};
@@ -633,6 +644,7 @@
   }
 
   function syncFriendlyActiveDraftCard() {
+    if (!document.body.classList.contains('ui-mode-friendly')) return;
     if (!activeFriendlyDraftId || !friendlyNewDrafts[activeFriendlyDraftId]) return;
     [].slice.call(document.querySelectorAll('.launch-card.active[data-launch-id]')).forEach(function (card) {
       card.classList.remove('active');
@@ -2645,6 +2657,14 @@
     ['launchMemoryStats', 'readinessMetric', 'scoreValue', 'scoreColor', 'decisionTitle', 'launchGate', 'redTeamCards', 'topRisks', 'riskBreakdown', 'checklistRows', 'postmortemDraft', 'lessonsPanel', 'analysisRunStatus'].forEach(function (id) {
       observeElement(observer, id);
     });
+
+    // Đổi mode Pro/Friendly (class trên body) thì gỡ/khôi phục draft card ngay,
+    // không chờ observer của #launchGroups (nó không bắt sự kiện đổi mode).
+    var modeClassObserver = new MutationObserver(function () {
+      renderFriendlyDraftCards();
+      syncFriendlyActiveDraftCard();
+    });
+    modeClassObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     ['launchName', 'launchType', 'launchStatus', 'launchOwner', 'launchTargetDate', 'launchEndDate', 'briefInput'].forEach(function (id) {
       var el = byId(id);
