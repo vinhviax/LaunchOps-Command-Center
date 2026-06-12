@@ -1103,13 +1103,25 @@ def chat_completions_url(base_url: str) -> str:
 
 def extract_json(text: str) -> dict[str, Any]:
     cleaned = text.strip()
+    # Reasoning models (minimax, deepseek) có thể chèn block suy nghĩ trước JSON.
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.S).strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
-    if not cleaned.startswith("{"):
-        match = re.search(r"\{.*\}", cleaned, flags=re.S)
-        if match:
-            cleaned = match.group(0)
-    return json.loads(cleaned)
+    # strict=False: cho phép control char (xuống dòng thật) trong string value — LLM hay trả vậy.
+    decoder = json.JSONDecoder(strict=False)
+    # Thử decode từ từng vị trí '{' — chịu được text dẫn nhập chứa '{' lẫn text thừa sau JSON.
+    start = cleaned.find("{")
+    attempts = 0
+    while start != -1 and attempts < 20:
+        try:
+            obj, _ = decoder.raw_decode(cleaned, start)
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            pass
+        start = cleaned.find("{", start + 1)
+        attempts += 1
+    return json.loads(cleaned, strict=False)
 
 
 def decode_request_body(raw: bytes) -> str:
