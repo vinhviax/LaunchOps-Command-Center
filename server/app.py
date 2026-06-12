@@ -1696,7 +1696,33 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 
             req_id = payload.get("id")
             method = payload.get("method")
-            
+
+            # MCP lifecycle handshake — a real MCP client (OpenClaw, Claude Desktop)
+            # calls initialize -> notifications/initialized before tools/list.
+            if method == "initialize":
+                params = payload.get("params") if isinstance(payload.get("params"), dict) else {}
+                json_response(self, 200, {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "protocolVersion": params.get("protocolVersion") or "2024-11-05",
+                        "capabilities": {"tools": {"listChanged": False}},
+                        "serverInfo": {"name": "launchops-server", "version": "1.0.0"},
+                    },
+                })
+                return
+
+            if method in ("notifications/initialized", "initialized", "notifications/cancelled"):
+                # JSON-RPC notification: no result expected. Acknowledge with 202, no body.
+                self.send_response(202)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                return
+
+            if method == "ping":
+                json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "result": {}})
+                return
+
             if method == "tools/list":
                 json_response(self, 200, {
                     "jsonrpc": "2.0",
