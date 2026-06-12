@@ -1606,6 +1606,12 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             json_response(self, 200, {"ok": True, "service": "launchops-local-backend"})
             return
 
+        if path == "/mcp":
+            # Streamable HTTP spec: server không hỗ trợ SSE stream phải trả 405
+            # (SDK client bỏ qua êm); 404 bị mcp-remote coi là lỗi remote → client hủy kết nối.
+            json_response(self, 405, {"ok": False, "error": "SSE stream not supported, use POST"})
+            return
+
         if path == "/tools":
             # MCP List Tools endpoint
             json_response(self, 200, {
@@ -2008,6 +2014,11 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
     def do_DELETE(self) -> None:
         path = urlparse(self.path).path
         parts = [part for part in path.split("/") if part]
+
+        if path == "/mcp":
+            # Session termination không hỗ trợ (server stateless) — 405 để SDK client bỏ qua êm.
+            json_response(self, 405, {"ok": False, "error": "Session termination not supported"})
+            return
 
         if len(parts) == 3 and parts[:2] == ["api", "launches"]:
             launch = get_launch(parts[2])
