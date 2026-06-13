@@ -78,7 +78,15 @@ const CLEAN_I18N_DICT = {
     vizReplay: "Về bước 1",
     vizPrev: "Trước",
     vizNext: "Tiếp",
-    vizSteps: ["Đọc brief", "Chấm điểm", "Phản biện", "Việc cần làm", "Bài học"]
+    vizSteps: ["Đọc brief", "Chấm điểm", "Phản biện", "Việc cần làm", "Bài học"],
+    vizTitleReadiness: "Mức độ sẵn sàng",
+    vizTitleRedteam: "Năm góc nhìn phản biện",
+    vizTitleTasks: "Việc cần làm trước khi launch",
+    vizTitleLessons: "Lưu quyết định và bài học",
+    faPostResult: "Nhập kết quả sau launch",
+    faPostReview: "Phân tích sau launch",
+    faLesson: "Thêm bài học",
+    faSaveLesson: "Lưu kết quả / bài học"
   },
   en: {
     introKicker: "Demo Introduction",
@@ -158,7 +166,15 @@ const CLEAN_I18N_DICT = {
     vizReplay: "Back to step 1",
     vizPrev: "Back",
     vizNext: "Next",
-    vizSteps: ["Read brief", "Scoring", "Red team", "To-do", "Lessons"]
+    vizSteps: ["Read brief", "Scoring", "Red team", "To-do", "Lessons"],
+    vizTitleReadiness: "Readiness level",
+    vizTitleRedteam: "Five red-team perspectives",
+    vizTitleTasks: "Tasks before launch",
+    vizTitleLessons: "Save decisions & lessons",
+    faPostResult: "Enter post-launch results",
+    faPostReview: "Post-launch analysis",
+    faLesson: "Add a lesson",
+    faSaveLesson: "Save results / lessons"
   }
 };
 
@@ -406,6 +422,24 @@ function applyCleanTranslations(lang) {
   setButtonText("friendlyVizNext", dict.vizNext);
   document.querySelectorAll("#friendlyVisualize .friendly-viz-step b").forEach((label, index) => {
     if (dict.vizSteps[index]) label.textContent = dict.vizSteps[index];
+  });
+
+  // Friendly visualize stage titles (4 stages, in order)
+  const vizTitleTexts = [dict.vizTitleReadiness, dict.vizTitleRedteam, dict.vizTitleTasks, dict.vizTitleLessons];
+  document.querySelectorAll(".friendly-viz-title").forEach((el, i) => {
+    if (vizTitleTexts[i]) el.textContent = vizTitleTexts[i];
+  });
+
+  // Friendly lesson action buttons
+  const lessonActionText = {
+    "post-result": dict.faPostResult,
+    "post-review": dict.faPostReview,
+    "lesson": dict.faLesson,
+    "save-lesson": dict.faSaveLesson
+  };
+  document.querySelectorAll("#friendlyLessonActions [data-friendly-action]").forEach((b) => {
+    const t = lessonActionText[b.dataset.friendlyAction];
+    if (t) b.textContent = t;
   });
 }
 
