@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -14,7 +15,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from db import find_lessons, get_product_snapshot, get_type_profile, list_launch_types
 
@@ -28,6 +29,14 @@ LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
 UI_CACHE_VERSION = "fix-20260614a"
+ANALYZE_TOOL_NAME = "analyze_launch_brief"
+LCC_TOOL_ALIAS = "lcc"
+ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
+LCC_NAMESPACED_COMMANDS = {"help", "status", "list", "config", "analyze", "guardrail", "infra", "report"}
+LEGACY_CHATBOT_COMMANDS = LCC_NAMESPACED_COMMANDS | {"start", "caveman"}
+AGENTBASE_MEMORY_BASE_URL = "https://agentbase.api.vngcloud.vn/memory"
+IAM_TOKEN_URL = "https://iam.api.vngcloud.vn/accounts-api/v2/auth/token"
+_MEMORY_TOKEN_CACHE: dict[str, Any] = {"token": "", "expiresAt": 0.0}
 
 # Static Web UI served from APP_ROOT so AgentBase Runtime hosts the dashboard at the
 # same origin as the API (no external static host needed).
@@ -91,6 +100,275 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 def normalize_status(value: Any) -> str:
     status = str(value or "upcoming").strip().lower()
     return status if status in LAUNCH_STATUSES else "upcoming"
+
+def normalize_tool_name(value: Any) -> str:
+    name = str(value or "").strip()
+    if name in ANALYZE_TOOL_NAMES:
+        return ANALYZE_TOOL_NAME
+    return name
+
+def analyze_tool_definition(name: str) -> dict[str, Any]:
+    description = "Phân tích Launch Brief chuyên sâu để chấm điểm readiness (Green/Yellow/Red), phản biện bằng Red Team, tạo checklist hành động và post-mortem."
+    if name == LCC_TOOL_ALIAS:
+        description = f"Alias ngắn của `{ANALYZE_TOOL_NAME}` cho LaunchOps Command Center."
+    return {
+        "name": name,
+        "description": description,
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brief": {
+                    "type": "string",
+                    "description": "Nội dung văn bản launch brief đầy đủ cần phân tích."
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Phân loại launch nếu có (game_event_h5, marketing, webshop_promotion)."
+                }
+            },
+            "required": ["brief"]
+        }
+    }
+
+def mcp_tool_definitions() -> list[dict[str, Any]]:
+    return [
+        analyze_tool_definition(ANALYZE_TOOL_NAME),
+        analyze_tool_definition(LCC_TOOL_ALIAS),
+    ]
+
+def truthy_env(name: str, default: str = "") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on", "enabled"}
+
+def memory_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_MEMORY_ENABLED")
+
+def memory_timeout_seconds() -> float:
+    raw = os.getenv("LAUNCHOPS_MEMORY_TIMEOUT_SECONDS", "8").strip()
+    try:
+        return max(1.0, min(float(raw), 30.0))
+    except ValueError:
+        return 8.0
+
+def mask_sensitive_text(text: str) -> str:
+    masked = re.sub(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", "[REDACTED_PRIVATE_KEY]", text, flags=re.DOTALL)
+    masked = re.sub(r"(?i)(api[_ -]?key|token|secret|password|passwd|pwd)\s*[:=]\s*[^\\s,;]+", r"\1=[REDACTED_SECRET]", masked)
+    masked = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[REDACTED_EMAIL]", masked)
+    masked = re.sub(r"(?:\+?84|0)[0-9 .-]{8,12}", "[REDACTED_PHONE]", masked)
+    return masked
+
+def memory_namespace(strategy_id: str, actor_id: str, session_id: str, launch_type: str, game_id: str) -> str:
+    mode = os.getenv("LAUNCHOPS_MEMORY_NAMESPACE_MODE", "actor").strip().lower()
+    if mode == "product":
+        return f"/launchops/products/{slugify(game_id)}/{slugify(launch_type)}"
+    if mode == "global":
+        return f"/launchops/global/{slugify(launch_type)}"
+    if mode == "session":
+        return f"/strategies/{strategy_id}/actors/{slugify(actor_id)}/sessions/{slugify(session_id)}"
+    return f"/strategies/{strategy_id}/actors/{slugify(actor_id)}"
+
+def memory_context_from_headers(headers: Any, launch_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    launch_context = launch_context or {}
+    actor_id = str(headers.get("X-GreenNode-AgentBase-User-Id") or "").strip()
+    session_id = str(headers.get("X-GreenNode-AgentBase-Session-Id") or "").strip()
+    if actor_id and session_id:
+        return {"actorId": actor_id, "sessionId": session_id, "source": "headers", "warning": ""}
+    if truthy_env("LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED"):
+        launch_id = str(launch_context.get("id") or launch_context.get("launchId") or "demo-session").strip()
+        return {
+            "actorId": "demo-user",
+            "sessionId": slugify(launch_id),
+            "source": "demo_fallback",
+            "warning": "Missing AgentBase user/session headers; using explicit demo actor/session.",
+        }
+    return {"actorId": "", "sessionId": "", "source": "missing_headers", "warning": "Missing AgentBase user/session headers; memory skipped."}
+
+def agentbase_iam_token() -> str:
+    injected_token = os.getenv("LAUNCHOPS_MEMORY_ACCESS_TOKEN", "").strip() or os.getenv("GREENNODE_ACCESS_TOKEN", "").strip()
+    if injected_token:
+        return injected_token
+
+    now = time.time()
+    cached_token = str(_MEMORY_TOKEN_CACHE.get("token") or "")
+    cached_expiry = float(_MEMORY_TOKEN_CACHE.get("expiresAt") or 0)
+    if cached_token and cached_expiry > now + 60:
+        return cached_token
+
+    client_id = os.getenv("GREENNODE_CLIENT_ID", "").strip()
+    client_secret = os.getenv("GREENNODE_CLIENT_SECRET", "").strip()
+    if not client_id or not client_secret:
+        raise RuntimeError("GREENNODE_CLIENT_ID/GREENNODE_CLIENT_SECRET missing")
+
+    auth = base64.b64encode(f"{client_id}:{client_secret}".encode("utf-8")).decode("ascii")
+    request = urllib.request.Request(
+        IAM_TOKEN_URL,
+        data=b"grant_type=client_credentials",
+        headers={
+            "Authorization": f"Basic {auth}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=memory_timeout_seconds()) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    token = str(payload.get("access_token") or "").strip()
+    if not token:
+        raise RuntimeError("IAM token response missing access_token")
+    expires_in = payload.get("expires_in") or payload.get("expiresIn") or 3000
+    try:
+        ttl = max(300, int(expires_in))
+    except (TypeError, ValueError):
+        ttl = 3000
+    _MEMORY_TOKEN_CACHE.update({"token": token, "expiresAt": now + ttl})
+    return token
+
+def agentbase_memory_request(method: str, path: str, payload: dict[str, Any] | None = None, query: dict[str, Any] | None = None) -> Any:
+    base_url = os.getenv("LAUNCHOPS_MEMORY_BASE_URL", AGENTBASE_MEMORY_BASE_URL).rstrip("/")
+    if not base_url.startswith("https://agentbase.api.vngcloud.vn/memory"):
+        raise RuntimeError("Invalid LAUNCHOPS_MEMORY_BASE_URL")
+    query_string = f"?{urlencode(query)}" if query else ""
+    data = json.dumps(payload or {}, ensure_ascii=False).encode("utf-8") if payload is not None else None
+    request = urllib.request.Request(
+        f"{base_url}{path}{query_string}",
+        data=data,
+        headers={
+            "Authorization": f"Bearer {agentbase_iam_token()}",
+            "Content-Type": "application/json",
+        },
+        method=method,
+    )
+    with urllib.request.urlopen(request, timeout=memory_timeout_seconds()) as response:
+        raw = response.read()
+    if not raw:
+        return {}
+    return json.loads(raw.decode("utf-8"))
+
+def memory_config_error() -> str:
+    if not memory_enabled():
+        return "disabled"
+    if not os.getenv("LAUNCHOPS_MEMORY_ID", "").strip():
+        return "missing_memory_id"
+    if not os.getenv("LAUNCHOPS_MEMORY_STRATEGY_ID", "").strip():
+        return "missing_strategy_id"
+    return ""
+
+def extract_memory_records(payload: Any, limit: int = 5) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        items = payload
+    elif isinstance(payload, dict):
+        for key in ("memoryRecords", "records", "listData", "data", "items", "content"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                items = value
+                break
+        else:
+            items = []
+    else:
+        items = []
+
+    records: list[dict[str, Any]] = []
+    for index, item in enumerate(items):
+        if isinstance(item, str):
+            text = item
+            record_id = f"memory-{index + 1}"
+            metadata = {}
+        elif isinstance(item, dict):
+            record_id = str(item.get("id") or item.get("recordId") or f"memory-{index + 1}")
+            text = str(item.get("memory") or item.get("content") or item.get("text") or item.get("value") or item.get("summary") or "").strip()
+            metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+            if not text and isinstance(item.get("payload"), dict):
+                payload_obj = item["payload"]
+                text = str(payload_obj.get("memory") or payload_obj.get("content") or payload_obj.get("text") or "").strip()
+        else:
+            continue
+        if not text:
+            continue
+        title = str(metadata.get("title") or metadata.get("type") or "AgentBase Memory").strip()
+        severity = str(metadata.get("severity") or "Medium").strip()
+        records.append({"id": record_id, "title": title, "lesson": text, "severity": severity, "source": "agentbase_memory"})
+        if len(records) >= limit:
+            break
+    return records
+
+def recall_agentbase_memory(brief: str, launch_context: dict[str, Any], launch_type: str, game_id: str, limit: int = 5) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    trace = {
+        "enabled": memory_enabled(),
+        "source": "disabled",
+        "namespace": "",
+        "recordsRecalled": 0,
+        "writeStatus": "not_attempted",
+    }
+    config_error = memory_config_error()
+    if config_error:
+        trace["source"] = config_error
+        return [], trace
+
+    memory_context = launch_context.get("memoryContext") if isinstance(launch_context.get("memoryContext"), dict) else {}
+    actor_id = str(memory_context.get("actorId") or "").strip()
+    session_id = str(memory_context.get("sessionId") or "").strip()
+    if not actor_id or not session_id:
+        trace["source"] = "missing_headers"
+        trace["warning"] = str(memory_context.get("warning") or "Missing AgentBase user/session headers; memory skipped.")
+        return [], trace
+
+    memory_id = os.getenv("LAUNCHOPS_MEMORY_ID", "").strip()
+    strategy_id = os.getenv("LAUNCHOPS_MEMORY_STRATEGY_ID", "").strip()
+    namespace = memory_namespace(strategy_id, actor_id, session_id, launch_type, game_id)
+    trace.update({"source": "agentbase", "namespace": namespace})
+    if memory_context.get("warning"):
+        trace["warning"] = str(memory_context["warning"])
+    try:
+        payload = agentbase_memory_request(
+            "POST",
+            f"/memories/{memory_id}/memory-records:search",
+            {"query": mask_sensitive_text(brief), "limit": limit},
+            {"namespace": namespace},
+        )
+        records = extract_memory_records(payload, limit=limit)
+        trace["recordsRecalled"] = len(records)
+        return records, trace
+    except Exception as exc:
+        trace.update({"source": "agentbase_error", "error": type(exc).__name__})
+        write_backend_log(f"AgentBase Memory recall failed: {type(exc).__name__}")
+        return [], trace
+
+def write_agentbase_memory_event(memory_context: dict[str, Any], role: str, message: str) -> str:
+    config_error = memory_config_error()
+    if config_error:
+        return config_error
+    actor_id = str(memory_context.get("actorId") or "").strip()
+    session_id = str(memory_context.get("sessionId") or "").strip()
+    if not actor_id or not session_id:
+        return "missing_headers"
+    memory_id = os.getenv("LAUNCHOPS_MEMORY_ID", "").strip()
+    payload = {"payload": {"type": "conversational", "role": role, "message": mask_sensitive_text(message)[:100000]}}
+    try:
+        agentbase_memory_request("POST", f"/memories/{memory_id}/actors/{actor_id}/sessions/{session_id}/events", payload)
+        return "ok"
+    except Exception as exc:
+        write_backend_log(f"AgentBase Memory event write failed: {type(exc).__name__}")
+        return f"error:{type(exc).__name__}"
+
+def insert_agentbase_memory_record(memory_context: dict[str, Any], launch_context: dict[str, Any], lesson: str) -> str:
+    config_error = memory_config_error()
+    if config_error:
+        return config_error
+    actor_id = str(memory_context.get("actorId") or "").strip()
+    session_id = str(memory_context.get("sessionId") or "").strip()
+    if not actor_id or not session_id:
+        return "missing_headers"
+    memory_id = os.getenv("LAUNCHOPS_MEMORY_ID", "").strip()
+    strategy_id = os.getenv("LAUNCHOPS_MEMORY_STRATEGY_ID", "").strip()
+    launch_type = infer_launch_type(str(launch_context.get("brief") or ""), launch_context)
+    game_id = str(launch_context.get("gameId") or launch_context.get("game_id") or "demo_game")
+    namespace = memory_namespace(strategy_id, actor_id, session_id, launch_type, game_id)
+    title = str(launch_context.get("name") or "Launch lesson").strip()
+    record = mask_sensitive_text(f"{title}: {lesson} [launchType={launch_type}; gameId={game_id}]")
+    try:
+        agentbase_memory_request("POST", f"/memories/{memory_id}/memory-records:insert-directly", {"memoryRecords": [record]}, {"namespace": namespace})
+        return "ok"
+    except Exception as exc:
+        write_backend_log(f"AgentBase Memory record insert failed: {type(exc).__name__}")
+        return f"error:{type(exc).__name__}"
 
 
 def read_sample_brief() -> str:
@@ -340,13 +618,14 @@ def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) 
     return launch
 
 
-def save_post_result(launch: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_context: dict[str, Any] | None = None) -> dict[str, Any]:
     launch["status"] = normalize_status(payload.get("status") or launch.get("status") or "completed")
     launch["postLaunchResult"] = str(payload.get("postLaunchResult") or launch.get("postLaunchResult") or "").strip()
     lesson = str(payload.get("lesson") or "").strip()
     if lesson:
         lessons = launch.get("lessonsLearned") or []
-        lessons.append({"id": f"lesson-{int(time.time() * 1000)}", "createdAt": now_iso(), "text": lesson})
+        memory_status = record_lesson_memory(launch, lesson, memory_context or {})
+        lessons.append({"id": f"lesson-{int(time.time() * 1000)}", "createdAt": now_iso(), "text": lesson, "memoryStatus": memory_status})
         launch["lessonsLearned"] = lessons
     launch["updatedAt"] = now_iso()
     write_json(launch_file(str(launch["id"])), launch)
@@ -431,6 +710,51 @@ def format_chatbot_reply(result: dict[str, Any]) -> str:
             if isinstance(task, dict):
                 lines.append(f"- {task.get('task', 'Task')} | Owner: {task.get('owner', 'TBD')} | Due: {task.get('deadline', 'TBD')}")
     return "\n".join(lines)
+
+def fold_vietnamese_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value.replace("đ", "d").replace("Đ", "D"))
+    without_marks = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return without_marks.lower()
+
+def normalize_chatbot_command_token(value: str) -> str:
+    command = fold_vietnamese_text(value.strip().lower().lstrip("/"))
+    aliases = {
+        "start": "help",
+        "help": "help",
+        "status": "status",
+        "list": "list",
+        "config": "config",
+        "caveman": "caveman",
+        "guardrail": "guardrail",
+        "infra": "infra",
+        "report": "report",
+        "analyze": "analyze",
+        "analyse": "analyze",
+        "phan-tich": "analyze",
+        "phantich": "analyze",
+    }
+    return aliases.get(command, command)
+
+def route_chatbot_intent(text: str) -> tuple[str, str] | None:
+    folded = fold_vietnamese_text(text)
+    report_phrases = ("viet report", "viet bao cao", "draft report", "make report")
+    analyze_phrases = (
+        "kiem tra brief nay",
+        "danh gia launch nay",
+        "red team giup toi",
+        "tao checklist",
+        "brief nay co rui ro gi",
+        "check this brief",
+        "review this launch",
+        "red team this",
+        "create checklist",
+        "what risks",
+    )
+    if any(phrase in folded for phrase in report_phrases):
+        return "report", text
+    if any(phrase in folded for phrase in analyze_phrases):
+        return "analyze", text
+    return None
 
 def is_caveman_enabled() -> bool:
     return CAVEMAN_ENABLED
@@ -624,15 +948,16 @@ def send_chatbot_reply(provider: str, chat_id: str, reply: str) -> bool:
 def chatbot_help_reply() -> str:
     return "\n".join([
         "LaunchOps bot commands:",
-        "- help: show commands",
-        "- status: show launch workspace status",
-        "- list: show recent launches",
-        "- config: show webhook/runtime config status",
-        "- analyze <brief>: analyze a launch brief",
+        "- lcc help: show commands",
+        "- lcc status: show launch workspace status",
+        "- lcc list: show recent launches",
+        "- lcc config: show webhook/runtime config status",
+        "- lcc analyze <brief>: analyze a launch brief",
+        "- lcc guardrail <brief>: scan PII/secret risk",
+        "- lcc infra <brief>: suggest GreenNode infra",
+        "- lcc report <brief>: draft compact report",
+        "Temporary fallback: old commands still work for one version.",
         "- caveman on|off: toggle terse caveman bot style",
-        "- guardrail <brief>: scan PII/secret risk",
-        "- infra <brief>: suggest GreenNode infra",
-        "- report <brief>: draft compact report",
         "Tip: paste any launch brief directly to analyze it.",
     ])
 
@@ -648,7 +973,7 @@ def chatbot_status_reply() -> str:
         f"- Running: {counts.get('running', 0)}",
         f"- Upcoming: {counts.get('upcoming', 0)}",
         f"- Completed: {counts.get('completed', 0)}",
-        "Send `list` to see recent launches or paste a brief to analyze.",
+        "Send `lcc list` to see recent launches or paste a brief to analyze.",
     ])
 
 def chatbot_list_reply() -> str:
@@ -677,17 +1002,35 @@ def chatbot_config_reply() -> str:
         "- Routes: /webhooks/telegram, /webhooks/zalo, /api/chatbot",
     ])
 
-def parse_chatbot_command(message: str) -> tuple[str, str]:
+def legacy_command_hint(command: str) -> str:
+    if command not in LCC_NAMESPACED_COMMANDS:
+        return ""
+    if command == "analyze":
+        suggestion = "lcc analyze <brief>"
+    elif command in {"guardrail", "infra", "report"}:
+        suggestion = f"lcc {command} <brief>"
+    else:
+        suggestion = f"lcc {command}"
+    return f"Tip: use `{suggestion}` next time."
+
+def parse_chatbot_command(message: str) -> tuple[str, str, bool]:
     text = message.strip()
     if not text:
-        return "missing", ""
+        return "missing", "", False
     head, _, rest = text.partition(" ")
-    command = head.lower().lstrip("/")
-    if command in {"start", "help", "status", "list", "config", "caveman", "guardrail", "infra", "report"}:
-        return command, rest.strip()
-    if command in {"analyze", "analyse", "phan-tich", "phantich"}:
-        return "analyze", rest.strip()
-    return "analyze", text
+    command = normalize_chatbot_command_token(head)
+    if command == "lcc":
+        subhead, _, subrest = rest.strip().partition(" ")
+        subcommand = normalize_chatbot_command_token(subhead)
+        if subcommand in LCC_NAMESPACED_COMMANDS:
+            return subcommand, subrest.strip(), False
+        return "help", "", False
+    if command in LEGACY_CHATBOT_COMMANDS:
+        return command, rest.strip(), True
+    routed = route_chatbot_intent(text)
+    if routed:
+        return routed[0], routed[1], False
+    return "analyze", text, False
 
 def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, Any]:
     if provider == "telegram":
@@ -697,7 +1040,7 @@ def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, 
     else:
         chat_id = str(payload.get("chatId") or payload.get("chat_id") or "").strip()
         message = first_text_value(payload)
-    command, brief = parse_chatbot_command(message)
+    command, brief, used_legacy_command = parse_chatbot_command(message)
     if command == "missing":
         return {"ok": False, "error": "Missing message"}
     result = None
@@ -726,6 +1069,9 @@ def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, 
             else:
                 result = orchestrate_launchops_analysis(brief, None)
             reply = format_chatbot_reply(result)
+    hint = legacy_command_hint(command) if used_legacy_command else ""
+    if hint and command != "caveman":
+        reply = f"{reply}\n\n{hint}"
     if command != "caveman":
         reply = to_caveman_style(reply)
     delivered = send_chatbot_reply(provider, chat_id, reply)
@@ -863,7 +1209,18 @@ def build_product_context(brief: str, launch_context: dict[str, Any] | None = No
     launch_type = infer_launch_type(brief, launch_context)
     game_id = str(launch_context.get('gameId') or launch_context.get('game_id') or 'demo_game')
     snapshot = get_product_snapshot(game_id, launch_type)
-    lessons = find_lessons(brief, launch_type, game_id=game_id, limit=3)
+    local_lessons = find_lessons(brief, launch_type, game_id=game_id, limit=3)
+    memory_lessons, memory_trace = recall_agentbase_memory(brief, launch_context, launch_type, game_id, limit=5)
+    lesson_ids = set()
+    lessons = []
+    for lesson in [*memory_lessons, *local_lessons]:
+        lesson_id = str(lesson.get("id") or lesson.get("title") or lesson.get("lesson") or "")
+        if lesson_id in lesson_ids:
+            continue
+        lesson_ids.add(lesson_id)
+        lessons.append(lesson)
+        if len(lessons) >= 5:
+            break
     return {
         'gameId': game_id,
         'launchType': launch_type,
@@ -871,6 +1228,7 @@ def build_product_context(brief: str, launch_context: dict[str, Any] | None = No
         'availableTypes': list_launch_types(),
         'snapshot': snapshot,
         'lessons': lessons,
+        'memoryTrace': memory_trace,
         'productHealth': {
             'status': 'watch' if launch_type == 'game_event_h5' else 'info',
             'findings': (snapshot or {}).get('hotFindings', [])[:3] if snapshot else [],
@@ -955,6 +1313,7 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
     launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
     result = readiness_agent(brief, launch_context, force_fast=force_fast)
     result["productContext"] = product_context
+    result["memoryTrace"] = product_context.get("memoryTrace", {})
     result = red_team_agent(result, launch_context, force_fast=force_fast)
     result = checklist_agent(result, launch_context, force_fast=force_fast)
     result = postmortem_agent(result, launch_context, force_fast=force_fast)
@@ -967,6 +1326,44 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
         "postmortem": public_llm_config("postmortem"),
     }
     return result
+
+def analysis_memory_summary(result: dict[str, Any]) -> str:
+    decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
+    risks = result.get("topRisks") if isinstance(result.get("topRisks"), list) else []
+    tasks = result.get("checklist") if isinstance(result.get("checklist"), list) else []
+    lines = [
+        f"LaunchOps analysis result: {decision.get('color', 'Unknown')} ({decision.get('score', '?')}/{decision.get('maxScore', '?')}).",
+        f"Decision: {decision.get('title', '')}",
+        f"Reason: {decision.get('reason', '')}",
+    ]
+    if risks:
+        lines.append("Top risks: " + "; ".join(str(item) for item in risks[:3]))
+    if tasks:
+        task_names = []
+        for task in tasks[:5]:
+            if isinstance(task, dict):
+                task_names.append(str(task.get("task") or "Task"))
+        if task_names:
+            lines.append("Checklist: " + "; ".join(task_names))
+    return "\n".join(line for line in lines if line.strip())
+
+def record_analysis_memory(brief: str, launch_context: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
+    memory_context = launch_context.get("memoryContext") if isinstance(launch_context.get("memoryContext"), dict) else {}
+    user_status = write_agentbase_memory_event(memory_context, "user", brief)
+    assistant_status = write_agentbase_memory_event(memory_context, "assistant", analysis_memory_summary(result))
+    write_status = "ok" if user_status == "ok" and assistant_status == "ok" else f"user:{user_status};assistant:{assistant_status}"
+    trace = result.setdefault("memoryTrace", {})
+    if isinstance(trace, dict):
+        trace["writeStatus"] = write_status
+    return result
+
+def record_lesson_memory(launch: dict[str, Any], lesson: str, memory_context: dict[str, Any]) -> str:
+    if not lesson:
+        return "skipped_empty"
+    context = {**launch, "memoryContext": memory_context}
+    event_status = write_agentbase_memory_event(memory_context, "assistant", f"Launch lesson learned: {lesson}")
+    record_status = insert_agentbase_memory_record(memory_context, context, lesson)
+    return "ok" if event_status == "ok" and record_status == "ok" else f"event:{event_status};record:{record_status}"
 
 def write_backend_log(message: str) -> None:
     log_path = Path(__file__).resolve().parent / "backend.log"
@@ -1366,10 +1763,6 @@ def apply_deterministic_readiness(result: dict[str, Any], brief: str, launch_con
     return result
 
 
-def truthy_env(name: str, default: str = "") -> bool:
-    value = os.getenv(name, default).strip().lower()
-    return value in {"1", "true", "yes", "on"}
-
 def first_env(*names: str) -> str:
     for name in names:
         value = os.getenv(name, "").strip()
@@ -1647,28 +2040,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
 
         if path == "/tools":
             # MCP List Tools endpoint
-            json_response(self, 200, {
-                "tools": [
-                    {
-                        "name": "analyze_launch_brief",
-                        "description": "Phân tích Launch Brief chuyên sâu để chấm điểm readiness (Green/Yellow/Red), phản biện bằng Red Team, tạo checklist hành động và post-mortem.",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "brief": {
-                                    "type": "string",
-                                    "description": "Nội dung văn bản launch brief đầy đủ cần phân tích."
-                                },
-                                "type": {
-                                    "type": "string",
-                                    "description": "Phân loại launch nếu có (game_event_h5, marketing, webshop_promotion)."
-                                }
-                            },
-                            "required": ["brief"]
-                        }
-                    }
-                ]
-            })
+            json_response(self, 200, {"tools": mcp_tool_definitions()})
             return
 
         if path == "/api/version":
@@ -1786,38 +2158,20 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     "jsonrpc": "2.0",
                     "id": req_id,
                     "result": {
-                        "tools": [
-                            {
-                                "name": "analyze_launch_brief",
-                                "description": "Phân tích Launch Brief chuyên sâu để chấm điểm readiness (Green/Yellow/Red), phản biện bằng Red Team, tạo checklist hành động và post-mortem.",
-                                "inputSchema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "brief": {
-                                            "type": "string",
-                                            "description": "Nội dung văn bản launch brief đầy đủ cần phân tích."
-                                        },
-                                        "type": {
-                                            "type": "string",
-                                            "description": "Phân loại launch nếu có (game_event_h5, marketing, webshop_promotion)."
-                                        }
-                                    },
-                                    "required": ["brief"]
-                                }
-                            }
-                        ]
+                        "tools": mcp_tool_definitions()
                     }
                 })
                 return
                 
             if method == "tools/call":
                 params = payload.get("params", {})
-                tool_name = params.get("name", "").strip()
+                raw_tool_name = str(params.get("name", "")).strip()
+                tool_name = normalize_tool_name(raw_tool_name)
                 args = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
                 brief = str(args.get("brief", "")).strip()
                 
-                if tool_name != "analyze_launch_brief":
-                    json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}})
+                if tool_name != ANALYZE_TOOL_NAME:
+                    json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {raw_tool_name}"}})
                     return
                 if not brief:
                     json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": "Missing parameter: brief"}})
@@ -1849,12 +2203,13 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             payload = self.read_json_payload()
             if payload is None:
                 return
-            tool_name = str(payload.get("name", "")).strip()
+            raw_tool_name = str(payload.get("name", "")).strip()
+            tool_name = normalize_tool_name(raw_tool_name)
             args = payload.get("arguments") if isinstance(payload.get("arguments"), dict) else {}
             brief = str(args.get("brief", "")).strip()
             
-            if tool_name != "analyze_launch_brief":
-                json_response(self, 400, {"ok": False, "error": f"Unknown tool: {tool_name}"})
+            if tool_name != ANALYZE_TOOL_NAME:
+                json_response(self, 400, {"ok": False, "error": f"Unknown tool: {raw_tool_name}"})
                 return
             if not brief:
                 json_response(self, 400, {"ok": False, "error": "Missing parameter: brief"})
@@ -1931,7 +2286,10 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 return
 
             try:
-                result = orchestrate_launchops_analysis(brief, payload.get("launch") if isinstance(payload.get("launch"), dict) else None)
+                launch_context = payload.get("launch") if isinstance(payload.get("launch"), dict) else {}
+                launch_context = {**launch_context, "memoryContext": memory_context_from_headers(self.headers, launch_context)}
+                result = orchestrate_launchops_analysis(brief, launch_context)
+                result = record_analysis_memory(brief, launch_context, result)
                 json_response(self, 200, {"ok": True, "result": result})
             except Exception as exc:
                 write_backend_log(f"Analyze handler crashed: {type(exc).__name__}")
@@ -1955,6 +2313,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 json_response(self, 400, {"ok": False, "error": "Missing brief"})
                 return
             launch_context = payload.get("launch") if isinstance(payload.get("launch"), dict) else {}
+            launch_context = {**launch_context, "memoryContext": memory_context_from_headers(self.headers, launch_context)}
             context = build_product_context(brief, launch_context)
             json_response(self, 200, {"ok": True, "productContext": context})
             return
@@ -2016,9 +2375,12 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     launch[key] = payload[key]
             launch["status"] = normalize_status(launch.get("status"))
             launch["brief"] = brief
+            memory_context = memory_context_from_headers(self.headers, launch)
+            analysis_context = {**launch, "memoryContext": memory_context}
 
             try:
-                result = orchestrate_launchops_analysis(brief, launch)
+                result = orchestrate_launchops_analysis(brief, analysis_context)
+                result = record_analysis_memory(brief, analysis_context, result)
                 launch = append_analysis(launch, result, brief)
                 json_response(
                     self,
@@ -2045,7 +2407,8 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             if launch is None:
                 json_response(self, 404, {"ok": False, "error": "Launch not found"})
                 return
-            launch = save_post_result(launch, payload)
+            memory_context = memory_context_from_headers(self.headers, launch)
+            launch = save_post_result(launch, payload, memory_context)
             json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
             return
 

@@ -1,8 +1,10 @@
 import importlib
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SERVER_DIR = Path(__file__).resolve().parent
 if str(SERVER_DIR) not in sys.path:
@@ -108,6 +110,83 @@ class NormalizeAndSlugTests(unittest.TestCase):
     def test_slugify_length_limit(self):
         self.assertEqual(len(app.slugify("a" * 100)), 72)
 
+
+class ToolAliasTests(unittest.TestCase):
+    def test_normalize_tool_name_accepts_main_tool_and_alias(self):
+        self.assertEqual(app.normalize_tool_name("analyze_launch_brief"), "analyze_launch_brief")
+        self.assertEqual(app.normalize_tool_name("lcc"), "analyze_launch_brief")
+
+    def test_normalize_tool_name_keeps_unknown(self):
+        self.assertEqual(app.normalize_tool_name("unknown_tool"), "unknown_tool")
+
+    def test_tool_definitions_include_backward_compatible_tool_and_alias(self):
+        names = [tool["name"] for tool in app.mcp_tool_definitions()]
+        self.assertIn("analyze_launch_brief", names)
+        self.assertIn("lcc", names)
+
+class ChatbotParserTests(unittest.TestCase):
+    def test_lcc_namespaced_status(self):
+        self.assertEqual(app.parse_chatbot_command("lcc status"), ("status", "", False))
+
+    def test_lcc_namespaced_analyze(self):
+        self.assertEqual(
+            app.parse_chatbot_command("lcc analyze Lucky Wheel lacks rollback"),
+            ("analyze", "Lucky Wheel lacks rollback", False),
+        )
+
+    def test_legacy_command_still_works_and_is_marked(self):
+        self.assertEqual(app.parse_chatbot_command("status"), ("status", "", True))
+
+    def test_natural_vietnamese_intent_routes_to_analyze(self):
+        message = "kiem tra brief nay: Lucky Wheel chưa có rollback"
+        self.assertEqual(app.parse_chatbot_command(message), ("analyze", message, False))
+
+    def test_natural_report_intent_routes_to_report(self):
+        message = "viet report cho launch Lucky Wheel"
+        self.assertEqual(app.parse_chatbot_command(message), ("report", message, False))
+
+    def test_plain_brief_defaults_to_analyze(self):
+        message = "Lucky Wheel Weekend. No owner, no rollback plan, payment untested."
+        self.assertEqual(app.parse_chatbot_command(message), ("analyze", message, False))
+
+class AgentBaseMemoryTests(unittest.TestCase):
+    def test_mask_sensitive_text_redacts_common_secrets(self):
+        text = "email a@vng.com.vn token=abc123 phone 0901234567"
+        masked = app.mask_sensitive_text(text)
+        self.assertNotIn("a@vng.com.vn", masked)
+        self.assertNotIn("abc123", masked)
+        self.assertNotIn("0901234567", masked)
+
+    def test_memory_namespace_actor_default(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_MEMORY_NAMESPACE_MODE": "actor"}):
+            self.assertEqual(
+                app.memory_namespace("strategy-1", "user 1", "session 1", "game_event_h5", "demo_game"),
+                "/strategies/strategy-1/actors/user-1",
+            )
+
+    def test_memory_namespace_product(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_MEMORY_NAMESPACE_MODE": "product"}):
+            self.assertEqual(
+                app.memory_namespace("strategy-1", "user", "session", "game_event_h5", "Demo Game"),
+                "/launchops/products/demo-game/game-event-h5",
+            )
+
+    def test_extract_memory_records_from_list_data(self):
+        payload = {
+            "listData": [
+                {"id": "rec-1", "memory": "Always write reset time in FAQ.", "metadata": {"title": "FAQ", "severity": "High"}},
+                {"id": "rec-2", "content": "Keep rollback plan ready."},
+            ]
+        }
+        records = app.extract_memory_records(payload)
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0]["source"], "agentbase_memory")
+        self.assertEqual(records[0]["severity"], "High")
+
+    def test_memory_context_missing_headers_skips_by_default(self):
+        context = app.memory_context_from_headers({}, {"id": "launch-1"})
+        self.assertEqual(context["source"], "missing_headers")
+        self.assertEqual(context["actorId"], "")
 
 if __name__ == "__main__":
     unittest.main()

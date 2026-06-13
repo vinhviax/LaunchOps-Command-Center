@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated: 2026-06-12 — production build: image `v14`, runtime version 16 on VNG AgentBase.
+> Updated: 2026-06-14 — production build: image `v15`, runtime version 18 on VNG AgentBase.
 
 LaunchOps Command Center is a **launch-risk Super Agent**: it reads a launch brief (game event, marketing campaign, feature release, hotfix...), scores readiness as Green/Yellow/Red, challenges the plan with a 5-persona Red Team, generates an owner/deadline/priority checklist, and prepares a post-mortem so the team learns from every launch.
 
@@ -37,6 +37,37 @@ Each agent calls its own model through the **OpenAI-compatible** `/v1/chat/compl
 - The final readiness score is always recomputed by a **deterministic rule** — the LLM explains risks, it does not freestyle the score.
 - Every agent falls back to local rules on LLM error/timeout — the pipeline never dies midway.
 - `POST /mcp tools/call` uses a **deterministic fast path (<1s)** to stay under the MCP Gateway's 15s timeout; `/api/analyze` is the full LLM path.
+- MCP exposes two tool names on the same handler: `analyze_launch_brief` for backward compatibility and the short alias `lcc`.
+
+## Memory
+
+The backend can use **AgentBase Memory** behind feature flags:
+
+- `LAUNCHOPS_MEMORY_ENABLED=true`
+- `LAUNCHOPS_MEMORY_ID=<memory-id>`
+- `LAUNCHOPS_MEMORY_STRATEGY_ID=<strategy-id>`
+- `LAUNCHOPS_MEMORY_NAMESPACE_MODE=actor|session|product|global`
+
+When enabled, the backend recalls long-term memory records before analysis and returns `memoryTrace` in the response. If Memory is misconfigured, unavailable, or missing the `X-GreenNode-AgentBase-User-Id` / `X-GreenNode-AgentBase-Session-Id` headers, the app falls back to local SQLite lessons and keeps `/api/analyze` alive. For headerless demos, `LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED=true` provides an explicit demo actor/session; production should keep it `false` to avoid mixing users.
+
+Fast rollback: set `LAUNCHOPS_MEMORY_ENABLED=false` to return to local lessons.
+
+## Chatbot commands
+
+Primary commands use the `lcc` namespace:
+
+```text
+lcc help
+lcc status
+lcc list
+lcc config
+lcc analyze <brief>
+lcc report <brief>
+lcc guardrail <brief>
+lcc infra <brief>
+```
+
+Legacy commands such as `status`, `analyze <brief>`, and `report <brief>` still work for one version and suggest the `lcc ...` form. If a user pastes a long brief without a command, the bot analyzes it by default. Natural prompts such as "check this brief", "review this launch", "red team this", "create checklist", and "what risks" also route to LaunchOps analysis.
 
 ## Web UI
 

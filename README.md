@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật: 12/06/2026 — bản production đang chạy: image `v14`, runtime version 16 trên VNG AgentBase.
+> Cập nhật: 14/06/2026 — bản production đang chạy: image `v15`, runtime version 18 trên VNG AgentBase.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**: đọc launch brief (sự kiện game, campaign marketing, release tính năng, hotfix...), chấm điểm readiness Green/Yellow/Red, phản biện bằng Red Team 5 persona, sinh checklist có owner/deadline/priority và chuẩn bị post-mortem để team học lại sau mỗi lần launch.
 
@@ -48,6 +48,20 @@ Mỗi agent gọi một model riêng qua **API OpenAI-compatible** (`/v1/chat/co
 - Điểm readiness cuối cùng luôn được tính lại bằng **rule cố định** (deterministic) — LLM chỉ giải thích rủi ro, không tự chấm điểm tùy hứng.
 - Nếu LLM lỗi/timeout, từng agent tự fallback về rule local — pipeline không bao giờ chết giữa chừng.
 - `POST /mcp tools/call` dùng **fast path deterministic (<1s)** để không vượt timeout 15s của MCP Gateway; `/api/analyze` mới chạy full LLM.
+- MCP hiện expose 2 tên tool cùng handler: `analyze_launch_brief` (backward-compatible) và alias ngắn `lcc`.
+
+## Memory
+
+App có đường tích hợp **AgentBase Memory** sau feature flag:
+
+- `LAUNCHOPS_MEMORY_ENABLED=true`
+- `LAUNCHOPS_MEMORY_ID=<memory-id>`
+- `LAUNCHOPS_MEMORY_STRATEGY_ID=<strategy-id>`
+- `LAUNCHOPS_MEMORY_NAMESPACE_MODE=actor|session|product|global`
+
+Khi bật, backend recall long-term memory records trước khi phân tích và trả `memoryTrace` trong response. Nếu Memory lỗi, thiếu cấu hình hoặc thiếu header `X-GreenNode-AgentBase-User-Id` / `X-GreenNode-AgentBase-Session-Id`, app tự fallback về SQLite lessons local, không làm chết `/api/analyze`. Muốn demo không có header có thể bật `LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED=true`, nhưng production nên để `false` để tránh trộn memory nhiều user.
+
+Rollback nhanh: đặt `LAUNCHOPS_MEMORY_ENABLED=false` để quay về local lessons.
 
 ## Web UI
 
@@ -66,6 +80,23 @@ openclaw mcp set launchops_gateway '{"command":"npx","args":["-y","mcp-remote","
 ```
 
 Lưu ý server-side: phải giữ đầy đủ MCP handshake (`initialize` → `notifications/initialized` → `tools/list` → `tools/call`) và trả **405** cho `GET`/`DELETE /mcp` theo spec streamable-http (chi tiết trong `server/app.py`).
+
+## Chatbot commands
+
+Lệnh chính dùng namespace `lcc`:
+
+```text
+lcc help
+lcc status
+lcc list
+lcc config
+lcc analyze <brief>
+lcc report <brief>
+lcc guardrail <brief>
+lcc infra <brief>
+```
+
+Các lệnh cũ như `status`, `analyze <brief>`, `report <brief>` vẫn hoạt động tạm trong 1 version và sẽ gợi ý chuyển sang `lcc ...`. Nếu người dùng dán một brief dài không có lệnh, bot tự chạy phân tích. Bot cũng hiểu vài câu tự nhiên như "kiểm tra brief này", "đánh giá launch này", "red team giúp tôi", "tạo checklist", "viết report", "brief này có rủi ro gì".
 
 ## Chạy local
 
