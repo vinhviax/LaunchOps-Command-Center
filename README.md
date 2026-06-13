@@ -65,7 +65,7 @@ openclaw mcp set launchops_gateway '{"command":"npx","args":["-y","mcp-remote","
 # rồi gõ /restart trong OpenClaw
 ```
 
-Chi tiết + các bẫy đã gặp: xem `OPENCLAW_BUILD_CHECKLIST.md`.
+Lưu ý server-side: phải giữ đầy đủ MCP handshake (`initialize` → `notifications/initialized` → `tools/list` → `tools/call`) và trả **405** cho `GET`/`DELETE /mcp` theo spec streamable-http (chi tiết trong `server/app.py`).
 
 ## Chạy local
 
@@ -90,15 +90,17 @@ Mở `http://127.0.0.1:8788/` — UI và API cùng origin. Mẫu env: `.env.exam
 ```
 index.html          # Web UI markup (tabs, views, cache version ?v=)
 app.js              # Logic Pro UI: launch CRUD, analyze, run log, permissions
-friendly-ui.js      # Layer Friendly (2 IIFE riêng — xem CODEX_BRIEF.md)
+friendly-ui.js      # Layer Friendly (2 IIFE riêng biệt: mode switcher + hệ Friendly)
 i18n-clean.js       # Chuyển ngữ VI/EN
 styles.css          # Toàn bộ style (token VNG Orange)
 friendly.css        # Style riêng phần Friendly
 config.js           # window.LAUNCHOPS_API_BASE = "/api" (same-origin)
 server/app.py       # Backend duy nhất: UI serving + API + MCP + webhooks
+server/test_app.py  # Unit test các hàm thuần (python -m unittest server.test_app)
+data/               # Brief mẫu + rubric + vai trò agent
+prompts/            # Prompt nền cho OpenClaw backup
 Dockerfile          # python:3.11-slim, EXPOSE 8080
-CODEX_BRIEF.md      # Brief cho AI agent / contributor làm tiếp
-MEMORY.md           # Trạng thái dự án hiện tại (bản tóm tắt sạch)
+README_EN.md        # English version of this README
 ```
 
 ## Bảo mật
