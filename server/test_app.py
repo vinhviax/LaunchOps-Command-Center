@@ -373,6 +373,120 @@ class AgentBaseMemoryTests(unittest.TestCase):
         self.assertEqual(context["actorId"], "")
 
 
+class AgentLlmObservabilityTests(unittest.TestCase):
+    """Phase 4.3: each agent must report source (llm|rule|fallback), model, latencyMs, schemaAccepted, fallbackReason."""
+
+    def _meta(self, **over):
+        meta = {"source": "llm", "model": "test-model", "latencyMs": 123, "schemaAccepted": True}
+        meta.update(over)
+        return meta
+
+    def test_redteam_uses_mocked_llm_output_when_accepted(self):
+        cards = [{"persona": f"P{i}", "worry": f"w{i}", "evidence": f"e{i}", "fix": f"f{i}"} for i in range(5)]
+
+        def fake(brief, launch_context=None, agent_step=None):
+            return {"redTeam": cards, "trace": [], "_llmMeta": self._meta()}
+
+        with patch.dict(os.environ, {"LAUNCHOPS_MULTI_MODEL_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm", side_effect=fake):
+            result = app.red_team_agent(app.fallback_result("base"), {"brief": "Lucky Wheel"}, force_fast=False)
+        self.assertEqual(len(result["redTeam"]), 5)
+        self.assertEqual(result["redTeam"][0]["persona"], "P0")
+        last = result["trace"][-1]
+        self.assertEqual(last["agent"], "red_team")
+        self.assertEqual(last["source"], "llm")
+        self.assertTrue(last["schemaAccepted"])
+        self.assertEqual(last["model"], "test-model")
+        self.assertEqual(last["latencyMs"], 123)
+        self.assertNotIn("fallbackReason", last)
+        self.assertNotIn("_llmMeta", result)
+
+    def test_postmortem_uses_mocked_llm_output_when_accepted(self):
+        blocks = [{"title": f"T{i}", "items": ["a", "b"]} for i in range(3)]
+
+        def fake(brief, launch_context=None, agent_step=None):
+            return {"postmortem": blocks, "trace": [], "_llmMeta": self._meta(model="pm-model", latencyMs=77)}
+
+        with patch.dict(os.environ, {"LAUNCHOPS_MULTI_MODEL_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm", side_effect=fake):
+            result = app.postmortem_agent(app.fallback_result("base"), {"brief": "Lucky Wheel"}, force_fast=False)
+        self.assertEqual(len(result["postmortem"]), 3)
+        self.assertEqual(result["postmortem"][0]["title"], "T0")
+        last = result["trace"][-1]
+        self.assertEqual(last["agent"], "postmortem")
+        self.assertEqual(last["source"], "llm")
+        self.assertTrue(last["schemaAccepted"])
+        self.assertEqual(last["model"], "pm-model")
+
+    def test_readiness_llm_explanation_but_deterministic_score(self):
+        def fake(brief, launch_context=None, agent_step=None):
+            r = app.fallback_result("llm explanation")
+            r["decision"]["title"] = "LLM verdict title"
+            r["_llmMeta"] = self._meta(model="rd-model", latencyMs=200)
+            return r
+
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm", side_effect=fake):
+            result = app.readiness_agent("Lucky Wheel no owner no rollback no CS FAQ", {"brief": "Lucky Wheel"}, force_fast=False)
+        last = result["trace"][-1]
+        self.assertEqual(last["agent"], "readiness")
+        self.assertEqual(last["source"], "llm")
+        self.assertEqual(last["scoreMode"], "deterministic")
+        self.assertEqual(result["scoreSource"], "deterministic_rule")
+        self.assertNotIn("_llmMeta", result)
+
+    def test_redteam_schema_fail_falls_back_with_clear_trace(self):
+        def fake(brief, launch_context=None, agent_step=None):
+            # LLM returned valid JSON but only 1 card -> schema fail at agent level.
+            return {"redTeam": [{"persona": "x"}], "trace": [], "_llmMeta": self._meta(latencyMs=50)}
+
+        with patch.dict(os.environ, {"LAUNCHOPS_MULTI_MODEL_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm", side_effect=fake):
+            result = app.red_team_agent(app.fallback_result("base"), {"brief": "Lucky Wheel no owner no rollback"}, force_fast=False)
+        self.assertEqual(len(result["redTeam"]), 5)  # deterministic fallback still produces 5 cards
+        last = result["trace"][-1]
+        self.assertEqual(last["agent"], "red_team")
+        self.assertEqual(last["source"], "fallback")
+        self.assertIn("llm_schema_redteam_invalid", last["fallbackReason"])
+        self.assertFalse(last["schemaAccepted"])
+
+    def test_postmortem_llm_error_falls_back_with_reason(self):
+        def fake(brief, launch_context=None, agent_step=None):
+            # call_llm itself fell back (e.g. timeout/HTTP error).
+            r = app.fallback_result("api error")
+            r["_llmMeta"] = {"source": "fallback", "model": "pm-model", "latencyMs": 60050, "schemaAccepted": False, "fallbackReason": "timeout"}
+            return r
+
+        with patch.dict(os.environ, {"LAUNCHOPS_MULTI_MODEL_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm", side_effect=fake):
+            result = app.postmortem_agent(app.fallback_result("base"), {"brief": "Lucky Wheel"}, force_fast=False)
+        last = result["trace"][-1]
+        self.assertEqual(last["source"], "fallback")
+        self.assertEqual(last["fallbackReason"], "timeout")
+
+    def test_mcp_fast_path_never_calls_llm(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "true", "LAUNCHOPS_MULTI_MODEL_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm") as mock_llm:
+            brief = "Lucky Wheel no owner no rollback no CS FAQ"
+            result = app.readiness_agent(brief, {"brief": brief}, force_fast=True)
+            result = app.red_team_agent(result, {"brief": brief}, force_fast=True)
+            result = app.checklist_agent(result, {"brief": brief}, force_fast=True)
+            result = app.postmortem_agent(result, {"brief": brief}, force_fast=True)
+        mock_llm.assert_not_called()
+        sources = [t["source"] for t in result["trace"] if t.get("agent") in ("readiness", "red_team", "checklist", "postmortem")]
+        self.assertTrue(sources)
+        self.assertTrue(all(src == "rule" for src in sources))
+
+    def test_call_llm_missing_config_returns_fallback_meta(self):
+        with patch.dict(os.environ, {}, clear=True):
+            result = app.call_llm("Lucky Wheel brief", {"brief": "Lucky Wheel brief"}, "redteam")
+        meta = result.get("_llmMeta")
+        self.assertIsInstance(meta, dict)
+        self.assertEqual(meta["source"], "fallback")
+        self.assertEqual(meta["fallbackReason"], "missing_config")
+        self.assertFalse(meta["schemaAccepted"])
+
+
 class StorageBackendTests(unittest.TestCase):
     def test_storage_backend_defaults_local(self):
         with patch.dict(os.environ, {}, clear=True):

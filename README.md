@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật: 14/06/2026 — bản production đang chạy: image `v16`, runtime version 21 trên VNG AgentBase.
+> Cập nhật: 14/06/2026 — bản production đang chạy: image `v19`, runtime version 23 trên VNG AgentBase.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**: đọc launch brief (sự kiện game, campaign marketing, release tính năng, hotfix...), chấm điểm readiness Green/Yellow/Red, phản biện bằng Red Team 5 persona, sinh checklist có owner/deadline/priority và chuẩn bị post-mortem để team học lại sau mỗi lần launch.
 

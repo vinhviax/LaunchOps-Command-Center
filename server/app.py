@@ -1756,32 +1756,80 @@ def build_product_context(brief: str, launch_context: dict[str, Any] | None = No
         },
     }
 
+def _agent_trace(agent_step: str, agent_name: str, source: str, meta: dict[str, Any] | None = None, **extra: Any) -> dict[str, Any]:
+    """Standard observability trace entry for one agent step.
+
+    source values:
+    - "llm": LLM output was validated and used.
+    - "rule": deterministic-by-design (LLM disabled, or force_fast/MCP fast path). Not an error.
+    - "fallback": LLM was attempted but failed (timeout / HTTP error / schema not accepted); deterministic output used instead.
+    """
+    meta = meta or {}
+    cfg = public_llm_config(agent_step)
+    entry: dict[str, Any] = {
+        "agent": agent_name,
+        "status": "fallback" if source == "fallback" else "ok",
+        "source": source,
+        "model": meta.get("model") or cfg["model"],
+        "latencyMs": int(meta.get("latencyMs") or 0),
+        "schemaAccepted": meta.get("schemaAccepted"),
+        "llm": cfg,
+    }
+    reason = meta.get("fallbackReason")
+    if reason:
+        entry["fallbackReason"] = reason
+    entry.update(extra)
+    return entry
+
 def readiness_agent(brief: str, launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     template = normalize_template(launch_context)
+    ctx = {**(launch_context or {}), "template": template}
+    meta: dict[str, Any] | None = None
     if not force_fast and truthy_env("LAUNCHOPS_LLM_ENABLED"):
-        result = call_llm(brief, {**(launch_context or {}), "template": template}, "readiness")
+        # Readiness uses the LLM only for the human-readable explanation; the score is always deterministic.
+        result = call_llm(brief, ctx, "readiness")
+        meta = result.pop("_llmMeta", None) or {}
+        source = meta.get("source", "llm")
     else:
         result = fallback_result("Readiness agent rule-based.")
         result["trace"] = _base_trace("readiness", "rule-based readiness")
-    result = apply_deterministic_readiness(result, brief, {**(launch_context or {}), "template": template})
-    result["trace"].append({"agent": "readiness", "status": "ok", "score": result["decision"]["score"], "color": result["decision"]["color"], "llm": public_llm_config("readiness")})
+        result["source"] = "rule"
+        source = "rule"
+    result = apply_deterministic_readiness(result, brief, ctx)
+    result["trace"].append(_agent_trace(
+        "readiness", "readiness", source, meta,
+        score=result["decision"]["score"], color=result["decision"]["color"], scoreMode="deterministic",
+    ))
     return result
 
 def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     template = normalize_template(launch_context)
     brief = str((launch_context or {}).get("brief") or "")
+    meta: dict[str, Any] | None = None
+    fallback_reason = ""
     if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "redteam")
-        if isinstance(llm_result.get("redTeam"), list) and len(llm_result["redTeam"]) >= 5:
-            result["redTeam"] = llm_result["redTeam"][:5]
-            result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "source": "llm", "llm": public_llm_config("redteam")})
+        meta = llm_result.pop("_llmMeta", None) or {}
+        cards = llm_result.get("redTeam")
+        if meta.get("source") == "llm" and isinstance(cards, list) and len(cards) >= 5:
+            result["redTeam"] = cards[:5]
+            result.setdefault("trace", []).append(_agent_trace("redteam", "red_team", "llm", meta, cards=5))
             return result
+        if meta.get("source") == "llm":
+            got = len(cards) if isinstance(cards, list) else "none"
+            fallback_reason = f"llm_schema_redteam_invalid(items={got})"
+        else:
+            fallback_reason = meta.get("fallbackReason") or "llm_unavailable"
+        write_backend_log(f"red_team fallback: {fallback_reason}")
     personas = template.get("redTeamPersonas") if isinstance(template.get("redTeamPersonas"), list) else []
     if len(personas) < 5:
         personas = build_default_template()["redTeamPersonas"]
     red_team = build_deterministic_red_team(result, personas[:5], brief)
     result["redTeam"] = red_team
-    result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "source": "rule", "cards": len(red_team), "llm": public_llm_config("redteam")})
+    if fallback_reason:
+        result.setdefault("trace", []).append(_agent_trace("redteam", "red_team", "fallback", {**(meta or {}), "fallbackReason": fallback_reason, "schemaAccepted": False}, cards=len(red_team)))
+    else:
+        result.setdefault("trace", []).append(_agent_trace("redteam", "red_team", "rule", None, cards=len(red_team)))
     return result
 
 def _red_team_risks(result: dict[str, Any]) -> list[dict[str, str]]:
@@ -1885,12 +1933,22 @@ def build_deterministic_red_team(result: dict[str, Any], personas: list[Any], br
 
 def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     brief = str((launch_context or {}).get("brief") or "")
+    meta: dict[str, Any] | None = None
+    fallback_reason = ""
     if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "checklist")
-        if isinstance(llm_result.get("checklist"), list) and len(llm_result["checklist"]) >= 5:
-            result["checklist"] = llm_result["checklist"]
-            result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "source": "llm", "llm": public_llm_config("checklist")})
+        meta = llm_result.pop("_llmMeta", None) or {}
+        tasks = llm_result.get("checklist")
+        if meta.get("source") == "llm" and isinstance(tasks, list) and len(tasks) >= 5:
+            result["checklist"] = tasks
+            result.setdefault("trace", []).append(_agent_trace("checklist", "checklist", "llm", meta, tasks=len(tasks)))
             return result
+        if meta.get("source") == "llm":
+            got = len(tasks) if isinstance(tasks, list) else "none"
+            fallback_reason = f"llm_schema_checklist_invalid(items={got})"
+        else:
+            fallback_reason = meta.get("fallbackReason") or "llm_unavailable"
+        write_backend_log(f"checklist fallback: {fallback_reason}")
     result["checklist"] = [
         {"task": "Chốt scope, đối tượng, KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
         {"task": "Viết CS FAQ và macro trả lời", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
@@ -1901,23 +1959,39 @@ def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | Non
         {"task": "Chuẩn bị escalation path", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
         {"task": "Post-launch recap", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
     ]
-    result.setdefault("trace", []).append({"agent": "checklist", "status": "ok", "tasks": len(result["checklist"]), "llm": public_llm_config("checklist")})
+    if fallback_reason:
+        result.setdefault("trace", []).append(_agent_trace("checklist", "checklist", "fallback", {**(meta or {}), "fallbackReason": fallback_reason, "schemaAccepted": False}, tasks=len(result["checklist"])))
+    else:
+        result.setdefault("trace", []).append(_agent_trace("checklist", "checklist", "rule", None, tasks=len(result["checklist"])))
     return result
 
 def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     brief = str((launch_context or {}).get("brief") or "")
+    meta: dict[str, Any] | None = None
+    fallback_reason = ""
     if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "postmortem")
-        if isinstance(llm_result.get("postmortem"), list) and len(llm_result["postmortem"]) >= 3:
-            result["postmortem"] = llm_result["postmortem"]
-            result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "source": "llm", "llm": public_llm_config("postmortem")})
+        meta = llm_result.pop("_llmMeta", None) or {}
+        blocks = llm_result.get("postmortem")
+        if meta.get("source") == "llm" and isinstance(blocks, list) and len(blocks) >= 3:
+            result["postmortem"] = blocks
+            result.setdefault("trace", []).append(_agent_trace("postmortem", "postmortem", "llm", meta, blocks=len(blocks)))
             return result
+        if meta.get("source") == "llm":
+            got = len(blocks) if isinstance(blocks, list) else "none"
+            fallback_reason = f"llm_schema_postmortem_invalid(items={got})"
+        else:
+            fallback_reason = meta.get("fallbackReason") or "llm_unavailable"
+        write_backend_log(f"postmortem fallback: {fallback_reason}")
     result["postmortem"] = [
         {"title": "Câu hỏi sau launch", "items": ["Mục tiêu ban đầu có đạt không?", "Rủi ro nào đã được bắt đúng trước launch?", "Điểm nào cần thêm guardrail?"]},
         {"title": "Metrics cần điền", "items": ["DAU / login rate", "Số ticket CS và loại ticket", "ROI / conversion"]},
         {"title": "Action items", "items": ["Chốt lesson tốt nhất", "Đưa lesson vào template lần sau", "Cập nhật checklist gốc"]},
     ]
-    result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "blocks": len(result["postmortem"]), "llm": public_llm_config("postmortem")})
+    if fallback_reason:
+        result.setdefault("trace", []).append(_agent_trace("postmortem", "postmortem", "fallback", {**(meta or {}), "fallbackReason": fallback_reason, "schemaAccepted": False}, blocks=len(result["postmortem"])))
+    else:
+        result.setdefault("trace", []).append(_agent_trace("postmortem", "postmortem", "rule", None, blocks=len(result["postmortem"])))
     return result
 
 def remote_agent_request(role: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -2709,6 +2783,18 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     model = config["model"]
     timeout = int(config["timeoutSeconds"])
     step_name = str(agent_step or "default")
+    public_cfg = public_llm_config(agent_step)
+
+    def _meta(source: str, schema_accepted: bool, latency_ms: float, fallback_reason: str = "") -> dict[str, Any]:
+        m: dict[str, Any] = {
+            "source": source,
+            "model": model or "not_configured",
+            "latencyMs": int(latency_ms),
+            "schemaAccepted": bool(schema_accepted),
+        }
+        if fallback_reason:
+            m["fallbackReason"] = fallback_reason
+        return m
 
     if not api_key or not base_url or not model:
         result = apply_deterministic_readiness(
@@ -2718,7 +2804,8 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
             brief,
             launch_context,
         )
-        result.setdefault("trace", []).append({"agent": step_name, "status": "fallback", "llm": public_llm_config(agent_step)})
+        result["_llmMeta"] = _meta("fallback", False, 0, "missing_config")
+        result.setdefault("trace", []).append({"agent": step_name, "status": "fallback", "source": "fallback", "llm": public_cfg})
         return result
 
     payload = {
@@ -2749,37 +2836,51 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
         content = data["choices"][0]["message"]["content"]
         parsed = extract_json(content)
         parsed["source"] = "llm"
-        parsed.setdefault("trace", []).append({"agent": step_name, "status": "ok", "llm": public_llm_config(agent_step)})
+        parsed.setdefault("trace", []).append({"agent": step_name, "status": "ok", "source": "llm", "llm": public_cfg})
         return apply_deterministic_readiness(parsed, brief, launch_context)
 
+    start = time.time()
     executor = ThreadPoolExecutor(max_workers=1)
     future = executor.submit(perform_request)
     try:
-        return future.result(timeout=timeout + 5)
+        result = future.result(timeout=timeout + 5)
+        result["_llmMeta"] = _meta("llm", True, (time.time() - start) * 1000)
+        return result
     except FutureTimeoutError:
+        latency = (time.time() - start) * 1000
         write_backend_log(f"LLM call failed for {step_name}: Timeout after {timeout + 5}s")
-        return apply_deterministic_readiness(
+        result = apply_deterministic_readiness(
             fallback_result(f"API không trả trong {timeout + 5} giây cho {step_name}. Demo dùng fallback để không treo UI."),
             brief,
             launch_context,
         )
+        result["_llmMeta"] = _meta("fallback", False, latency, "timeout")
+        result.setdefault("trace", []).append({"agent": step_name, "status": "fallback", "source": "fallback", "llm": public_cfg})
+        return result
     except Exception as exc:
+        latency = (time.time() - start) * 1000
         status_code = getattr(exc, "code", None)
         if status_code:
+            reason = f"http_{status_code}"
             write_backend_log(f"LLM call failed for {step_name}: HTTPError {status_code}")
-            return apply_deterministic_readiness(
+            result = apply_deterministic_readiness(
                 fallback_result(
                     f"API trả HTTPError {status_code} cho {step_name}. Kiểm tra base URL, model hoặc quyền API key."
                 ),
                 brief,
                 launch_context,
             )
-        write_backend_log(f"LLM call failed for {step_name}: {type(exc).__name__}")
-        return apply_deterministic_readiness(
-            fallback_result(f"API lỗi hoặc JSON không hợp lệ cho {step_name}: {type(exc).__name__}."),
-            brief,
-            launch_context,
-        )
+        else:
+            reason = type(exc).__name__
+            write_backend_log(f"LLM call failed for {step_name}: {reason}")
+            result = apply_deterministic_readiness(
+                fallback_result(f"API lỗi hoặc JSON không hợp lệ cho {step_name}: {reason}."),
+                brief,
+                launch_context,
+            )
+        result["_llmMeta"] = _meta("fallback", False, latency, reason)
+        result.setdefault("trace", []).append({"agent": step_name, "status": "fallback", "source": "fallback", "llm": public_cfg})
+        return result
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
