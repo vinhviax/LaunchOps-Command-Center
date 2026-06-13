@@ -56,6 +56,8 @@ const CLEAN_I18N_DICT = {
     metricLocal: "Lưu local",
     formTitle: "Thông tin launch",
     loadBadBrief: "Nạp Brief Mẫu",
+    briefGuideTitle: "Brief nên nhập gì?",
+    labelBriefContent: "Nội dung brief",
     labelName: "Tên launch",
     labelType: "Phân loại",
     labelStatus: "Trạng thái",
@@ -134,6 +136,8 @@ const CLEAN_I18N_DICT = {
     metricLocal: "Saved locally",
     formTitle: "Launch info",
     loadBadBrief: "Load Sample Brief",
+    briefGuideTitle: "What should the brief include?",
+    labelBriefContent: "Brief content",
     labelName: "Launch name",
     labelType: "Type",
     labelStatus: "Status",
@@ -328,16 +332,17 @@ function applyCleanTranslations(lang) {
     histHelpBtn.setAttribute("aria-label", dict.helpHistoryBtn);
   }
 
-  // Action buttons (bỏ qua khi đang bận để không stomp text trạng thái của app.js)
-  const setButtonText = (id, text) => {
+  // Action buttons. force=true sets the label even when the button is disabled,
+  // so VI/EN is correct right at load. analyzeBrief is still skipped while analyzing.
+  const setButtonText = (id, text, force) => {
     const btn = document.getElementById(id);
-    if (btn && !btn.disabled) btn.textContent = text;
+    if (btn && (force || !btn.disabled)) btn.textContent = text;
   };
-  setButtonText("demoMode", dict.actionDemo);
-  setButtonText("exportReport", dict.actionExport);
-  setButtonText("saveLaunch", dict.actionSave);
-  if (!document.body.classList.contains("is-analyzing")) setButtonText("analyzeBrief", dict.actionAnalyze);
-  setButtonText("deleteLaunch", dict.actionDelete);
+  setButtonText("demoMode", dict.actionDemo, true);
+  setButtonText("exportReport", dict.actionExport, true);
+  setButtonText("saveLaunch", dict.actionSave, true);
+  if (!document.body.classList.contains("is-analyzing")) setButtonText("analyzeBrief", dict.actionAnalyze, true);
+  setButtonText("deleteLaunch", dict.actionDelete, true);
 
   // Hero metrics labels (giữ help-button bên trong span)
   const setLabelKeepHelp = (span, text) => {
@@ -357,7 +362,9 @@ function applyCleanTranslations(lang) {
   // Form thông tin launch
   const formTitle = document.querySelector("#briefView .card-head .title-row h3");
   if (formTitle) formTitle.textContent = dict.formTitle;
-  setButtonText("loadBadBrief", dict.loadBadBrief);
+  setButtonText("loadBadBrief", dict.loadBadBrief, true);
+  const briefGuideTitleEl = document.querySelector(".brief-guide strong");
+  if (briefGuideTitleEl) briefGuideTitleEl.textContent = dict.briefGuideTitle;
   const fieldLabel = (inputId) => document.getElementById(inputId)?.closest(".field")?.querySelector(":scope > span");
   setLabelKeepHelp(fieldLabel("launchName"), dict.labelName);
   setLabelKeepHelp(fieldLabel("launchType"), dict.labelType);
@@ -365,6 +372,7 @@ function applyCleanTranslations(lang) {
   setLabelKeepHelp(fieldLabel("launchOwner"), dict.labelOwner);
   setLabelKeepHelp(fieldLabel("launchTargetDate"), dict.labelStart);
   setLabelKeepHelp(fieldLabel("launchEndDate"), dict.labelEnd);
+  setLabelKeepHelp(fieldLabel("briefInput"), dict.labelBriefContent);
   const launchStatusSelect = document.getElementById("launchStatus");
   if (launchStatusSelect) {
     [...launchStatusSelect.options].forEach((opt) => {

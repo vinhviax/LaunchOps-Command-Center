@@ -27,7 +27,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260613c"
+UI_CACHE_VERSION = "fix-20260613d"
 
 # Static Web UI served from APP_ROOT so AgentBase Runtime hosts the dashboard at the
 # same origin as the API (no external static host needed).
