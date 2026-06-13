@@ -27,6 +27,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
+UI_CACHE_VERSION = "fix-20260612g"
 
 # Static Web UI served from APP_ROOT so AgentBase Runtime hosts the dashboard at the
 # same origin as the API (no external static host needed).
@@ -1648,6 +1649,25 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     }
                 ]
             })
+            return
+
+        if path == "/api/version":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "ok": True,
+                "name": "launchops-server",
+                "uiCacheVersion": UI_CACHE_VERSION,
+                "models": {
+                    "readiness": os.getenv("LAUNCHOPS_MODEL_READINESS", "deepseek/deepseek-v4-pro"),
+                    "redteam": os.getenv("LAUNCHOPS_MODEL_REDTEAM", "minimax/minimax-m2.5"),
+                    "checklist": os.getenv("LAUNCHOPS_MODEL_CHECKLIST", "qwen/qwen3.7-plus"),
+                    "postmortem": os.getenv("LAUNCHOPS_MODEL_POSTMORTEM", "google/gemma-4-31b-it"),
+                    "assistant": os.getenv("LAUNCHOPS_MODEL_ASSISTANT", "deepseek/deepseek-v4-flash")
+                }
+            }).encode("utf-8"))
             return
 
         if path == "/api/types":
