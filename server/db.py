@@ -573,6 +573,36 @@ def get_type_profile(type_id: str) -> dict[str, Any] | None:
         row = conn.execute("SELECT profile_json FROM launch_types WHERE id = ?", (type_id,)).fetchone()
     return json.loads(row["profile_json"]) if row else None
 
+def save_launch_type(type_id: str, name: str, domain: str, description: str, profile: dict[str, Any]) -> dict[str, Any]:
+    ensure_db()
+    clean_id = _slug(type_id or name, "custom-launch-type")
+    clean_name = str(name or clean_id).strip() or clean_id
+    clean_domain = str(domain or "custom").strip() or "custom"
+    clean_description = str(description or "").strip()
+    clean_profile = dict(profile) if isinstance(profile, dict) else {}
+    clean_profile.setdefault("id", clean_id)
+    clean_profile.setdefault("name", clean_name)
+    clean_profile.setdefault("type", clean_id)
+    risk_groups = clean_profile.get("riskGroups") if isinstance(clean_profile.get("riskGroups"), list) else []
+    max_score = sum(int(item.get("maxScore") or 0) for item in risk_groups if isinstance(item, dict))
+    clean_profile["maxScore"] = max_score if max_score > 0 else int(clean_profile.get("maxScore") or 12)
+    created_at = now_iso()
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO launch_types(id, name, domain, description, profile_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (clean_id, clean_name, clean_domain, clean_description, json.dumps(clean_profile, ensure_ascii=False), created_at),
+        )
+    return {
+        "id": clean_id,
+        "name": clean_name,
+        "domain": clean_domain,
+        "description": clean_description,
+        "profile": clean_profile,
+    }
+
 
 def get_product_snapshot(game_id: str, launch_type_id: str) -> dict[str, Any] | None:
     ensure_db()

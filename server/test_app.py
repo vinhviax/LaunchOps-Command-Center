@@ -2,6 +2,7 @@ import importlib
 import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -124,6 +125,91 @@ class ToolAliasTests(unittest.TestCase):
         names = [tool["name"] for tool in app.mcp_tool_definitions()]
         self.assertIn("analyze_launch_brief", names)
         self.assertIn("lcc", names)
+
+    def test_tool_definitions_include_launchops_crud_tools(self):
+        names = [tool["name"] for tool in app.mcp_tool_definitions()]
+        self.assertIn("lcc_list_launches", names)
+        self.assertIn("lcc_get_launch", names)
+        self.assertIn("lcc_create_launch", names)
+        self.assertIn("lcc_update_launch", names)
+        self.assertIn("lcc_analyze_launch", names)
+        self.assertIn("lcc_set_launch_template", names)
+
+class LaunchOpsMcpToolTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.launch_dir = Path(self.tempdir.name)
+        self.dir_patch = patch.object(app, "LAUNCHES_DIR", self.launch_dir)
+        self.dir_patch.start()
+        self.env_patch = patch.dict(os.environ, {
+            "LAUNCHOPS_STORAGE_BACKEND": "local",
+            "LAUNCHOPS_LLM_ENABLED": "false",
+            "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+        }, clear=False)
+        self.env_patch.start()
+
+    def tearDown(self):
+        self.env_patch.stop()
+        self.dir_patch.stop()
+        self.tempdir.cleanup()
+
+    def test_create_get_update_and_analyze_launch_via_tool(self):
+        created = app.execute_launchops_tool("lcc_create_launch", {
+            "name": "Lucky Wheel Weekend",
+            "type": "Game event",
+            "brief": "Lucky Wheel. No owner, no rollback plan, no CS FAQ.",
+        })
+        self.assertTrue(created["ok"])
+        launch_id = created["launch"]["id"]
+
+        found = app.execute_launchops_tool("lcc_get_launch", {"name": "Lucky Wheel Weekend v2"})
+        self.assertTrue(found["ok"])
+        self.assertEqual(found["launch"]["id"], launch_id)
+
+        updated = app.execute_launchops_tool("lcc_update_launch", {
+            "name": "Lucky Wheel Weekend v2",
+            "owner": "LiveOps Lead",
+            "status": "running",
+        })
+        self.assertTrue(updated["ok"])
+        self.assertEqual(updated["launch"]["name"], "Lucky Wheel Weekend")
+        self.assertEqual(updated["launch"]["owner"], "LiveOps Lead")
+        self.assertEqual(updated["launch"]["status"], "running")
+
+        analyzed = app.execute_launchops_tool("lcc_analyze_launch", {"launchId": launch_id}, force_fast=True)
+        self.assertTrue(analyzed["ok"])
+        self.assertIn("decision", analyzed["result"])
+        self.assertEqual(analyzed["summary"]["analysisCount"], 1)
+
+    def test_set_launch_template_updates_launch_template_versions(self):
+        created = app.execute_launchops_tool("lcc_create_launch", {
+            "name": "Template Test Launch",
+            "brief": "No owner, no rollback.",
+        })
+        result = app.execute_launchops_tool("lcc_set_launch_template", {
+            "launchId": created["launch"]["id"],
+            "templateName": "Strict Webshop Template",
+            "riskGroups": [
+                {"label": "Payment readiness", "maxScore": 3},
+                "CS readiness",
+            ],
+            "redTeamPersonas": ["CS lead", "Tech on-call", "Business owner"],
+        })
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["template"]["maxScore"], 5)
+        self.assertEqual(result["launch"]["name"], "Template Test Launch")
+        self.assertEqual(result["launch"]["template"]["name"], "Strict Webshop Template")
+        self.assertEqual(len(result["launch"]["templateVersions"]), 1)
+
+    def test_delete_launch_requires_explicit_confirmation(self):
+        created = app.execute_launchops_tool("lcc_create_launch", {"name": "Delete Me"})
+        launch_id = created["launch"]["id"]
+        blocked = app.execute_launchops_tool("lcc_delete_launch", {"launchId": launch_id})
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["error"], "confirmation_required")
+        deleted = app.execute_launchops_tool("lcc_delete_launch", {"launchId": launch_id, "confirm": f"DELETE {launch_id}"})
+        self.assertTrue(deleted["ok"])
+        self.assertIsNone(app.get_launch(launch_id))
 
 class AgentRoleInvocationTests(unittest.TestCase):
     def test_normalize_agent_role_accepts_runtime_names(self):

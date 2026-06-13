@@ -29,6 +29,7 @@ from db import (
     get_product_snapshot,
     get_type_profile,
     list_launch_types,
+    save_launch_type,
     storage_backend_status,
 )
 
@@ -45,6 +46,30 @@ UI_CACHE_VERSION = "fix-20260614a"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
+LCC_LIST_LAUNCHES_TOOL = "lcc_list_launches"
+LCC_GET_LAUNCH_TOOL = "lcc_get_launch"
+LCC_CREATE_LAUNCH_TOOL = "lcc_create_launch"
+LCC_UPDATE_LAUNCH_TOOL = "lcc_update_launch"
+LCC_ANALYZE_LAUNCH_TOOL = "lcc_analyze_launch"
+LCC_DELETE_LAUNCH_TOOL = "lcc_delete_launch"
+LCC_LIST_TYPES_TOOL = "lcc_list_types"
+LCC_GET_TYPE_TOOL = "lcc_get_type"
+LCC_CREATE_TYPE_TOOL = "lcc_create_type"
+LCC_SET_LAUNCH_TEMPLATE_TOOL = "lcc_set_launch_template"
+LAUNCHOPS_MCP_TOOLS = {
+    ANALYZE_TOOL_NAME,
+    LCC_TOOL_ALIAS,
+    LCC_LIST_LAUNCHES_TOOL,
+    LCC_GET_LAUNCH_TOOL,
+    LCC_CREATE_LAUNCH_TOOL,
+    LCC_UPDATE_LAUNCH_TOOL,
+    LCC_ANALYZE_LAUNCH_TOOL,
+    LCC_DELETE_LAUNCH_TOOL,
+    LCC_LIST_TYPES_TOOL,
+    LCC_GET_TYPE_TOOL,
+    LCC_CREATE_TYPE_TOOL,
+    LCC_SET_LAUNCH_TEMPLATE_TOOL,
+}
 LCC_NAMESPACED_COMMANDS = {"help", "status", "list", "config", "analyze", "guardrail", "infra", "report"}
 LEGACY_CHATBOT_COMMANDS = LCC_NAMESPACED_COMMANDS | {"start", "caveman"}
 DEFAULT_AGENT_ROLE = "orchestrator"
@@ -212,10 +237,126 @@ def analyze_tool_definition(name: str) -> dict[str, Any]:
         }
     }
 
+def mcp_tool_definition(name: str, description: str, properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:
+    return {
+        "name": name,
+        "description": description,
+        "inputSchema": {
+            "type": "object",
+            "properties": properties,
+            "required": required or [],
+        },
+    }
+
 def mcp_tool_definitions() -> list[dict[str, Any]]:
     return [
         analyze_tool_definition(ANALYZE_TOOL_NAME),
         analyze_tool_definition(LCC_TOOL_ALIAS),
+        mcp_tool_definition(
+            LCC_LIST_LAUNCHES_TOOL,
+            "List saved LaunchOps launches. Use this before asking the user to paste a brief if they ask what launches exist.",
+            {
+                "status": {"type": "string", "description": "Optional status filter: upcoming, running, completed."},
+                "type": {"type": "string", "description": "Optional launch type/name filter."},
+                "limit": {"type": "number", "description": "Maximum rows to return, default 10."},
+            },
+        ),
+        mcp_tool_definition(
+            LCC_GET_LAUNCH_TOOL,
+            "Get a saved launch by id or display name, including brief, template, latest analysis and metadata.",
+            {
+                "launchId": {"type": "string", "description": "Launch id, for example lucky-wheel-weekend."},
+                "name": {"type": "string", "description": "Launch display name when id is unknown."},
+            },
+        ),
+        mcp_tool_definition(
+            LCC_CREATE_LAUNCH_TOOL,
+            "Create a saved LaunchOps launch from chat. Provide at least name or brief.",
+            {
+                "name": {"type": "string", "description": "Launch name."},
+                "type": {"type": "string", "description": "Launch type or category."},
+                "status": {"type": "string", "description": "upcoming, running, or completed."},
+                "owner": {"type": "string", "description": "Owner or team."},
+                "targetDate": {"type": "string", "description": "Start/target date."},
+                "endDate": {"type": "string", "description": "End date."},
+                "brief": {"type": "string", "description": "Launch brief text."},
+            },
+        ),
+        mcp_tool_definition(
+            LCC_UPDATE_LAUNCH_TOOL,
+            "Update fields on an existing launch by id or name. Only supplied fields are changed.",
+            {
+                "launchId": {"type": "string", "description": "Launch id."},
+                "name": {"type": "string", "description": "Existing launch name if id is unknown."},
+                "newName": {"type": "string", "description": "New display name."},
+                "type": {"type": "string", "description": "New type/category."},
+                "status": {"type": "string", "description": "upcoming, running, or completed."},
+                "owner": {"type": "string", "description": "Owner or team."},
+                "targetDate": {"type": "string", "description": "Start/target date."},
+                "endDate": {"type": "string", "description": "End date."},
+                "brief": {"type": "string", "description": "Replacement launch brief."},
+            },
+        ),
+        mcp_tool_definition(
+            LCC_ANALYZE_LAUNCH_TOOL,
+            "Analyze an existing saved launch by id or name and append the analysis to that launch. Fast deterministic path for chat/MCP.",
+            {
+                "launchId": {"type": "string", "description": "Launch id."},
+                "name": {"type": "string", "description": "Launch name if id is unknown."},
+                "brief": {"type": "string", "description": "Optional brief override before analysis."},
+            },
+        ),
+        mcp_tool_definition(
+            LCC_DELETE_LAUNCH_TOOL,
+            "Delete a launch. Requires confirm value DELETE <launchId> to avoid accidental deletion.",
+            {
+                "launchId": {"type": "string", "description": "Launch id."},
+                "name": {"type": "string", "description": "Launch name if id is unknown."},
+                "confirm": {"type": "string", "description": "Must equal DELETE <launchId>."},
+            },
+            ["confirm"],
+        ),
+        mcp_tool_definition(
+            LCC_LIST_TYPES_TOOL,
+            "List launch classifications/type profiles available to LaunchOps.",
+            {},
+        ),
+        mcp_tool_definition(
+            LCC_GET_TYPE_TOOL,
+            "Get one launch classification/type profile by id.",
+            {"typeId": {"type": "string", "description": "Type id, for example game_event_h5."}},
+            ["typeId"],
+        ),
+        mcp_tool_definition(
+            LCC_CREATE_TYPE_TOOL,
+            "Create or replace a launch classification/type profile.",
+            {
+                "typeId": {"type": "string", "description": "Stable type id."},
+                "name": {"type": "string", "description": "Display name."},
+                "domain": {"type": "string", "description": "Domain, for example game or marketing."},
+                "description": {"type": "string", "description": "Short description."},
+                "riskGroups": {"type": "array", "description": "List of risk group names or objects with label/maxScore."},
+                "redTeamPersonas": {"type": "array", "description": "Optional list of persona names."},
+                "checklistExamples": {"type": "array", "description": "Optional checklist examples."},
+                "postmortemBlocks": {"type": "array", "description": "Optional postmortem block names."},
+            },
+            ["name"],
+        ),
+        mcp_tool_definition(
+            LCC_SET_LAUNCH_TEMPLATE_TOOL,
+            "Set or replace the active template on a saved launch. This affects future scoring for that launch.",
+            {
+                "launchId": {"type": "string", "description": "Launch id."},
+                "name": {"type": "string", "description": "Launch name if id is unknown."},
+                "templateName": {"type": "string", "description": "Template display name."},
+                "description": {"type": "string", "description": "Template description."},
+                "riskGroups": {"type": "array", "description": "List of risk group names or objects with label/maxScore."},
+                "redTeamPersonas": {"type": "array", "description": "Optional list of persona names."},
+                "checklistExamples": {"type": "array", "description": "Optional checklist examples."},
+                "postmortemBlocks": {"type": "array", "description": "Optional postmortem block names."},
+                "template": {"type": "object", "description": "Full template object. Used when supplied."},
+            },
+        ),
     ]
 
 def truthy_env(name: str, default: str = "") -> bool:
@@ -671,12 +812,13 @@ def get_launch(launch_id: str) -> dict[str, Any] | None:
 
 def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None) -> dict[str, Any]:
     incoming = payload.get("launch") if isinstance(payload.get("launch"), dict) else payload
-    name = str(incoming.get("name") or "Launch mới").strip()
-    launch_id = existing_id or str(incoming.get("id") or slugify(name)).strip()
+    incoming_name = str(incoming.get("name") or "").strip()
+    launch_id = existing_id or str(incoming.get("id") or slugify(incoming_name or "Launch mới")).strip()
     if existing_id is None:
         launch_id = slugify(launch_id)
 
     existing = get_launch(launch_id) or {}
+    name = incoming_name or str(existing.get("name") or "Launch mới").strip()
     created = existing.get("createdAt") or now_iso()
     launch = {
         "id": launch_id,
@@ -753,6 +895,254 @@ def delete_launch(launch_id: str) -> bool:
     path.unlink()
     return True
 
+
+def _tool_limit(value: Any, default: int = 10, maximum: int = 50) -> int:
+    try:
+        return max(1, min(int(value), maximum))
+    except (TypeError, ValueError):
+        return default
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items = []
+    for item in value:
+        text = str(item or "").strip()
+        if text:
+            items.append(text)
+    return items
+
+def _risk_groups(value: Any) -> list[dict[str, Any]]:
+    groups = []
+    if not isinstance(value, list):
+        return groups
+    for item in value:
+        if isinstance(item, dict):
+            label = str(item.get("label") or item.get("name") or "").strip()
+            raw_score = item.get("maxScore", 2)
+        else:
+            label = str(item or "").strip()
+            raw_score = 2
+        if not label:
+            continue
+        try:
+            max_score = max(1, min(int(raw_score), 10))
+        except (TypeError, ValueError):
+            max_score = 2
+        groups.append({"label": label, "maxScore": max_score})
+    return groups
+
+def build_template_payload(args: dict[str, Any], fallback_name: str = "Custom LaunchOps Template") -> dict[str, Any]:
+    incoming_template = args.get("template") if isinstance(args.get("template"), dict) else {}
+    template = dict(incoming_template)
+    name = str(args.get("templateName") or args.get("name") or template.get("name") or fallback_name).strip()
+    description = str(args.get("description") or template.get("description") or "").strip()
+    risk_groups = _risk_groups(args.get("riskGroups")) or _risk_groups(template.get("riskGroups"))
+    if not risk_groups:
+        risk_groups = build_default_template()["riskGroups"]
+    red_team = _string_list(args.get("redTeamPersonas")) or _string_list(template.get("redTeamPersonas")) or build_default_template()["redTeamPersonas"]
+    checklist = _string_list(args.get("checklistExamples")) or _string_list(template.get("checklistExamples")) or build_default_template()["checklistExamples"]
+    postmortem = _string_list(args.get("postmortemBlocks")) or _string_list(template.get("postmortemBlocks")) or build_default_template()["postmortemBlocks"]
+    template.update({
+        "name": name,
+        "description": description,
+        "riskGroups": risk_groups,
+        "redTeamPersonas": red_team[:8],
+        "checklistExamples": checklist[:12],
+        "postmortemBlocks": postmortem[:8],
+        "maxScore": sum(int(group.get("maxScore") or 0) for group in risk_groups),
+    })
+    return template
+
+def _fold_ref(value: Any) -> str:
+    return fold_vietnamese_text(str(value or "").strip())
+
+def resolve_launch_from_args(args: dict[str, Any]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    launch_id = str(args.get("launchId") or args.get("id") or "").strip()
+    if launch_id:
+        launch = get_launch(launch_id) or get_launch(slugify(launch_id))
+        if launch is not None:
+            return launch, []
+
+    name = str(args.get("name") or args.get("launchName") or "").strip()
+    if not name and launch_id:
+        name = launch_id
+    if not name:
+        return None, []
+
+    target = _fold_ref(name)
+    launches = list_launches()
+    exact = [item for item in launches if _fold_ref(item.get("name")) == target or _fold_ref(item.get("id")) == target]
+    if len(exact) == 1:
+        return exact[0], []
+    partial = [
+        item for item in launches
+        if target in _fold_ref(item.get("name")) or _fold_ref(item.get("name")) in target or target in _fold_ref(item.get("id"))
+    ]
+    if len(partial) == 1:
+        return partial[0], []
+    suggestions = [summarize_launch(item) for item in (partial or launches)[:5]]
+    return None, suggestions
+
+def launch_reference_error(args: dict[str, Any], suggestions: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "error": "launch_not_found",
+        "message": "Provide launchId or an exact launch name.",
+        "requested": {
+            "launchId": args.get("launchId") or args.get("id") or "",
+            "name": args.get("name") or args.get("launchName") or "",
+        },
+        "suggestions": suggestions or [],
+    }
+
+def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: bool = True) -> dict[str, Any]:
+    tool_name = normalize_tool_name(tool_name)
+    args = args if isinstance(args, dict) else {}
+
+    if tool_name == ANALYZE_TOOL_NAME:
+        brief = str(args.get("brief", "")).strip()
+        if not brief:
+            return {"ok": False, "error": "missing_brief", "message": "Missing parameter: brief"}
+        launch_type = str(args.get("type") or "").strip()
+        launch_ctx = {"type": launch_type} if launch_type else None
+        result = orchestrate_launchops_analysis(brief, launch_ctx, force_fast=force_fast)
+        return {"ok": True, "tool": tool_name, "result": result}
+
+    if tool_name == LCC_LIST_LAUNCHES_TOOL:
+        status_filter = str(args.get("status") or "").strip()
+        type_filter = _fold_ref(args.get("type"))
+        launches = list_launches()
+        if status_filter:
+            launches = [item for item in launches if normalize_status(item.get("status")) == normalize_status(status_filter)]
+        if type_filter:
+            launches = [item for item in launches if type_filter in _fold_ref(item.get("type"))]
+        launches = sorted(launches, key=lambda item: str(item.get("updatedAt") or item.get("createdAt") or ""), reverse=True)
+        limit = _tool_limit(args.get("limit"))
+        return {
+            "ok": True,
+            "tool": tool_name,
+            "count": min(len(launches), limit),
+            "total": len(launches),
+            "launches": [summarize_launch(item) for item in launches[:limit]],
+        }
+
+    if tool_name == LCC_GET_LAUNCH_TOOL:
+        launch, suggestions = resolve_launch_from_args(args)
+        if launch is None:
+            return launch_reference_error(args, suggestions)
+        return {"ok": True, "tool": tool_name, "launch": launch, "summary": summarize_launch(launch)}
+
+    if tool_name == LCC_CREATE_LAUNCH_TOOL:
+        name = str(args.get("name") or "").strip()
+        brief = str(args.get("brief") or "").strip()
+        if not name and not brief:
+            return {"ok": False, "error": "missing_launch_data", "message": "Provide at least name or brief."}
+        payload = {
+            "name": name or "Launch from Zalo",
+            "type": str(args.get("type") or "Game event").strip(),
+            "status": normalize_status(args.get("status")),
+            "owner": str(args.get("owner") or "").strip(),
+            "targetDate": str(args.get("targetDate") or "").strip(),
+            "endDate": str(args.get("endDate") or "").strip(),
+            "brief": brief,
+        }
+        if isinstance(args.get("template"), dict):
+            payload["template"] = args["template"]
+        launch = save_launch_payload(payload)
+        return {"ok": True, "tool": tool_name, "launch": launch, "summary": summarize_launch(launch)}
+
+    if tool_name == LCC_UPDATE_LAUNCH_TOOL:
+        launch, suggestions = resolve_launch_from_args(args)
+        if launch is None:
+            return launch_reference_error(args, suggestions)
+        updates: dict[str, Any] = {"id": launch.get("id")}
+        field_map = {
+            "newName": "name",
+            "type": "type",
+            "status": "status",
+            "owner": "owner",
+            "targetDate": "targetDate",
+            "endDate": "endDate",
+            "brief": "brief",
+        }
+        for source, target in field_map.items():
+            if source in args:
+                updates[target] = args[source]
+        if "template" in args and isinstance(args.get("template"), dict):
+            updates["template"] = args["template"]
+        if len(updates) == 1:
+            return {"ok": False, "error": "no_updates", "message": "No update fields supplied."}
+        updated = save_launch_payload(updates, existing_id=str(launch["id"]))
+        return {"ok": True, "tool": tool_name, "launch": updated, "summary": summarize_launch(updated)}
+
+    if tool_name == LCC_ANALYZE_LAUNCH_TOOL:
+        launch, suggestions = resolve_launch_from_args(args)
+        if launch is None:
+            return launch_reference_error(args, suggestions)
+        brief = str(args.get("brief") or launch.get("brief") or "").strip()
+        if not brief:
+            return {"ok": False, "error": "missing_brief", "message": "Launch has no brief. Update it first."}
+        launch["brief"] = brief
+        analysis_context = {**launch, "memoryContext": {"actorId": "mcp-user", "sessionId": str(launch.get("id") or "mcp")}}
+        result = orchestrate_launchops_analysis(brief, analysis_context, force_fast=force_fast)
+        if not force_fast:
+            result = record_analysis_memory(brief, analysis_context, result)
+        updated = append_analysis(launch, result, brief)
+        return {"ok": True, "tool": tool_name, "result": result, "launch": updated, "summary": summarize_launch(updated)}
+
+    if tool_name == LCC_DELETE_LAUNCH_TOOL:
+        launch, suggestions = resolve_launch_from_args(args)
+        if launch is None:
+            return launch_reference_error(args, suggestions)
+        expected = f"DELETE {launch['id']}"
+        if str(args.get("confirm") or "").strip() != expected:
+            return {"ok": False, "error": "confirmation_required", "message": f"Set confirm to '{expected}' to delete this launch.", "summary": summarize_launch(launch)}
+        deleted = delete_launch(str(launch["id"]))
+        return {"ok": deleted, "tool": tool_name, "deletedId": launch["id"]}
+
+    if tool_name == LCC_LIST_TYPES_TOOL:
+        types = list_launch_types()
+        return {"ok": True, "tool": tool_name, "count": len(types), "types": types}
+
+    if tool_name == LCC_GET_TYPE_TOOL:
+        type_id = str(args.get("typeId") or args.get("id") or "").strip()
+        if not type_id:
+            return {"ok": False, "error": "missing_type_id", "message": "Missing parameter: typeId"}
+        profile = get_type_profile(type_id)
+        if profile is None:
+            return {"ok": False, "error": "type_not_found", "message": f"Launch type not found: {type_id}", "types": list_launch_types()}
+        return {"ok": True, "tool": tool_name, "typeId": type_id, "profile": profile}
+
+    if tool_name == LCC_CREATE_TYPE_TOOL:
+        template = build_template_payload(args, fallback_name=str(args.get("name") or "Custom Launch Type"))
+        type_id = str(args.get("typeId") or template.get("type") or template.get("id") or slugify(str(template.get("name") or "custom-launch-type"))).strip()
+        saved = save_launch_type(
+            type_id,
+            str(args.get("name") or template.get("name") or type_id),
+            str(args.get("domain") or "custom"),
+            str(args.get("description") or template.get("description") or ""),
+            template,
+        )
+        return {"ok": True, "tool": tool_name, "type": saved}
+
+    if tool_name == LCC_SET_LAUNCH_TEMPLATE_TOOL:
+        launch, suggestions = resolve_launch_from_args(args)
+        if launch is None:
+            return launch_reference_error(args, suggestions)
+        template = build_template_payload(args, fallback_name=f"{launch.get('name') or 'Launch'} template")
+        versions = launch.get("templateVersions") if isinstance(launch.get("templateVersions"), list) else []
+        versions = [*versions, {"version": len(versions) + 1, "createdAt": now_iso(), "template": template}]
+        updated = save_launch_payload({"template": template, "templateVersions": versions}, existing_id=str(launch["id"]))
+        return {"ok": True, "tool": tool_name, "template": template, "launch": updated, "summary": summarize_launch(updated)}
+
+    return {"ok": False, "error": "unknown_tool", "message": f"Unknown tool: {tool_name}"}
+
+def mcp_tool_content(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False, separators=(",", ":"))}],
+        "isError": not bool(payload.get("ok")),
+    }
 
 def json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict[str, Any]) -> None:
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -2564,28 +2954,19 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 raw_tool_name = str(params.get("name", "")).strip()
                 tool_name = normalize_tool_name(raw_tool_name)
                 args = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
-                brief = str(args.get("brief", "")).strip()
                 
-                if tool_name != ANALYZE_TOOL_NAME:
+                if tool_name not in LAUNCHOPS_MCP_TOOLS:
                     json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {raw_tool_name}"}})
-                    return
-                if not brief:
-                    json_response(self, 200, {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": "Missing parameter: brief"}})
                     return
                     
                 try:
-                    launch_type = str(args.get("type") or "").strip()
-                    launch_ctx = {"type": launch_type} if launch_type else None
                     # MCP Gateway upstream timeout is 15s; the full 5-LLM pipeline takes ~100s
-                    # and would 504. Use the deterministic rule-based path (<1s) for MCP tool
-                    # calls — still returns real score + 5 personas + 8 tasks + 3 postmortem.
-                    result = orchestrate_launchops_analysis(brief, launch_ctx, force_fast=True)
+                    # and would 504. Use the deterministic rule-based path for MCP analysis tools.
+                    tool_result = execute_launchops_tool(tool_name, args, force_fast=True)
                     json_response(self, 200, {
                         "jsonrpc": "2.0",
                         "id": req_id,
-                        "result": {
-                            "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, separators=(",", ":"))}]
-                        }
+                        "result": mcp_tool_content(tool_result)
                     })
                 except Exception as exc:
                     write_backend_log(f"MCP JSON-RPC crash: {type(exc).__name__}")
@@ -2603,6 +2984,15 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             tool_name = normalize_tool_name(raw_tool_name)
             args = payload.get("arguments") if isinstance(payload.get("arguments"), dict) else {}
             brief = str(args.get("brief", "")).strip()
+
+            if tool_name in LAUNCHOPS_MCP_TOOLS and tool_name != ANALYZE_TOOL_NAME:
+                try:
+                    tool_result = execute_launchops_tool(tool_name, args, force_fast=False)
+                    json_response(self, 200, mcp_tool_content(tool_result))
+                except Exception as exc:
+                    write_backend_log(f"Direct tool call {tool_name} crashed: {type(exc).__name__}")
+                    json_response(self, 200, mcp_tool_content({"ok": False, "error": type(exc).__name__}))
+                return
             
             if tool_name != ANALYZE_TOOL_NAME:
                 json_response(self, 400, {"ok": False, "error": f"Unknown tool: {raw_tool_name}"})

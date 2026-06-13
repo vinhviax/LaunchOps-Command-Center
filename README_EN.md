@@ -37,7 +37,8 @@ Each agent calls its own model through the **OpenAI-compatible** `/v1/chat/compl
 - The final readiness score is always recomputed by a **deterministic rule** — the LLM explains risks, it does not freestyle the score.
 - Every agent falls back to local rules on LLM error/timeout — the pipeline never dies midway.
 - `POST /mcp tools/call` uses a **deterministic fast path (<1s)** to stay under the MCP Gateway's 15s timeout; `/api/analyze` is the full LLM path.
-- MCP exposes two tool names on the same handler: `analyze_launch_brief` for backward compatibility and the short alias `lcc`.
+- MCP keeps the two original analysis tools: `analyze_launch_brief` for backward compatibility and the short alias `lcc`.
+- MCP also exposes LaunchOps operations for OpenClaw/Zalo: `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch` (confirmation required), `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, and `lcc_set_launch_template`.
 
 ## Independent AgentBase runtime prep
 
@@ -107,6 +108,17 @@ lcc infra <brief>
 ```
 
 Legacy commands such as `status`, `analyze <brief>`, and `report <brief>` still work for one version and suggest the `lcc ...` form. If a user pastes a long brief without a command, the bot analyzes it by default. Natural prompts such as "check this brief", "review this launch", "red team this", "create checklist", and "what risks" also route to LaunchOps analysis.
+
+OpenClaw/Zalo can operate the saved LaunchOps workspace through MCP tools:
+
+- `lcc_list_launches`: list saved launches.
+- `lcc_get_launch`: get a launch by id or fuzzy name.
+- `lcc_create_launch`: create a launch from chat.
+- `lcc_update_launch`: update metadata, brief, status, owner, or dates.
+- `lcc_analyze_launch`: analyze a saved launch and append the result to its history.
+- `lcc_list_types` / `lcc_get_type` / `lcc_create_type`: inspect or create launch classifications.
+- `lcc_set_launch_template`: attach launch-specific risk groups, personas, checklist examples, and postmortem blocks.
+- `lcc_delete_launch`: deletes only when `confirm="DELETE <launchId>"`.
 
 ## Web UI
 

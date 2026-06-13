@@ -48,7 +48,8 @@ Mỗi agent gọi một model riêng qua **API OpenAI-compatible** (`/v1/chat/co
 - Điểm readiness cuối cùng luôn được tính lại bằng **rule cố định** (deterministic) — LLM chỉ giải thích rủi ro, không tự chấm điểm tùy hứng.
 - Nếu LLM lỗi/timeout, từng agent tự fallback về rule local — pipeline không bao giờ chết giữa chừng.
 - `POST /mcp tools/call` dùng **fast path deterministic (<1s)** để không vượt timeout 15s của MCP Gateway; `/api/analyze` mới chạy full LLM.
-- MCP hiện expose 2 tên tool cùng handler: `analyze_launch_brief` (backward-compatible) và alias ngắn `lcc`.
+- MCP giữ 2 tool phân tích cũ: `analyze_launch_brief` (backward-compatible) và alias ngắn `lcc`.
+- MCP cũng expose tool thao tác LaunchOps từ OpenClaw/Zalo: `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch` (cần confirm), `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, `lcc_set_launch_template`.
 
 ## Chuẩn bị tách runtime AgentBase
 
@@ -119,6 +120,17 @@ openclaw mcp set launchops_gateway '{"command":"npx","args":["-y","mcp-remote","
 ```
 
 Lưu ý server-side: phải giữ đầy đủ MCP handshake (`initialize` → `notifications/initialized` → `tools/list` → `tools/call`) và trả **405** cho `GET`/`DELETE /mcp` theo spec streamable-http (chi tiết trong `server/app.py`).
+
+Tool Zalo/OpenClaw có thể đọc/ghi dữ liệu giống Web UI:
+
+- `lcc_list_launches`: xem danh sách launch đã lưu.
+- `lcc_get_launch`: lấy launch theo id hoặc tên gần đúng.
+- `lcc_create_launch`: tạo launch mới từ chat.
+- `lcc_update_launch`: sửa metadata/brief/status/owner.
+- `lcc_analyze_launch`: phân tích launch đã lưu và append kết quả vào history.
+- `lcc_list_types` / `lcc_get_type` / `lcc_create_type`: xem hoặc thêm phân loại launch.
+- `lcc_set_launch_template`: gắn template/risk groups/persona/checklist riêng cho launch.
+- `lcc_delete_launch`: chỉ xóa khi có `confirm="DELETE <launchId>"`.
 
 ## Chatbot commands
 
