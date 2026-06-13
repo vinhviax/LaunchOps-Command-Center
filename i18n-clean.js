@@ -86,7 +86,12 @@ const CLEAN_I18N_DICT = {
     faPostResult: "Nhập kết quả sau launch",
     faPostReview: "Phân tích sau launch",
     faLesson: "Thêm bài học",
-    faSaveLesson: "Lưu kết quả / bài học"
+    faSaveLesson: "Lưu kết quả / bài học",
+    kickerVerdict: "Kết luận",
+    kickerNextActions: "Việc cần làm tiếp",
+    scoreGuide0: "Chưa đủ dữ liệu",
+    scoreGuide1: "Có nhắc tới nhưng chưa giao việc được",
+    scoreGuide2: "Đủ rõ để chịu trách nhiệm"
   },
   en: {
     introKicker: "Demo Introduction",
@@ -174,7 +179,12 @@ const CLEAN_I18N_DICT = {
     faPostResult: "Enter post-launch results",
     faPostReview: "Post-launch analysis",
     faLesson: "Add a lesson",
-    faSaveLesson: "Save results / lessons"
+    faSaveLesson: "Save results / lessons",
+    kickerVerdict: "Verdict",
+    kickerNextActions: "Next actions",
+    scoreGuide0: "Not enough data",
+    scoreGuide1: "Mentioned but not actionable",
+    scoreGuide2: "Clear enough to be owned"
   }
 };
 
@@ -206,6 +216,20 @@ const TOOLTIP_I18N = {
   "Tên ngắn để phân biệt launch này với các launch khác, ví dụ Lucky Wheel Weekend.": "A short name to tell this launch apart from others, e.g. Lucky Wheel Weekend.",
   "Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.": "The total score computed from the current classification config. A low score means the brief lacks data for a safe launch.",
   "Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày nào và đang ở trạng thái nào.": "Fill in short metadata so the Agent knows what this launch is, who owns it, its start/end dates, and its current status."
+};
+
+// Generic static plain-text translations (VI canonical -> EN). Only applied to elements
+// with no child nodes whose VI text matches a key; everything else is left untouched.
+const STATIC_TEXT_I18N = {
+  "3 việc cần xử lý trước": "Top 3 things to fix first",
+  "Các góc nhìn phản biện": "Red-team perspectives",
+  "Điểm theo nhóm rủi ro": "Score by risk group",
+  "Danh sách việc cần làm": "To-do list",
+  "Các lần đã phân tích": "Past analyses",
+  "Câu hỏi sau launch": "Post-launch questions",
+  "Điểm readiness": "Readiness score",
+  "Cách đọc điểm": "How to read the score",
+  "Mỗi nhóm tối đa 2 điểm. Điểm càng thấp nghĩa là brief càng thiếu dữ liệu để team ra quyết định launch.": "Each group scores up to 2. A lower score means the brief lacks data for the team to decide on the launch."
 };
 
 let activeLang = localStorage.getItem("launchops_lang") || "vi";
@@ -441,6 +465,25 @@ function applyCleanTranslations(lang) {
     const t = lessonActionText[b.dataset.friendlyAction];
     if (t) b.textContent = t;
   });
+
+  // Analyze-tab static headings / kickers / risk guide.
+  // Plain-text pass: only translate elements with no child nodes whose VI text is mapped.
+  document.querySelectorAll("#redTeam h3, #redTeam .section-kicker, #checklist h3, #history h3, #lessons h3, .risk-guide strong, .risk-guide p").forEach((el) => {
+    if (el.children.length) return;
+    if (!el.dataset.txtVi) el.dataset.txtVi = el.textContent.trim();
+    const en = STATIC_TEXT_I18N[el.dataset.txtVi];
+    if (en) el.textContent = lang === "en" ? en : el.dataset.txtVi;
+  });
+  // Kickers that contain a help button (keep the button)
+  setLabelKeepHelp(document.querySelector("#scoreCard .section-kicker"), dict.kickerVerdict);
+  setLabelKeepHelp(document.querySelector(".next-action-card .section-kicker"), dict.kickerNextActions);
+  // Risk score-guide lines (keep the <strong> ratio)
+  const scoreGuideSpans = document.querySelectorAll(".score-guide span");
+  if (scoreGuideSpans.length >= 3) {
+    scoreGuideSpans[0].innerHTML = `<strong>0/2</strong> ${dict.scoreGuide0}`;
+    scoreGuideSpans[1].innerHTML = `<strong>1/2</strong> ${dict.scoreGuide1}`;
+    scoreGuideSpans[2].innerHTML = `<strong>2/2</strong> ${dict.scoreGuide2}`;
+  }
 }
 
 // Bind language elements on early load and window triggers
