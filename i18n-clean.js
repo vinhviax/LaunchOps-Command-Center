@@ -91,7 +91,16 @@ const CLEAN_I18N_DICT = {
     kickerNextActions: "Việc cần làm tiếp",
     scoreGuide0: "Chưa đủ dữ liệu",
     scoreGuide1: "Có nhắc tới nhưng chưa giao việc được",
-    scoreGuide2: "Đủ rõ để chịu trách nhiệm"
+    scoreGuide2: "Đủ rõ để chịu trách nhiệm",
+    changeProduct: "Đổi sản phẩm",
+    productKicker: "Chọn sản phẩm",
+    productTitle: "Bạn đang vận hành sản phẩm nào?",
+    productSubtitle: "Mỗi sản phẩm có bộ phân loại và template riêng. Chọn một sản phẩm để vào LaunchOps Command Center.",
+    productDemoDesc: "Bản demo dùng chung — đầy đủ phân loại mẫu (game event, marketing, feature release...).",
+    productDemoCta: "Vào →",
+    productLockBadge: "Sắp có",
+    productCrossfireDesc: "Bộ phân loại & template riêng cho Crossfire Legends. Đang khóa trong bản demo này.",
+    productLockedCta: "Đã khóa"
   },
   en: {
     introKicker: "Demo Introduction",
@@ -184,7 +193,16 @@ const CLEAN_I18N_DICT = {
     kickerNextActions: "Next actions",
     scoreGuide0: "Not enough data",
     scoreGuide1: "Mentioned but not actionable",
-    scoreGuide2: "Clear enough to be owned"
+    scoreGuide2: "Clear enough to be owned",
+    changeProduct: "Switch product",
+    productKicker: "Select product",
+    productTitle: "Which product are you operating?",
+    productSubtitle: "Each product has its own classifications and templates. Pick one to enter LaunchOps Command Center.",
+    productDemoDesc: "Shared demo build — full sample classifications (game event, marketing, feature release...).",
+    productDemoCta: "Enter →",
+    productLockBadge: "Coming soon",
+    productCrossfireDesc: "Dedicated classifications & templates for Crossfire Legends. Locked in this demo.",
+    productLockedCta: "Locked"
   }
 };
 
@@ -484,6 +502,18 @@ function applyCleanTranslations(lang) {
     scoreGuideSpans[1].innerHTML = `<strong>1/2</strong> ${dict.scoreGuide1}`;
     scoreGuideSpans[2].innerHTML = `<strong>2/2</strong> ${dict.scoreGuide2}`;
   }
+
+  // Product selector overlay + change-product button
+  const setTextById = (id, text) => { const el = document.getElementById(id); if (el && text) el.textContent = text; };
+  setTextById("changeProduct", dict.changeProduct);
+  setTextById("productSelectKicker", dict.productKicker);
+  setTextById("productSelectTitle", dict.productTitle);
+  setTextById("productSelectSubtitle", dict.productSubtitle);
+  setTextById("productDemoDesc", dict.productDemoDesc);
+  setTextById("productDemoCta", dict.productDemoCta);
+  setTextById("productLockBadge", dict.productLockBadge);
+  setTextById("productCrossfireDesc", dict.productCrossfireDesc);
+  setTextById("productLockedCta", dict.productLockedCta);
 }
 
 // Bind language elements on early load and window triggers

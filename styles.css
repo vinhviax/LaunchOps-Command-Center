@@ -532,6 +532,118 @@ button:disabled:hover {
   display: none;
 }
 
+/* Product selector overlay (intro -> product select -> dashboard) */
+.product-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(22, 18, 16, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.product-modal.closed {
+  display: none;
+}
+
+.product-shell {
+  width: min(820px, calc(100vw - 24px));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  padding: 32px 34px;
+  animation: intro-pop 0.45s var(--ease) both;
+}
+
+.product-shell h2 {
+  margin: 6px 0 6px;
+  font-size: clamp(20px, 2.2vw, 26px);
+  letter-spacing: -0.02em;
+}
+
+.product-shell > p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.product-card {
+  position: relative;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.product-card:not(.locked):hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.product-card h3 {
+  font-size: 17px;
+}
+
+.product-card p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.product-badge {
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-badge.locked {
+  background: var(--surface);
+  color: var(--muted-2);
+  border: 1px solid var(--line);
+}
+
+.product-cta {
+  margin-top: auto;
+  color: var(--accent-strong);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.product-cta.locked {
+  color: var(--muted-2);
+}
+
+.product-card.locked {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+@media (max-width: 620px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .intro-card {
   position: relative;
   width: min(1180px, calc(100vw - 24px));

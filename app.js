@@ -697,6 +697,8 @@ const assistantInput = document.getElementById("assistantInput");
 const introModal = document.getElementById("introModal");
 const closeIntroModalButton = document.getElementById("closeIntroModal");
 const enterDemoFromIntroButton = document.getElementById("enterDemoFromIntro");
+const productSelect = document.getElementById("productSelect");
+const changeProductButton = document.getElementById("changeProduct");
 const ragInsightsBody = document.getElementById("ragInsightsBody");
 const traceConsoleBody = document.getElementById("traceConsoleBody");
 const traceCopyButton = document.getElementById("traceCopyBtn");
@@ -4531,6 +4533,25 @@ function closeIntroModal() {
   if (!introModal) return;
   introModal.classList.add("closed");
   introModal.setAttribute("aria-hidden", "true");
+  openProductSelect();
+}
+
+function openProductSelect() {
+  if (!productSelect) return;
+  productSelect.classList.remove("closed");
+  productSelect.setAttribute("aria-hidden", "false");
+}
+
+function closeProductSelect() {
+  if (!productSelect) return;
+  productSelect.classList.add("closed");
+  productSelect.setAttribute("aria-hidden", "true");
+}
+
+function selectProduct(id) {
+  if (id !== "demo") return; // Crossfire Legends is locked in this demo
+  try { localStorage.setItem("launchops_product", id); } catch (error) {}
+  closeProductSelect();
 }
 
 function focusIntroModal() {
@@ -4592,6 +4613,12 @@ openAssistantButton?.addEventListener("click", openAssistantPanel);
 closeAssistantButton?.addEventListener("click", closeAssistantPanel);
 closeIntroModalButton?.addEventListener("click", closeIntroModal);
 enterDemoFromIntroButton?.addEventListener("click", closeIntroModal);
+
+productSelect?.addEventListener("click", (event) => {
+  const card = event.target.closest(".product-card");
+  if (card && !card.classList.contains("locked")) selectProduct(card.dataset.product);
+});
+changeProductButton?.addEventListener("click", openProductSelect);
 
 introModal?.addEventListener("click", (event) => {
   if (event.target === introModal) {

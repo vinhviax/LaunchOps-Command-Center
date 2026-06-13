@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260613g">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260613g">
+  <link rel="stylesheet" href="styles.css?v=fix-20260614a">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260614a">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -80,6 +80,28 @@
     </div>
   </section>
 
+  <section id="productSelect" class="product-modal closed" role="dialog" aria-modal="true" aria-labelledby="productSelectTitle" aria-hidden="true">
+    <div class="product-shell">
+      <span class="section-kicker" id="productSelectKicker">Chọn sản phẩm</span>
+      <h2 id="productSelectTitle">Bạn đang vận hành sản phẩm nào?</h2>
+      <p id="productSelectSubtitle">Mỗi sản phẩm có bộ phân loại và template riêng. Chọn một sản phẩm để vào LaunchOps Command Center.</p>
+      <div class="product-grid">
+        <button type="button" class="product-card" data-product="demo">
+          <span class="product-badge" id="productDemoBadge">Demo</span>
+          <h3 id="productDemoTitle">Demo</h3>
+          <p id="productDemoDesc">Bản demo dùng chung — đầy đủ phân loại mẫu (game event, marketing, feature release...).</p>
+          <span class="product-cta" id="productDemoCta">Vào →</span>
+        </button>
+        <button type="button" class="product-card locked" data-product="crossfire" aria-disabled="true">
+          <span class="product-badge locked" id="productLockBadge">Sắp có</span>
+          <h3>Crossfire Legends</h3>
+          <p id="productCrossfireDesc">Bộ phân loại & template riêng cho Crossfire Legends. Đang khóa trong bản demo này.</p>
+          <span class="product-cta locked" id="productLockedCta">Đã khóa</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <header class="topbar">
     <div>
       <p class="eyebrow">V-Team · VinhVNN · GS9</p>
@@ -97,6 +119,7 @@
           </select>
         </label>
       </div>
+      <button id="changeProduct" type="button" class="topbar-config-button">Đổi sản phẩm</button>
       <button id="openTemplateConfig" type="button" class="topbar-config-button pro-only">Cấu hình phân loại</button>
       <button id="newLaunch" type="button" class="primary">Tạo launch mới</button>
       <div class="lang-switch" role="group" aria-label="Language / Ngôn ngữ"><button id="langViBtn" type="button" class="mode-btn active" data-lang="vi">VI</button><button id="langEnBtn" type="button" class="mode-btn" data-lang="en">EN</button></div>
@@ -821,9 +844,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=fix-20260613g"></script>
-  <script src="app.js?v=fix-20260613g"></script>
-  <script src="friendly-ui.js?v=fix-20260613g"></script>
-  <script src="i18n-clean.js?v=fix-20260613g"></script>
+  <script src="config.js?v=fix-20260614a"></script>
+  <script src="app.js?v=fix-20260614a"></script>
+  <script src="friendly-ui.js?v=fix-20260614a"></script>
+  <script src="i18n-clean.js?v=fix-20260614a"></script>
 </body>
 </html>
