@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated: 2026-06-14 — production build: image `v15`, runtime version 18 on VNG AgentBase.
+> Updated: 2026-06-14 — production build: image `v16`, runtime version 19 on VNG AgentBase.
 
 LaunchOps Command Center is a **launch-risk Super Agent**: it reads a launch brief (game event, marketing campaign, feature release, hotfix...), scores readiness as Green/Yellow/Red, challenges the plan with a 5-persona Red Team, generates an owner/deadline/priority checklist, and prepares a post-mortem so the team learns from every launch.
 
@@ -8,7 +8,7 @@ LaunchOps Command Center is a **launch-risk Super Agent**: it reads a launch bri
 
 ## Architecture
 
-Everything runs in **one Docker image** (`python:3.11-slim`, Python stdlib only — no framework, no heavy dependencies), deployed to a VNG AgentBase Agent Runtime:
+Everything runs in **one Docker image** (`python:3.11-slim`, no framework; core uses stdlib, cloud Postgres uses optional `psycopg`), deployed to a VNG AgentBase Agent Runtime:
 
 - `GET /` — Web UI (Pro / Friendly modes, VI/EN)
 - `GET /health` — healthcheck (AgentBase Service Contract)
@@ -39,6 +39,34 @@ Each agent calls its own model through the **OpenAI-compatible** `/v1/chat/compl
 - `POST /mcp tools/call` uses a **deterministic fast path (<1s)** to stay under the MCP Gateway's 15s timeout; `/api/analyze` is the full LLM path.
 - MCP exposes two tool names on the same handler: `analyze_launch_brief` for backward compatibility and the short alias `lcc`.
 
+## Independent AgentBase runtime prep
+
+Production still runs **one orchestrator runtime** to keep the demo stable. The code now has a small Phase 4 contract so the same image can run separate runtimes by env:
+
+```text
+LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory
+```
+
+- `GET /health` includes the active `role`.
+- `POST /invocations` dispatches by `LAUNCHOPS_AGENT_ROLE`.
+- Child runtimes accept a shared payload: `requestId`, `brief`, `launch`, `productContext`, `previousResults`.
+- Shared response shape: `ok`, `agent`, `role`, `requestId`, `result`, `trace`, `fallback`, `error`.
+- `/api/analyze`, Web UI, and MCP still use the existing orchestrator pipeline by default.
+- Enable child runtime orchestration only after the child endpoints are deployed and verified:
+
+```text
+LAUNCHOPS_USE_REMOTE_AGENTS=true
+LAUNCHOPS_READINESS_URL=https://...
+LAUNCHOPS_REDTEAM_URL=https://...
+LAUNCHOPS_CHECKLIST_URL=https://...
+LAUNCHOPS_POSTMORTEM_URL=https://...
+LAUNCHOPS_MEMORY_URL=https://...
+LAUNCHOPS_AGENT_TIMEOUT_SECONDS=75
+LAUNCHOPS_AGENT_INVOCATION_TOKEN=<optional shared bearer token>
+```
+
+If a URL is missing or a child runtime fails, the orchestrator falls back for that agent only and records the reason in `agentsTrace`.
+
 ## Memory
 
 The backend can use **AgentBase Memory** behind feature flags:
@@ -51,6 +79,17 @@ The backend can use **AgentBase Memory** behind feature flags:
 When enabled, the backend recalls long-term memory records before analysis and returns `memoryTrace` in the response. If Memory is misconfigured, unavailable, or missing the `X-GreenNode-AgentBase-User-Id` / `X-GreenNode-AgentBase-Session-Id` headers, the app falls back to local SQLite lessons and keeps `/api/analyze` alive. For headerless demos, `LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED=true` provides an explicit demo actor/session; production should keep it `false` to avoid mixing users.
 
 Fast rollback: set `LAUNCHOPS_MEMORY_ENABLED=false` to return to local lessons.
+
+## Cloud DB
+
+Launch data defaults to local JSON/SQLite for offline demos. With VNG vDB/Postgres, enable:
+
+```text
+LAUNCHOPS_STORAGE_BACKEND=cloud
+LAUNCHOPS_DB_URL=postgresql://USER:PASSWORD@RW_ENDPOINT:5432/DBNAME?sslmode=require
+```
+
+Use the RW endpoint from VNG vDB `Connectivity & Security` -> `Endpoint & Port`. Do not commit a real DB URL; if cloud DB fails, set `LAUNCHOPS_STORAGE_BACKEND=local` to roll back.
 
 ## Chatbot commands
 
@@ -96,7 +135,7 @@ Open `http://127.0.0.1:8788/` — UI and API share one origin. Env template: `.e
 
 ## Repo layout
 
-See `README.md` (Vietnamese) for the annotated file map, `CODEX_BRIEF.md` for contributor/agent ground rules, and `OPENCLAW_BUILD_CHECKLIST.md` for the OpenClaw/MCP integration details.
+See `README.md` (Vietnamese) for the annotated file map, `BRIEF.md` for contributor/agent ground rules, and `OPENCLAW_BUILD_CHECKLIST.md` for the OpenClaw/MCP integration details.
 
 ## Security
 

@@ -11,6 +11,7 @@ if str(SERVER_DIR) not in sys.path:
     sys.path.insert(0, str(SERVER_DIR))
 
 app = importlib.import_module("app")
+db = importlib.import_module("db")
 
 
 class DetectBriefLanguageTests(unittest.TestCase):
@@ -124,6 +125,86 @@ class ToolAliasTests(unittest.TestCase):
         self.assertIn("analyze_launch_brief", names)
         self.assertIn("lcc", names)
 
+class AgentRoleInvocationTests(unittest.TestCase):
+    def test_normalize_agent_role_accepts_runtime_names(self):
+        self.assertEqual(app.normalize_agent_role("lcc-orchestrator"), "orchestrator")
+        self.assertEqual(app.normalize_agent_role("lcc-readiness-agent"), "readiness")
+        self.assertEqual(app.normalize_agent_role("red-team-agent"), "redteam")
+        self.assertEqual(app.normalize_agent_role("post_mortem_agent"), "postmortem")
+
+    def test_readiness_invocation_returns_common_contract(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "false", "LAUNCHOPS_MULTI_MODEL_ENABLED": "false"}):
+            response = app.invoke_agent_role(
+                "lcc-readiness-agent",
+                {"requestId": "req-1", "brief": "Lucky Wheel. No owner, no rollback plan, no CS FAQ.", "forceFast": True},
+            )
+        self.assertTrue(response["ok"])
+        self.assertEqual(response["agent"], "lcc-readiness-agent")
+        self.assertEqual(response["role"], "readiness")
+        self.assertEqual(response["requestId"], "req-1")
+        self.assertIn("decision", response["result"])
+        self.assertEqual(response["trace"][-1]["runtimeRole"], "readiness")
+
+    def test_redteam_invocation_uses_previous_results(self):
+        previous = app.fallback_result("test previous")
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "false", "LAUNCHOPS_MULTI_MODEL_ENABLED": "false"}):
+            response = app.invoke_agent_role(
+                "redteam",
+                {"requestId": "req-2", "brief": "Lucky Wheel brief", "previousResults": previous, "forceFast": True},
+            )
+        self.assertTrue(response["ok"])
+        self.assertEqual(response["role"], "redteam")
+        self.assertEqual(len(response["result"]["redTeam"]), 5)
+        self.assertEqual(response["trace"][-1]["runtimeName"], "lcc-redteam-agent")
+
+    def test_unknown_agent_role_returns_contract_error(self):
+        response = app.invoke_agent_role("unknown", {"requestId": "req-3", "brief": "Brief"})
+        self.assertFalse(response["ok"])
+        self.assertEqual(response["role"], "unknown")
+        self.assertIn("Unknown agent role", response["error"])
+
+    def test_invocation_token_auth_optional_and_bearer(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(app.is_invocation_authorized({}))
+        with patch.dict(os.environ, {"LAUNCHOPS_AGENT_INVOCATION_TOKEN": "token-1"}, clear=True):
+            self.assertFalse(app.is_invocation_authorized({}))
+            self.assertTrue(app.is_invocation_authorized({"Authorization": "Bearer token-1"}))
+            self.assertTrue(app.is_invocation_authorized({"X-LaunchOps-Agent-Token": "token-1"}))
+
+    def test_remote_agents_missing_urls_fallback_locally(self):
+        with patch.dict(os.environ, {
+            "LAUNCHOPS_USE_REMOTE_AGENTS": "true",
+            "LAUNCHOPS_LLM_ENABLED": "false",
+            "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+        }, clear=True):
+            result = app.orchestrate_launchops_analysis("Lucky Wheel. No owner, no rollback plan, no CS FAQ.")
+        reasons = [item.get("reason") for item in result.get("trace", []) if item.get("source") == "local_orchestrator"]
+        self.assertIn("missing_remote_url", reasons)
+        self.assertEqual(result["orchestration"]["mode"], "remote_agents")
+        self.assertIn("decision", result)
+
+    def test_remote_readiness_success_keeps_role_trace(self):
+        remote_result = app.fallback_result("remote readiness")
+        remote_result["decision"]["score"] = 3
+        remote_result["decision"]["color"] = "Red"
+        with patch.dict(os.environ, {
+            "LAUNCHOPS_USE_REMOTE_AGENTS": "true",
+            "LAUNCHOPS_READINESS_URL": "https://readiness.example",
+            "LAUNCHOPS_LLM_ENABLED": "false",
+            "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+        }, clear=True):
+            with patch.object(app, "remote_agent_request", return_value={
+                "ok": True,
+                "agent": "lcc-readiness-agent",
+                "role": "readiness",
+                "requestId": "remote-req",
+                "result": remote_result,
+            }):
+                result = app.orchestrate_launchops_analysis("Lucky Wheel. No owner, no rollback plan, no CS FAQ.")
+        remote_traces = [item for item in result.get("trace", []) if item.get("source") == "remote_runtime"]
+        self.assertEqual(remote_traces[0]["runtimeName"], "lcc-readiness-agent")
+        self.assertEqual(result["orchestration"]["mode"], "remote_agents")
+
 class ChatbotParserTests(unittest.TestCase):
     def test_lcc_namespaced_status(self):
         self.assertEqual(app.parse_chatbot_command("lcc status"), ("status", "", False))
@@ -187,6 +268,24 @@ class AgentBaseMemoryTests(unittest.TestCase):
         context = app.memory_context_from_headers({}, {"id": "launch-1"})
         self.assertEqual(context["source"], "missing_headers")
         self.assertEqual(context["actorId"], "")
+
+
+class StorageBackendTests(unittest.TestCase):
+    def test_storage_backend_defaults_local(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(db.storage_backend(), "local")
+            self.assertFalse(db.cloud_storage_requested())
+
+    def test_storage_backend_cloud_requires_db_url(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_STORAGE_BACKEND": "cloud", "LAUNCHOPS_DB_URL": ""}, clear=True):
+            self.assertEqual(db.storage_backend(), "cloud")
+            self.assertTrue(db.cloud_storage_requested())
+            self.assertFalse(db.cloud_storage_configured())
+
+    def test_api_storage_status_hides_db_url(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_STORAGE_BACKEND": "cloud", "LAUNCHOPS_DB_URL": "postgresql://USER:PASSWORD@example/db"}, clear=True):
+            status = db.storage_backend_status()
+            self.assertEqual(status, {"backend": "cloud", "dbUrlConfigured": True})
 
 if __name__ == "__main__":
     unittest.main()

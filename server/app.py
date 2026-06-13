@@ -17,7 +17,20 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
-from db import find_lessons, get_product_snapshot, get_type_profile, list_launch_types
+from db import (
+    cloud_append_analysis,
+    cloud_delete_launch,
+    cloud_get_launch,
+    cloud_list_launches,
+    cloud_save_launch,
+    cloud_save_postmortem,
+    cloud_storage_requested,
+    find_lessons,
+    get_product_snapshot,
+    get_type_profile,
+    list_launch_types,
+    storage_backend_status,
+)
 
 
 HOST = os.getenv("HOST", "0.0.0.0")
@@ -34,9 +47,40 @@ LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
 LCC_NAMESPACED_COMMANDS = {"help", "status", "list", "config", "analyze", "guardrail", "infra", "report"}
 LEGACY_CHATBOT_COMMANDS = LCC_NAMESPACED_COMMANDS | {"start", "caveman"}
+DEFAULT_AGENT_ROLE = "orchestrator"
+AGENT_ROLES = {"orchestrator", "readiness", "redteam", "checklist", "postmortem", "memory"}
+REMOTE_AGENT_ROLES = ("readiness", "redteam", "checklist", "postmortem")
+REMOTE_AGENT_URL_ENV = {
+    "readiness": "LAUNCHOPS_READINESS_URL",
+    "redteam": "LAUNCHOPS_REDTEAM_URL",
+    "checklist": "LAUNCHOPS_CHECKLIST_URL",
+    "postmortem": "LAUNCHOPS_POSTMORTEM_URL",
+    "memory": "LAUNCHOPS_MEMORY_URL",
+}
+AGENT_ROLE_ALIASES = {
+    "lcc_orchestrator": "orchestrator",
+    "lcc_orchestrator_agent": "orchestrator",
+    "readiness_agent": "readiness",
+    "lcc_readiness_agent": "readiness",
+    "red_team": "redteam",
+    "redteam_agent": "redteam",
+    "red_team_agent": "redteam",
+    "lcc_redteam_agent": "redteam",
+    "lcc_red_team_agent": "redteam",
+    "checklist_agent": "checklist",
+    "lcc_checklist_agent": "checklist",
+    "post_mortem": "postmortem",
+    "postmortem_agent": "postmortem",
+    "post_mortem_agent": "postmortem",
+    "lcc_postmortem_agent": "postmortem",
+    "lcc_post_mortem_agent": "postmortem",
+    "memory_agent": "memory",
+    "lcc_memory_agent": "memory",
+}
 AGENTBASE_MEMORY_BASE_URL = "https://agentbase.api.vngcloud.vn/memory"
 IAM_TOKEN_URL = "https://iam.api.vngcloud.vn/accounts-api/v2/auth/token"
 _MEMORY_TOKEN_CACHE: dict[str, Any] = {"token": "", "expiresAt": 0.0}
+_CLOUD_STORAGE_ERROR = object()
 
 # Static Web UI served from APP_ROOT so AgentBase Runtime hosts the dashboard at the
 # same origin as the API (no external static host needed).
@@ -97,6 +141,16 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     tmp_path.replace(path)
 
 
+def try_cloud_storage(label: str, func: Any, *args: Any) -> Any:
+    if not cloud_storage_requested():
+        return _CLOUD_STORAGE_ERROR
+    try:
+        return func(*args)
+    except Exception as exc:
+        write_backend_log(f"Cloud storage fallback for {label}: {type(exc).__name__}")
+        return _CLOUD_STORAGE_ERROR
+
+
 def normalize_status(value: Any) -> str:
     status = str(value or "upcoming").strip().lower()
     return status if status in LAUNCH_STATUSES else "upcoming"
@@ -106,6 +160,34 @@ def normalize_tool_name(value: Any) -> str:
     if name in ANALYZE_TOOL_NAMES:
         return ANALYZE_TOOL_NAME
     return name
+
+def normalize_agent_role(value: Any) -> str:
+    role = re.sub(r"[^a-z0-9]+", "_", str(value or DEFAULT_AGENT_ROLE).strip().lower()).strip("_")
+    role = AGENT_ROLE_ALIASES.get(role, role)
+    return role if role in AGENT_ROLES else role
+
+def current_agent_role() -> str:
+    role = normalize_agent_role(os.getenv("LAUNCHOPS_AGENT_ROLE", DEFAULT_AGENT_ROLE))
+    return role if role in AGENT_ROLES else DEFAULT_AGENT_ROLE
+
+def agent_role_name(role: str) -> str:
+    if role == "orchestrator":
+        return "lcc-orchestrator"
+    return f"lcc-{role}-agent"
+
+def remote_agents_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_USE_REMOTE_AGENTS") or truthy_env("LAUNCHOPS_REMOTE_AGENTS_ENABLED")
+
+def remote_agent_url(role: str) -> str:
+    env_name = REMOTE_AGENT_URL_ENV.get(normalize_agent_role(role), "")
+    return os.getenv(env_name, "").strip().rstrip("/") if env_name else ""
+
+def remote_agent_timeout_seconds() -> float:
+    raw = os.getenv("LAUNCHOPS_AGENT_TIMEOUT_SECONDS", os.getenv("LAUNCHOPS_REMOTE_AGENT_TIMEOUT_SECONDS", "75")).strip()
+    try:
+        return max(1.0, min(float(raw), 180.0))
+    except ValueError:
+        return 75.0
 
 def analyze_tool_definition(name: str) -> dict[str, Any]:
     description = "Phân tích Launch Brief chuyên sâu để chấm điểm readiness (Green/Yellow/Red), phản biện bằng Red Team, tạo checklist hành động và post-mortem."
@@ -392,11 +474,7 @@ def sample_decision(color: str, score: int, reason: str) -> dict[str, Any]:
     return result
 
 
-def seed_launches_if_empty() -> None:
-    LAUNCHES_DIR.mkdir(parents=True, exist_ok=True)
-    if any(LAUNCHES_DIR.glob("*.json")):
-        return
-
+def default_sample_launches() -> list[dict[str, Any]]:
     created = now_iso()
     sample_brief = read_sample_brief()
     marketing_brief = """Tên launch: Midweek Top-up Campaign - chiến dịch nạp giữa tuần cho nhóm người chơi trả phí thấp và trung bình.
@@ -517,11 +595,30 @@ Kết quả thực tế:
         },
     ]
 
-    for launch in samples:
+    return samples
+
+
+def seed_launches_if_empty() -> None:
+    LAUNCHES_DIR.mkdir(parents=True, exist_ok=True)
+    if any(LAUNCHES_DIR.glob("*.json")):
+        return
+
+    for launch in default_sample_launches():
         write_json(launch_file(launch["id"]), launch)
 
 
 def list_launches() -> list[dict[str, Any]]:
+    cloud_result = try_cloud_storage("list_launches", cloud_list_launches)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        if not cloud_result:
+            for launch in default_sample_launches():
+                seed_result = try_cloud_storage("seed_launch", cloud_save_launch, launch)
+                if seed_result is _CLOUD_STORAGE_ERROR:
+                    break
+            cloud_result = try_cloud_storage("list_launches_after_seed", cloud_list_launches)
+        if cloud_result is not _CLOUD_STORAGE_ERROR:
+            return cloud_result
+
     seed_launches_if_empty()
     launches = []
     for path in sorted(LAUNCHES_DIR.glob("*.json")):
@@ -564,6 +661,9 @@ def get_launch(launch_id: str) -> dict[str, Any] | None:
         path = launch_file(launch_id)
     except ValueError:
         return None
+    cloud_result = try_cloud_storage("get_launch", cloud_get_launch, launch_id)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return cloud_result
     if not path.exists():
         return None
     return read_json(path)
@@ -596,6 +696,9 @@ def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None)
         "createdAt": created,
         "updatedAt": now_iso(),
     }
+    cloud_result = try_cloud_storage("save_launch", cloud_save_launch, launch)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return cloud_result
     write_json(launch_file(launch_id), launch)
     return launch
 
@@ -603,17 +706,19 @@ def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None)
 def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) -> dict[str, Any]:
     analyses = launch.get("analyses") or []
     stamp = now_iso()
-    analyses.append(
-        {
-            "id": f"analysis-{int(time.time() * 1000)}",
-            "createdAt": stamp,
-            "briefSnapshot": brief[:2000],
-            "result": result,
-        }
-    )
+    analysis = {
+        "id": f"analysis-{int(time.time() * 1000)}",
+        "createdAt": stamp,
+        "briefSnapshot": brief[:2000],
+        "result": result,
+    }
+    analyses.append(analysis)
     launch["analyses"] = analyses
     launch["brief"] = brief
     launch["updatedAt"] = stamp
+    cloud_result = try_cloud_storage("append_analysis", cloud_append_analysis, launch, analysis)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return cloud_result
     write_json(launch_file(str(launch["id"])), launch)
     return launch
 
@@ -628,8 +733,25 @@ def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_con
         lessons.append({"id": f"lesson-{int(time.time() * 1000)}", "createdAt": now_iso(), "text": lesson, "memoryStatus": memory_status})
         launch["lessonsLearned"] = lessons
     launch["updatedAt"] = now_iso()
+    cloud_result = try_cloud_storage("save_post_result", cloud_save_postmortem, launch)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return cloud_result
     write_json(launch_file(str(launch["id"])), launch)
     return launch
+
+
+def delete_launch(launch_id: str) -> bool:
+    try:
+        path = launch_file(launch_id)
+    except ValueError:
+        return False
+    cloud_result = try_cloud_storage("delete_launch", cloud_delete_launch, launch_id)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return bool(cloud_result)
+    if not path.exists():
+        return False
+    path.unlink()
+    return True
 
 
 def json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict[str, Any]) -> None:
@@ -654,6 +776,15 @@ def is_webhook_authorized(handler: BaseHTTPRequestHandler) -> bool:
     auth_header = handler.headers.get("Authorization", "").strip()
     bearer_token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
     return expected in {query_token, header_token, bearer_token}
+
+def is_invocation_authorized(headers: Any) -> bool:
+    expected = os.getenv("LAUNCHOPS_AGENT_INVOCATION_TOKEN", "").strip()
+    if not expected:
+        return True
+    auth_header = str(headers.get("Authorization") or "").strip()
+    bearer_token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
+    header_token = str(headers.get("X-LaunchOps-Agent-Token") or "").strip()
+    return expected in {bearer_token, header_token}
 
 def first_text_value(value: Any) -> str:
     if isinstance(value, str):
@@ -1307,7 +1438,150 @@ def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | No
     result.setdefault("trace", []).append({"agent": "postmortem", "status": "ok", "blocks": len(result["postmortem"]), "llm": public_llm_config("postmortem")})
     return result
 
+def remote_agent_request(role: str, payload: dict[str, Any]) -> dict[str, Any]:
+    role = normalize_agent_role(role)
+    url = remote_agent_url(role)
+    if not url:
+        raise RuntimeError(f"missing_{REMOTE_AGENT_URL_ENV.get(role, 'REMOTE_AGENT_URL')}")
+    if not url.startswith(("http://", "https://")):
+        raise RuntimeError(f"invalid_remote_url_{role}")
+    headers = {"Content-Type": "application/json"}
+    invocation_token = os.getenv("LAUNCHOPS_AGENT_INVOCATION_TOKEN", "").strip()
+    if invocation_token:
+        headers["Authorization"] = f"Bearer {invocation_token}"
+    request = urllib.request.Request(
+        f"{url}/invocations",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=remote_agent_timeout_seconds()) as response:
+        raw = response.read()
+    if not raw:
+        return {}
+    parsed = json.loads(raw.decode("utf-8"))
+    return parsed if isinstance(parsed, dict) else {}
+
+def remote_fallback_trace(role: str, request_id: str, reason: str) -> dict[str, Any]:
+    return {
+        "agent": role,
+        "status": "fallback",
+        "source": "local_orchestrator",
+        "reason": reason,
+        "runtimeRole": role,
+        "runtimeName": agent_role_name(role),
+        "runtimeVersion": os.getenv("LAUNCHOPS_RUNTIME_VERSION", "local"),
+        "requestId": request_id,
+    }
+
+def call_remote_agent_or_fallback(role: str, payload: dict[str, Any], fallback: Any) -> dict[str, Any]:
+    request_id = invocation_request_id(payload)
+    url = remote_agent_url(role)
+    if not url:
+        result = fallback()
+        result.setdefault("trace", []).append(remote_fallback_trace(role, request_id, "missing_remote_url"))
+        return result
+    try:
+        response = remote_agent_request(role, payload)
+        result = response.get("result") if isinstance(response.get("result"), dict) else None
+        if not response.get("ok") or result is None:
+            raise RuntimeError(str(response.get("error") or "invalid_remote_response"))
+        result = dict(result)
+        response_trace = response.get("trace") if isinstance(response.get("trace"), list) else []
+        remote_version = "remote"
+        if response_trace and isinstance(response_trace[-1], dict):
+            remote_version = str(response_trace[-1].get("runtimeVersion") or remote_version)
+        result.setdefault("trace", []).append({
+            "agent": role,
+            "status": "ok",
+            "source": "remote_runtime",
+            "runtimeRole": response.get("role") or role,
+            "runtimeName": response.get("agent") or agent_role_name(role),
+            "runtimeVersion": remote_version,
+            "requestId": response.get("requestId") or request_id,
+        })
+        return result
+    except Exception as exc:
+        result = fallback()
+        result.setdefault("trace", []).append(remote_fallback_trace(role, request_id, type(exc).__name__))
+        return result
+
+def build_remote_payload(role: str, request_id: str, brief: str, launch_context: dict[str, Any], previous: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "requestId": f"{request_id}-{role}",
+        "brief": brief,
+        "launch": launch_context,
+        "productContext": launch_context.get("productContext", {}),
+        "forceFast": force_fast,
+    }
+    if previous is not None:
+        payload["previousResults"] = previous
+    return payload
+
+def build_product_context_for_orchestrator(brief: str, launch_context: dict[str, Any], request_id: str) -> dict[str, Any]:
+    if not remote_agent_url("memory"):
+        return build_product_context(brief, launch_context)
+    payload = build_remote_payload("memory", request_id, brief, launch_context)
+    try:
+        response = remote_agent_request("memory", payload)
+        result = response.get("result") if isinstance(response.get("result"), dict) else {}
+        product_context = result.get("productContext") if isinstance(result.get("productContext"), dict) else None
+        if product_context is None:
+            raise RuntimeError(str(response.get("error") or "invalid_memory_response"))
+        trace = product_context.get("memoryTrace") if isinstance(product_context.get("memoryTrace"), dict) else {}
+        trace["remoteRuntime"] = response.get("agent") or agent_role_name("memory")
+        trace["remoteRequestId"] = response.get("requestId") or payload["requestId"]
+        product_context["memoryTrace"] = trace
+        return product_context
+    except Exception as exc:
+        product_context = build_product_context(brief, launch_context)
+        trace = product_context.get("memoryTrace") if isinstance(product_context.get("memoryTrace"), dict) else {}
+        trace["remoteFallback"] = type(exc).__name__
+        product_context["memoryTrace"] = trace
+        return product_context
+
+def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
+    launch_context = launch_context or {}
+    request_id = f"orchestrator-{int(time.time() * 1000)}"
+    product_context = build_product_context_for_orchestrator(brief, launch_context, request_id)
+    launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
+
+    result = call_remote_agent_or_fallback(
+        "readiness",
+        build_remote_payload("readiness", request_id, brief, launch_context, force_fast=force_fast),
+        lambda: readiness_agent(brief, launch_context, force_fast=force_fast),
+    )
+    result["productContext"] = product_context
+    result["memoryTrace"] = product_context.get("memoryTrace", {})
+    result = call_remote_agent_or_fallback(
+        "redteam",
+        build_remote_payload("redteam", request_id, brief, launch_context, result, force_fast=force_fast),
+        lambda: red_team_agent(result, launch_context, force_fast=force_fast),
+    )
+    result = call_remote_agent_or_fallback(
+        "checklist",
+        build_remote_payload("checklist", request_id, brief, launch_context, result, force_fast=force_fast),
+        lambda: checklist_agent(result, launch_context, force_fast=force_fast),
+    )
+    result = call_remote_agent_or_fallback(
+        "postmortem",
+        build_remote_payload("postmortem", request_id, brief, launch_context, result, force_fast=force_fast),
+        lambda: postmortem_agent(result, launch_context, force_fast=force_fast),
+    )
+    result["agentsTrace"] = result.get("trace", [])
+    result["source"] = result.get("source", "remote_agents")
+    result["orchestration"] = {"mode": "remote_agents", "requestId": request_id}
+    result["llmRouting"] = {
+        "readiness": public_llm_config("readiness"),
+        "redteam": public_llm_config("redteam"),
+        "checklist": public_llm_config("checklist"),
+        "postmortem": public_llm_config("postmortem"),
+    }
+    return result
+
 def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
+    if remote_agents_enabled() and not force_fast and current_agent_role() == "orchestrator":
+        return orchestrate_remote_launchops_analysis(brief, launch_context, force_fast=force_fast)
     launch_context = launch_context or {}
     product_context = build_product_context(brief, launch_context)
     launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
@@ -1326,6 +1600,126 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
         "postmortem": public_llm_config("postmortem"),
     }
     return result
+
+def invocation_request_id(payload: dict[str, Any]) -> str:
+    raw = payload.get("requestId") or payload.get("request_id")
+    value = str(raw or "").strip()
+    return value or f"lcc-{int(time.time() * 1000)}"
+
+def invocation_launch_context(payload: dict[str, Any], headers: Any | None = None) -> tuple[str, dict[str, Any]]:
+    launch_context = payload.get("launch") if isinstance(payload.get("launch"), dict) else {}
+    launch_context = dict(launch_context)
+    brief = str(payload.get("brief") or launch_context.get("brief") or "").strip()
+    product_context = payload.get("productContext") if isinstance(payload.get("productContext"), dict) else {}
+    if product_context:
+        launch_context["productContext"] = product_context
+        if isinstance(product_context.get("typeProfile"), dict):
+            launch_context.setdefault("template", product_context["typeProfile"])
+    if brief:
+        launch_context["brief"] = brief
+    if headers is not None:
+        launch_context["memoryContext"] = memory_context_from_headers(headers, launch_context)
+    return brief, launch_context
+
+def invocation_previous_results(payload: dict[str, Any]) -> dict[str, Any]:
+    previous = payload.get("previousResults")
+    if isinstance(previous, dict):
+        nested = previous.get("result")
+        if isinstance(nested, dict):
+            return dict(nested)
+        return dict(previous)
+    result = payload.get("result")
+    return dict(result) if isinstance(result, dict) else {"trace": []}
+
+def invocation_runtime_trace(role: str, request_id: str, status: str = "ok") -> dict[str, Any]:
+    return {
+        "agent": role,
+        "runtimeRole": role,
+        "runtimeName": agent_role_name(role),
+        "requestId": request_id,
+        "status": status,
+        "runtimeVersion": os.getenv("LAUNCHOPS_RUNTIME_VERSION", "local"),
+        "uiCacheVersion": UI_CACHE_VERSION,
+    }
+
+def finalize_invocation_result(role: str, request_id: str, result: dict[str, Any], status: str = "ok") -> dict[str, Any]:
+    trace = result.get("trace") if isinstance(result.get("trace"), list) else []
+    trace = [*trace, invocation_runtime_trace(role, request_id, status)]
+    result["trace"] = trace
+    result["agentsTrace"] = trace
+    return result
+
+def invocation_response(role: str, request_id: str, result: dict[str, Any], fallback: bool = False, error: str = "") -> dict[str, Any]:
+    return {
+        "ok": not bool(error),
+        "agent": agent_role_name(role),
+        "role": role,
+        "requestId": request_id,
+        "result": result,
+        "trace": result.get("trace", []),
+        "fallback": fallback,
+        "error": error,
+    }
+
+def invoke_agent_role(role: str, payload: dict[str, Any], headers: Any | None = None) -> dict[str, Any]:
+    role = normalize_agent_role(role)
+    request_id = invocation_request_id(payload)
+    if role not in AGENT_ROLES:
+        return {
+            "ok": False,
+            "agent": str(role or "unknown"),
+            "role": role,
+            "requestId": request_id,
+            "result": {},
+            "trace": [invocation_runtime_trace(role, request_id, "error")],
+            "fallback": False,
+            "error": f"Unknown agent role: {role}",
+        }
+
+    brief, launch_context = invocation_launch_context(payload, headers)
+    if not brief:
+        return {
+            "ok": False,
+            "agent": agent_role_name(role),
+            "role": role,
+            "requestId": request_id,
+            "result": {},
+            "trace": [invocation_runtime_trace(role, request_id, "error")],
+            "fallback": False,
+            "error": "Missing brief",
+        }
+
+    force_fast = bool(payload.get("forceFast")) or truthy_env("LAUNCHOPS_AGENT_FORCE_FAST")
+    try:
+        if role == "orchestrator":
+            result = orchestrate_launchops_analysis(brief, launch_context, force_fast=force_fast)
+            result = record_analysis_memory(brief, launch_context, result)
+        elif role == "readiness":
+            result = readiness_agent(brief, launch_context, force_fast=force_fast)
+        elif role == "redteam":
+            result = red_team_agent(invocation_previous_results(payload), launch_context, force_fast=force_fast)
+        elif role == "checklist":
+            result = checklist_agent(invocation_previous_results(payload), launch_context, force_fast=force_fast)
+        elif role == "postmortem":
+            result = postmortem_agent(invocation_previous_results(payload), launch_context, force_fast=force_fast)
+        else:
+            product_context = build_product_context(brief, launch_context)
+            result = {
+                "lessons": product_context.get("lessons", []),
+                "productContext": product_context,
+                "memoryTrace": product_context.get("memoryTrace", {}),
+                "trace": [{"agent": "memory", "status": "ok", "source": "agentbase_memory"}],
+            }
+            if bool(payload.get("remember")) and isinstance(payload.get("result"), dict):
+                remembered = record_analysis_memory(brief, launch_context, dict(payload["result"]))
+                result["memoryTrace"] = remembered.get("memoryTrace", result.get("memoryTrace", {}))
+        result = finalize_invocation_result(role, request_id, result)
+        return invocation_response(role, request_id, result, fallback=result.get("source") == "fallback")
+    except Exception as exc:
+        write_backend_log(f"Invocation role {role} crashed: {type(exc).__name__}")
+        write_backend_log(traceback.format_exc())
+        result = finalize_invocation_result(role, request_id, fallback_result(f"Invocation fallback: {type(exc).__name__}."), "fallback")
+        return invocation_response(role, request_id, result, fallback=True, error="")
 
 def analysis_memory_summary(result: dict[str, Any]) -> str:
     decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
@@ -2029,7 +2423,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
         parts = [part for part in path.split("/") if part]
 
         if path in ("/health", "/api/health"):
-            json_response(self, 200, {"ok": True, "service": "launchops-local-backend"})
+            json_response(self, 200, {"ok": True, "service": "launchops-local-backend", "role": current_agent_role()})
             return
 
         if path == "/mcp":
@@ -2058,7 +2452,9 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     "checklist": os.getenv("LAUNCHOPS_MODEL_CHECKLIST", "qwen/qwen3.7-plus"),
                     "postmortem": os.getenv("LAUNCHOPS_MODEL_POSTMORTEM", "google/gemma-4-31b-it"),
                     "assistant": os.getenv("LAUNCHOPS_MODEL_ASSISTANT", "deepseek/deepseek-v4-flash")
-                }
+                },
+                "role": current_agent_role(),
+                "storage": storage_backend_status()
             }).encode("utf-8"))
             return
 
@@ -2276,7 +2672,18 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 json_response(self, 200, {"ok": True, "provider": provider, "reply": format_chatbot_reply(fallback_result(f"Webhook fallback: {type(exc).__name__}.")), "delivered": False})
             return
 
-        if path in ("/analyze", "/api/analyze", "/invocations"):
+        if path == "/invocations":
+            if not is_invocation_authorized(self.headers):
+                json_response(self, 401, {"ok": False, "error": "Unauthorized invocation"})
+                return
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            response = invoke_agent_role(current_agent_role(), payload, self.headers)
+            json_response(self, 200 if response.get("ok") else 400, response)
+            return
+
+        if path in ("/analyze", "/api/analyze"):
             payload = self.read_json_payload()
             if payload is None:
                 return
@@ -2441,7 +2848,9 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 json_response(self, 404, {"ok": False, "error": "Launch not found"})
                 return
             try:
-                launch_file(parts[2]).unlink()
+                if not delete_launch(parts[2]):
+                    json_response(self, 404, {"ok": False, "error": "Launch not found"})
+                    return
                 json_response(self, 200, {"ok": True, "deletedId": parts[2]})
             except Exception as exc:
                 write_backend_log(f"Delete launch failed: {type(exc).__name__}")

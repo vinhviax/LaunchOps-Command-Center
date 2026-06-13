@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật: 14/06/2026 — bản production đang chạy: image `v15`, runtime version 18 trên VNG AgentBase.
+> Cập nhật: 14/06/2026 — bản production đang chạy: image `v16`, runtime version 19 trên VNG AgentBase.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**: đọc launch brief (sự kiện game, campaign marketing, release tính năng, hotfix...), chấm điểm readiness Green/Yellow/Red, phản biện bằng Red Team 5 persona, sinh checklist có owner/deadline/priority và chuẩn bị post-mortem để team học lại sau mỗi lần launch.
 
@@ -8,7 +8,7 @@ LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**:
 
 ## Kiến trúc
 
-Toàn bộ chạy trong **1 Docker image duy nhất** (`python:3.11-slim`, chỉ dùng Python stdlib — không framework, không dependency nặng), deploy lên VNG AgentBase Agent Runtime:
+Toàn bộ chạy trong **1 Docker image duy nhất** (`python:3.11-slim`, không framework; core dùng stdlib, cloud Postgres dùng `psycopg` tùy chọn), deploy lên VNG AgentBase Agent Runtime:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -50,6 +50,34 @@ Mỗi agent gọi một model riêng qua **API OpenAI-compatible** (`/v1/chat/co
 - `POST /mcp tools/call` dùng **fast path deterministic (<1s)** để không vượt timeout 15s của MCP Gateway; `/api/analyze` mới chạy full LLM.
 - MCP hiện expose 2 tên tool cùng handler: `analyze_launch_brief` (backward-compatible) và alias ngắn `lcc`.
 
+## Chuẩn bị tách runtime AgentBase
+
+Production hiện vẫn chạy **1 runtime orchestrator** để giữ demo ổn định. Code đã có contract nhỏ cho Phase 4 để cùng một image có thể chạy nhiều runtime độc lập bằng env:
+
+```text
+LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory
+```
+
+- `GET /health` trả thêm `role`.
+- `POST /invocations` dispatch theo `LAUNCHOPS_AGENT_ROLE`.
+- Runtime con nhận payload chung: `requestId`, `brief`, `launch`, `productContext`, `previousResults`.
+- Response chung: `ok`, `agent`, `role`, `requestId`, `result`, `trace`, `fallback`, `error`.
+- `/api/analyze`, Web UI và MCP mặc định vẫn đi qua pipeline cũ trong orchestrator.
+- Chỉ bật điều phối runtime con sau khi endpoint đã verify:
+
+```text
+LAUNCHOPS_USE_REMOTE_AGENTS=true
+LAUNCHOPS_READINESS_URL=https://...
+LAUNCHOPS_REDTEAM_URL=https://...
+LAUNCHOPS_CHECKLIST_URL=https://...
+LAUNCHOPS_POSTMORTEM_URL=https://...
+LAUNCHOPS_MEMORY_URL=https://...
+LAUNCHOPS_AGENT_TIMEOUT_SECONDS=75
+LAUNCHOPS_AGENT_INVOCATION_TOKEN=<optional shared bearer token>
+```
+
+Nếu thiếu URL hoặc runtime con lỗi, orchestrator fallback riêng agent đó về logic local và ghi lý do vào `agentsTrace`.
+
 ## Memory
 
 App có đường tích hợp **AgentBase Memory** sau feature flag:
@@ -62,6 +90,17 @@ App có đường tích hợp **AgentBase Memory** sau feature flag:
 Khi bật, backend recall long-term memory records trước khi phân tích và trả `memoryTrace` trong response. Nếu Memory lỗi, thiếu cấu hình hoặc thiếu header `X-GreenNode-AgentBase-User-Id` / `X-GreenNode-AgentBase-Session-Id`, app tự fallback về SQLite lessons local, không làm chết `/api/analyze`. Muốn demo không có header có thể bật `LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED=true`, nhưng production nên để `false` để tránh trộn memory nhiều user.
 
 Rollback nhanh: đặt `LAUNCHOPS_MEMORY_ENABLED=false` để quay về local lessons.
+
+## Cloud DB
+
+Launch data mặc định vẫn dùng local JSON/SQLite để demo offline. Nếu có VNG vDB/Postgres, bật:
+
+```text
+LAUNCHOPS_STORAGE_BACKEND=cloud
+LAUNCHOPS_DB_URL=postgresql://USER:PASSWORD@RW_ENDPOINT:5432/DBNAME?sslmode=require
+```
+
+Dùng RW endpoint trong VNG vDB `Connectivity & Security` → `Endpoint & Port`. Không commit DB URL thật; nếu cloud DB lỗi, đặt `LAUNCHOPS_STORAGE_BACKEND=local` để rollback.
 
 ## Web UI
 
@@ -128,6 +167,7 @@ friendly.css        # Style riêng phần Friendly
 config.js           # window.LAUNCHOPS_API_BASE = "/api" (same-origin)
 server/app.py       # Backend duy nhất: UI serving + API + MCP + webhooks
 server/test_app.py  # Unit test các hàm thuần (python -m unittest server.test_app)
+server/migrate_to_cloud_db.py # Migrate local launch JSON sang Postgres khi có DB URL
 data/               # Brief mẫu + rubric + vai trò agent
 prompts/            # Prompt nền cho OpenClaw backup
 Dockerfile          # python:3.11-slim, EXPOSE 8080

@@ -1,2 +1,2 @@
-# Backend uses Python standard library only.
-# No package install is required for the current local API bridge.
+# Core backend stays framework-free. Cloud Postgres storage is optional.
+psycopg[binary]>=3.2,<4
