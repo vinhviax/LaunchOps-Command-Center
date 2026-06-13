@@ -1520,7 +1520,9 @@ function renderDecision({ color, score, maxScore = 12, title, reason, sourceLabe
   if (readinessMetric) readinessMetric.className = `metric score-metric ${className}`;
   if (readinessHelpButton) {
     const riskCount = (activeTemplate().riskGroups || []).length;
-    readinessHelpButton.dataset.tooltip = `Tổng điểm 0-${numericMax} từ ${riskCount} nhóm rủi ro trong cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.`;
+    readinessHelpButton.dataset.tooltip = uiLang() === "en"
+      ? `Total score 0-${numericMax} from ${riskCount} risk groups in the current classification config. A low score means the brief lacks data for a safe launch.`
+      : `Tổng điểm 0-${numericMax} từ ${riskCount} nhóm rủi ro trong cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.`;
   }
   scoreDial.style.setProperty("--score-percent", `${percent}%`);
   scoreColor.textContent = colorLabel(safeColor);

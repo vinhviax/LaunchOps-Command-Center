@@ -158,12 +158,50 @@ const CLEAN_I18N_DICT = {
   }
 };
 
+// Generic tooltip translations (VI canonical -> EN). The DOM keeps VI in HTML;
+// applyCleanTranslations snapshots the original VI once and maps to EN per language.
+const TOOLTIP_I18N = {
+  "3 việc ưu tiên nhất cần xử lý trước khi launch. Đây là phần để team biết sửa gì trước, không phải toàn bộ checklist.": "The 3 top-priority items to handle before launch. This shows the team what to fix first, not the full checklist.",
+  "AI đọc lịch sử phân tích và bài học đã lưu để đề xuất sửa template. AI chỉ đề xuất, admin phải duyệt trước khi áp dụng.": "AI reads analysis history and saved lessons to suggest template edits. AI only suggests; an admin must approve before applying.",
+  "Bản demo này mô phỏng quyền chỉnh sửa ở frontend. Khi lên production, danh sách này phải nối với đăng nhập thật hoặc quyền admin backend.": "This demo simulates edit permissions on the frontend. In production, this list must connect to real authentication or backend admin roles.",
+  "Checklist biến phân tích thành việc cụ thể: làm gì, ai phụ trách, hạn nào, trạng thái ra sao và mức rủi ro thế nào.": "The checklist turns analysis into concrete tasks: what to do, who owns it, the deadline, the status, and the risk level.",
+  "Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, internal tool hoặc hotfix.": "Pick the launch type so the Agent understands the context: game event, marketing, feature release, internal tool, or hotfix.",
+  "Chọn vai trò để mô phỏng quyền trên bản demo: Human, AI hoặc Admin. Role này quyết định ai được sửa/xóa launch, lưu bài học hoặc duyệt cấu hình.": "Pick a role to simulate permissions in this demo: Human, AI, or Admin. The role decides who can edit/delete launches, save lessons, or approve config.",
+  "Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.": "Demo mode: quickly load a sample scenario for recording. Export report: download the Markdown report for this launch. Save launch: save metadata and brief after edits. Run analysis: send the brief to the backend/AI to generate readiness, red team, and checklist, and save it to history.",
+  "Dán brief thô vào đây. Nếu chưa biết viết gì, bấm Nạp Brief Mẫu để xem ví dụ một brief còn thiếu dữ liệu.": "Paste the raw brief here. Not sure what to write? Click Load Sample Brief to see an example of an incomplete brief.",
+  "Hệ thống đối chiếu từ khóa trong brief với kho bài học và snapshot sản phẩm (SQLite) để lôi ra kinh nghiệm cũ liên quan. Đây là phần tri thức RAG hỗ trợ quyết định, không phải kết quả chấm điểm.": "The system matches keywords in the brief against the lessons store and product snapshots (SQLite) to surface relevant past experience. This is RAG knowledge that supports the decision, not a scoring result.",
+  "Kết luận tổng hợp cho biết launch nên chạy, giữ lại để sửa hay dừng. Dựa trên tổng điểm và các rủi ro thiếu dữ liệu.": "The overall verdict tells you whether to launch, hold to fix, or stop — based on the total score and missing-data risks.",
+  "Mỗi lần bấm Chạy phân tích sẽ lưu một bản ghi. Bấm Mở lại để xem kết quả cũ và so sánh với lần mới.": "Every Run Analysis click saves a record. Click Reopen to view a past result and compare it with the latest run.",
+  "Mỗi nhóm được chấm 0-2 điểm. Mục này giúp biết brief thiếu phần nào và cần bổ sung gì để đạt 2/2.": "Each group is scored 0-2. This shows which parts of the brief are weak and what to add to reach 2/2.",
+  "Mỗi phân loại launch dùng một bộ luật đánh giá. Bạn có thể đổi tên phân loại, chọn template gốc, rồi chỉnh nhóm rủi ro, phản biện, checklist và câu hỏi bài học.": "Each launch type uses its own scoring rules. You can rename the type, pick a base template, then edit the risk groups, red team, checklist, and lesson questions.",
+  "Ngày giờ bắt đầu launch (dd/mm/yyyy hh:mm — giờ phút có thể bỏ trống). Bấm biểu tượng lịch để chọn nhanh.": "Launch start date & time (dd/mm/yyyy hh:mm — time is optional). Click the calendar icon to pick quickly.",
+  "Ngày giờ kết thúc hoặc tổng kết launch (dd/mm/yyyy hh:mm — giờ phút có thể bỏ trống). Bấm biểu tượng lịch để chọn nhanh.": "Launch end or wrap-up date & time (dd/mm/yyyy hh:mm — time is optional). Click the calendar icon to pick quickly.",
+  "Người hoặc team chịu trách nhiệm chính cho launch. Có thể là PM LiveOps, Tech Lead, CS Lead hoặc Business Owner.": "The person or team mainly responsible for the launch — e.g. PM LiveOps, Tech Lead, CS Lead, or Business Owner.",
+  "Nhóm phản biện giả lập nhiều góc nhìn như người dùng bức xúc, người tìm cách lách luật, CS, kỹ thuật và kinh doanh để bắt rủi ro trước launch.": "The red team simulates multiple perspectives — frustrated users, exploiters, CS, tech, and business — to catch risks before launch.",
+  "Nhật ký từng agent trong pipeline (readiness, red team, checklist, post-mortem): trạng thái, nguồn rule/LLM và model định tuyến. Mở JSON đầy đủ để debug hoặc làm bằng chứng multi-agent.": "Log of each agent in the pipeline (readiness, red team, checklist, post-mortem): status, rule/LLM source, and routed model. Open the full JSON to debug or as multi-agent evidence.",
+  "Nhật ký từng bước của mỗi lần chạy phân tích cho launch này: client gọi gì, agent nào chạy, model nào, fallback ở đâu. Chỉ Admin xem được (mở bằng URL ?role=admin).": "Step-by-step log of each analysis run for this launch: what the client called, which agent ran, which model, and where it fell back. Admin only (open with ?role=admin).",
+  "Sau khi launch xong, dùng phần này để ghi kết quả thật và bài học. Lần sau Agent có thể dùng lại bài học này.": "After the launch, use this to record real results and lessons. The Agent can reuse these lessons next time.",
+  "Sắp chạy: còn chuẩn bị. Đang chạy: đang active hoặc sát giờ. Đã chạy: dùng để lưu kết quả và bài học.": "Upcoming: still preparing. Running: active or near go-time. Completed: used to save results and lessons.",
+  "Số lần đã phân tích launch này và số bài học đã lưu sau launch. Dùng để xem lại quyết định cũ.": "How many times this launch was analyzed and how many lessons were saved. Use it to review past decisions.",
+  "Tên ngắn để phân biệt launch này với các launch khác, ví dụ Lucky Wheel Weekend.": "A short name to tell this launch apart from others, e.g. Lucky Wheel Weekend.",
+  "Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.": "The total score computed from the current classification config. A low score means the brief lacks data for a safe launch.",
+  "Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày nào và đang ở trạng thái nào.": "Fill in short metadata so the Agent knows what this launch is, who owns it, its start/end dates, and its current status."
+};
+
 let activeLang = localStorage.getItem("launchops_lang") || "vi";
 
 function applyCleanTranslations(lang) {
   activeLang = lang;
   localStorage.setItem("launchops_lang", lang);
   const dict = CLEAN_I18N_DICT[lang];
+
+  // Generic tooltip translator: snapshot the original VI tooltip once, then map per language.
+  document.querySelectorAll("[data-tooltip]").forEach((el) => {
+    if (el.closest("#readinessMetric")) return; // built dynamically (language-aware) by app.js
+    if (!el.dataset.tipVi) el.dataset.tipVi = el.getAttribute("data-tooltip");
+    const vi = el.dataset.tipVi;
+    el.setAttribute("data-tooltip", lang === "en" ? (TOOLTIP_I18N[vi] || vi) : vi);
+  });
 
   // Update language buttons active class
   const viBtn = document.getElementById("langViBtn");
@@ -284,12 +322,10 @@ function applyCleanTranslations(lang) {
   const actHelpBtn = document.querySelector(".action-help");
   if (actHelpBtn) {
     actHelpBtn.setAttribute("aria-label", dict.helpActionBtn);
-    actHelpBtn.setAttribute("data-tooltip", dict.helpActionTooltip);
   }
   const histHelpBtn = document.querySelector("#historyView .help-button");
   if (histHelpBtn) {
     histHelpBtn.setAttribute("aria-label", dict.helpHistoryBtn);
-    histHelpBtn.setAttribute("data-tooltip", dict.helpHistoryTooltip);
   }
 
   // Action buttons (bỏ qua khi đang bận để không stomp text trạng thái của app.js)
