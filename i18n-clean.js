@@ -495,6 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
     applyCleanTranslations(lang);
     // app.js re-render các chuỗi động (group titles, chips, score color...)
     if (typeof window.launchopsOnLanguageApplied === "function") window.launchopsOnLanguageApplied();
+    if (typeof window.friendlyRetranslateChips === "function") window.friendlyRetranslateChips();
   };
   if (viBtn) viBtn.addEventListener("click", () => applyAndRerender("vi"));
   if (enBtn) enBtn.addEventListener("click", () => applyAndRerender("en"));

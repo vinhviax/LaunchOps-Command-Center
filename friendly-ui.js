@@ -788,19 +788,51 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  var FRIENDLY_CHIP_I18N = {
+    'Bài học': 'Lessons',
+    'Chưa có điểm rủi ro': 'No risk score yet',
+    'Chạy phân tích': 'Run analysis',
+    'Chỉnh sửa lại': 'Edit again',
+    'Hỗ trợ / giải thích': 'Help / explain',
+    'Lưu launch': 'Save launch',
+    'Nạp Brief Mẫu': 'Load Sample Brief',
+    'Phân loại': 'Type',
+    'Phân tích ngay': 'Analyze now',
+    'Quay lại': 'Back',
+    'Rà soát tuần tự': 'Sequential review',
+    'Sắp chạy': 'Upcoming',
+    'Sửa launch này': 'Edit this launch',
+    'Thời gian': 'Schedule',
+    'Trạng thái': 'Status',
+    'Tên launch': 'Launch name',
+    'Tạo launch mới': 'New launch',
+    'Tạo/sửa launch': 'Create/edit launch',
+    'Tổng hợp launch': 'Summarize launch',
+    'Xem Red Team': 'View Red Team',
+    'Xem checklist': 'View checklist',
+    'Xem lại brief': 'Review brief',
+    'Xem readiness': 'View readiness',
+    'Đang chạy': 'Running',
+    'Đã chạy': 'Completed'
+  };
+  var lastChatActions = null;
   function setChatActions(actions) {
     var box = byId('friendlyChatQuickActions');
     if (!box) return;
+    lastChatActions = actions;
+    var enLang = (localStorage.getItem('launchops_lang') || 'vi') === 'en';
     clearNode(box);
     (actions || []).forEach(function (item) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.textContent = item.label;
+      button.textContent = enLang ? (FRIENDLY_CHIP_I18N[item.label] || item.label) : item.label;
       button.setAttribute('data-friendly-action', item.action);
       if (item.value !== undefined) button.setAttribute('data-friendly-value', item.value);
       box.appendChild(button);
     });
   }
+  // Allow the language switcher (i18n-clean.js) to re-translate chips on toggle.
+  window.friendlyRetranslateChips = function () { if (lastChatActions) setChatActions(lastChatActions); };
 
   function setLessonButtonsDisabled(disabled) {
     [].slice.call(document.querySelectorAll('#friendlyLessonActions button, #friendlyLessonChatForm textarea, #friendlyLessonChatForm button')).forEach(function (control) {
