@@ -2563,7 +2563,7 @@ ${lessonLines}
 
 ## 8. Template version gần nhất
 ${versionLines}
-`;
+${isLaunchAdmin() ? `\n## 9. Run log (Admin)\n${runLogPlainText()}\n` : ""}`;
 }
 
 function downloadTextFile(filename, content) {
@@ -2990,6 +2990,8 @@ function applyLaunchPermissions() {
 
   const runLogTab = document.getElementById("runLogTab");
   if (runLogTab) runLogTab.hidden = !isLaunchAdmin();
+  const runLogConfigBlock = document.getElementById("runLogConfigBlock");
+  if (runLogConfigBlock) runLogConfigBlock.hidden = !isLaunchAdmin();
 
   const postResultInput = document.getElementById("postResultInput");
   const lessonInput = document.getElementById("lessonInput");
@@ -3622,7 +3624,9 @@ function syncTemplateAfterTypeChange() {
 
 function activateConfigPanel(target = "catalog") {
   document.querySelectorAll("[data-config-tab]").forEach((item) => {
-    item.classList.toggle("active", item.dataset.configTab === target);
+    const on = item.dataset.configTab === target;
+    item.classList.toggle("active", on);
+    item.setAttribute("aria-selected", on ? "true" : "false");
   });
   document.querySelectorAll("[data-config-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.configPanel === target);
@@ -4552,7 +4556,7 @@ window.launchopsOnLanguageApplied = () => {
 
 document.getElementById("runLogFilter")?.addEventListener("change", renderRunLog);
 document.getElementById("clearRunLog")?.addEventListener("click", () => {
-  const launchId = currentLaunch?.id || "(nh?p)";
+  const launchId = currentLaunch?.id || "(nháp)";
   // Remove backwards to avoid index shifting
   for (let i = runLogEvents.length - 1; i >= 0; i--) {
     if (runLogEvents[i].launchId === launchId) {
@@ -4875,7 +4879,21 @@ const LAUNCHOPS_LANG_MAP = {
     ragTitle: "Bài học & dữ liệu sản phẩm liên quan",
     traceKicker: "Pipeline đa agent · Debug",
     traceTitle: "Agents trace & JSON",
-    traceCopyBtn: "Copy JSON"
+    traceCopyBtn: "Copy JSON",
+    runLogFilterAll: "Tất cả",
+    runLogFilterError: "Lỗi",
+    runLogFilterWarn: "Cảnh báo",
+    runLogClear: "Xóa log phiên",
+    runLogTitle: "Log chạy phân tích (Admin)",
+    runLogClient: "Sự kiện phiên này (client)",
+    runLogServer: "Các lần phân tích đã lưu (server trace)",
+    runLogCopy: "Copy log",
+    runLogCopied: "Đã copy",
+    runLogCopyError: "Copy lỗi",
+    runLogAdminOnly: "Log chỉ dành cho Admin.",
+    runLogNoEvents: "Chưa có sự kiện nào trong phiên này cho launch đang chọn.",
+    runLogNoTraces: "Launch này chưa có lần phân tích nào được lưu.",
+    runLogNoAgentTrace: "Bản ghi này không có trace agent."
   },
   en: {
     title: "LaunchOps Command Center",

@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260612g">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260612g">
+  <link rel="stylesheet" href="styles.css?v=fix-20260613a">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260613a">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -342,13 +342,13 @@
         </div>
       </section>
 
-      <nav class="tabs" aria-label="Launch detail tabs">
-        <button type="button" class="tab active" data-view="briefView">Tóm tắt</button>
-        <button type="button" class="tab" data-view="redTeam">Phân tích</button>
-        <button type="button" class="tab" data-view="checklist">Việc cần làm</button>
-        <button type="button" class="tab" data-view="history">Lịch sử</button>
-        <button type="button" class="tab" data-view="lessons">Bài học</button>
-        <button type="button" class="tab" data-view="runLog" id="runLogTab" hidden>Log</button>
+      <nav class="tabs" role="tablist" aria-label="Launch detail tabs">
+        <button type="button" role="tab" class="tab active" data-view="briefView" aria-selected="true">Tóm tắt</button>
+        <button type="button" role="tab" class="tab" data-view="redTeam" aria-selected="false">Phân tích</button>
+        <button type="button" role="tab" class="tab" data-view="checklist" aria-selected="false">Việc cần làm</button>
+        <button type="button" role="tab" class="tab" data-view="history" aria-selected="false">Lịch sử</button>
+        <button type="button" role="tab" class="tab" data-view="lessons" aria-selected="false">Bài học</button>
+        <button type="button" role="tab" class="tab" data-view="runLog" id="runLogTab" aria-selected="false" hidden>Log</button>
       </nav>
 
       <section id="briefView" class="view active">
@@ -654,13 +654,13 @@
           </div>
         </div>
 
-        <nav class="config-tabs" aria-label="Cấu hình phân loại">
-          <button type="button" class="config-tab active" data-config-tab="catalog">Phân loại</button>
-          <button type="button" class="config-tab" data-config-tab="risk">Rủi ro</button>
-          <button type="button" class="config-tab" data-config-tab="persona">Phản biện</button>
-          <button type="button" class="config-tab" data-config-tab="checklist">Checklist</button>
-          <button type="button" class="config-tab" data-config-tab="lesson">Bài học</button>
-          <button type="button" class="config-tab" data-config-tab="admin">Quyền & lịch sử</button>
+        <nav class="config-tabs" role="tablist" aria-label="Cấu hình phân loại">
+          <button type="button" role="tab" class="config-tab active" data-config-tab="catalog" aria-selected="true">Phân loại</button>
+          <button type="button" role="tab" class="config-tab" data-config-tab="risk" aria-selected="false">Rủi ro</button>
+          <button type="button" role="tab" class="config-tab" data-config-tab="persona" aria-selected="false">Phản biện</button>
+          <button type="button" role="tab" class="config-tab" data-config-tab="checklist" aria-selected="false">Checklist</button>
+          <button type="button" role="tab" class="config-tab" data-config-tab="lesson" aria-selected="false">Bài học</button>
+          <button type="button" role="tab" class="config-tab" data-config-tab="admin" aria-selected="false">Quyền & lịch sử</button>
         </nav>
 
         <div class="config-grid">
@@ -788,6 +788,13 @@
                   <p>Mỗi lần admin lưu cấu hình, app tạo một snapshot version cho phân loại đang cấu hình.</p>
                   <div id="templateVersionHistory" class="version-list"></div>
                 </div>
+
+                <div class="format-guide inline-guide" id="runLogConfigBlock">
+                  <span class="section-kicker">Log phiên (Admin)</span>
+                  <h3>Nhật ký chạy phân tích</h3>
+                  <p>Xóa toàn bộ sự kiện client của launch đang chọn trong phiên hiện tại. Không ảnh hưởng server trace đã lưu. Xem chi tiết ở tab Log.</p>
+                  <button id="clearRunLog" type="button">Xóa log phiên</button>
+                </div>
               </div>
             </section>
           </div>
@@ -812,9 +819,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=fix-20260612g"></script>
-  <script src="app.js?v=fix-20260612g"></script>
-  <script src="friendly-ui.js?v=fix-20260612g"></script>
-  <script src="i18n-clean.js?v=fix-20260612g"></script>
+  <script src="config.js?v=fix-20260613a"></script>
+  <script src="app.js?v=fix-20260613a"></script>
+  <script src="friendly-ui.js?v=fix-20260613a"></script>
+  <script src="i18n-clean.js?v=fix-20260613a"></script>
 </body>
 </html>
