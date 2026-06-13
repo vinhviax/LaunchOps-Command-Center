@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated: 2026-06-14 — production build: image `v17`, runtime version 20 on VNG AgentBase.
+> Updated: 2026-06-14 — production build: image `v16`, runtime version 21 on VNG AgentBase.
 
 LaunchOps Command Center is a **launch-risk Super Agent**: it reads a launch brief (game event, marketing campaign, feature release, hotfix...), scores readiness as Green/Yellow/Red, challenges the plan with a 5-persona Red Team, generates an owner/deadline/priority checklist, and prepares a post-mortem so the team learns from every launch.
 
