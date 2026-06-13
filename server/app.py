@@ -1779,17 +1779,109 @@ def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None
     personas = template.get("redTeamPersonas") if isinstance(template.get("redTeamPersonas"), list) else []
     if len(personas) < 5:
         personas = build_default_template()["redTeamPersonas"]
-    red_team = []
-    for persona in personas[:5]:
-        red_team.append({
-            "persona": persona,
-            "worry": f"{persona} lo brief còn hổng guardrail.",
-            "evidence": "Dựa trên riskBreakdown và nội dung brief.",
-            "fix": "Bổ sung guardrail, owner và rollback plan.",
-        })
+    red_team = build_deterministic_red_team(result, personas[:5], brief)
     result["redTeam"] = red_team
-    result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "cards": len(red_team), "llm": public_llm_config("redteam")})
+    result.setdefault("trace", []).append({"agent": "red_team", "status": "ok", "source": "rule", "cards": len(red_team), "llm": public_llm_config("redteam")})
     return result
+
+def _red_team_risks(result: dict[str, Any]) -> list[dict[str, str]]:
+    breakdown = result.get("riskBreakdown") if isinstance(result.get("riskBreakdown"), list) else []
+    risks: list[dict[str, str]] = []
+    for item in breakdown:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or "Nhóm rủi ro").strip()
+        missing = str(item.get("missing") or "Chưa đủ bằng chứng trong brief.").strip()
+        try:
+            score = int(item.get("score") or 0)
+            max_score = int(item.get("maxScore") or 0)
+        except (TypeError, ValueError):
+            score = 0
+            max_score = 1
+        if score < max_score:
+            risks.append({"label": label, "missing": missing})
+    if risks:
+        return risks
+
+    top_risks = result.get("topRisks") if isinstance(result.get("topRisks"), list) else []
+    for raw in top_risks:
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        label, _, missing = text.partition(":")
+        risks.append({
+            "label": label.strip() or "Rủi ro chính",
+            "missing": missing.strip() or text,
+        })
+    return risks or [{"label": "Brief launch", "missing": "Brief còn thiếu guardrail đủ rõ để team phản biện."}]
+
+def _pick_red_team_risk(risks: list[dict[str, str]], keywords: list[str], fallback_index: int) -> dict[str, str]:
+    for risk in risks:
+        haystack = f"{risk.get('label', '')} {risk.get('missing', '')}".lower()
+        if any(keyword in haystack for keyword in keywords):
+            return risk
+    return risks[fallback_index % len(risks)]
+
+def _red_team_profile(persona: str, index: int) -> dict[str, Any]:
+    normalized = str(persona or "").lower()
+    profiles: list[dict[str, Any]] = [
+        {
+            "match": ["angry", "user", "player", "người chơi", "bức xúc"],
+            "keywords": ["user", "impact", "người chơi", "khách", "faq", "cs", "reward", "quà"],
+            "worry": "Người chơi dễ phản ứng nếu luật chơi, quyền lợi hoặc cách bồi thường chưa rõ.",
+            "evidence": "Nhóm {label} còn hở: {missing}",
+            "fix": "Viết rule hiển thị cho người chơi, FAQ cho CS, owner xử lý khiếu nại và phương án bồi thường khi lỗi xảy ra.",
+        },
+        {
+            "match": ["exploit", "hunter", "lách luật", "fraud", "abuse"],
+            "keywords": ["reward", "business", "fraud", "guardrail", "ngân sách", "quà", "anti", "điều kiện"],
+            "worry": "Người lách luật có thể farm quà, vượt điều kiện tham gia hoặc đẩy chi phí vượt kiểm soát.",
+            "evidence": "Nhóm {label} chưa khóa chặt: {missing}",
+            "fix": "Chốt eligibility, giới hạn lượt/phần thưởng, rule chống abuse và log cảnh báo bất thường trước khi mở launch.",
+        },
+        {
+            "match": ["cs", "support", "trưởng nhóm cs", "customer"],
+            "keywords": ["owner", "deadline", "user", "impact", "cs", "faq", "khách", "phụ trách"],
+            "worry": "CS sẽ nhận ticket lặp lại nhưng thiếu macro, SLA và đường escalation rõ.",
+            "evidence": "Nhóm {label} đang thiếu đầu mối vận hành: {missing}",
+            "fix": "Chuẩn bị macro trả lời, phân luồng ticket, SLA phản hồi và owner escalation cho từng tình huống nóng.",
+        },
+        {
+            "match": ["tech", "on-call", "sre", "kỹ thuật", "trực"],
+            "keywords": ["tech", "readiness", "rollback", "monitor", "alert", "kỹ thuật", "feature"],
+            "worry": "Kỹ thuật trực sự cố khó cứu nhanh nếu thiếu monitor, feature flag hoặc tiêu chí rollback.",
+            "evidence": "Nhóm {label} chưa đủ bằng chứng kỹ thuật: {missing}",
+            "fix": "Chốt dashboard, alert, feature flag, runbook và ngưỡng rollback trước giờ launch.",
+        },
+        {
+            "match": ["business", "owner", "kinh doanh", "growth", "pm"],
+            "keywords": ["business", "reward", "kpi", "roi", "ngân sách", "mục tiêu", "scope", "learning"],
+            "worry": "Người phụ trách kinh doanh khó quyết định go/no-go nếu KPI, ngân sách hoặc tiêu chí học lại chưa chốt.",
+            "evidence": "Nhóm {label} ảnh hưởng quyết định kinh doanh: {missing}",
+            "fix": "Khóa KPI, budget guardrail, ngưỡng dừng campaign và format recap T+48h để biết launch có đáng lặp lại không.",
+        },
+    ]
+    for profile in profiles:
+        if any(token in normalized for token in profile["match"]):
+            return profile
+    return profiles[index % len(profiles)]
+
+def build_deterministic_red_team(result: dict[str, Any], personas: list[Any], brief: str = "") -> list[dict[str, str]]:
+    risks = _red_team_risks(result)
+    cards: list[dict[str, str]] = []
+    for index, raw_persona in enumerate(personas[:5]):
+        persona = str(raw_persona or f"Reviewer {index + 1}").strip() or f"Reviewer {index + 1}"
+        profile = _red_team_profile(persona, index)
+        risk = _pick_red_team_risk(risks, profile["keywords"], index)
+        label = risk.get("label") or "Brief launch"
+        missing = risk.get("missing") or "Chưa đủ bằng chứng trong brief."
+        cards.append({
+            "persona": persona,
+            "worry": profile["worry"],
+            "evidence": profile["evidence"].format(label=label, missing=missing),
+            "fix": profile["fix"],
+        })
+    return cards
 
 def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     brief = str((launch_context or {}).get("brief") or "")

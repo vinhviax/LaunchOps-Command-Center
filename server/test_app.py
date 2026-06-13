@@ -179,6 +179,10 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         analyzed = app.execute_launchops_tool("lcc_analyze_launch", {"launchId": launch_id}, force_fast=True)
         self.assertTrue(analyzed["ok"])
         self.assertIn("decision", analyzed["result"])
+        red_team = analyzed["result"]["redTeam"]
+        self.assertEqual(len(red_team), 5)
+        self.assertGreater(len({card["worry"] for card in red_team}), 1)
+        self.assertGreater(len({card["fix"] for card in red_team}), 1)
         self.assertEqual(analyzed["summary"]["analysisCount"], 1)
 
     def test_set_launch_template_updates_launch_template_versions(self):
@@ -242,6 +246,19 @@ class AgentRoleInvocationTests(unittest.TestCase):
         self.assertEqual(response["role"], "redteam")
         self.assertEqual(len(response["result"]["redTeam"]), 5)
         self.assertEqual(response["trace"][-1]["runtimeName"], "lcc-redteam-agent")
+
+    def test_redteam_fast_path_cards_are_persona_specific(self):
+        brief = "Lucky Wheel. No owner, no rollback plan, no CS FAQ, reward cap missing."
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "false", "LAUNCHOPS_MULTI_MODEL_ENABLED": "false"}):
+            result = app.readiness_agent(brief, {"brief": brief}, force_fast=True)
+            result = app.red_team_agent(result, {"brief": brief}, force_fast=True)
+
+        red_team = result["redTeam"]
+        self.assertEqual(len(red_team), 5)
+        self.assertEqual(len({card["worry"] for card in red_team}), 5)
+        self.assertEqual(len({card["fix"] for card in red_team}), 5)
+        self.assertGreater(len({card["evidence"] for card in red_team}), 1)
+        self.assertFalse(any("Dựa trên riskBreakdown" in card["evidence"] for card in red_team))
 
     def test_unknown_agent_role_returns_contract_error(self):
         response = app.invoke_agent_role("unknown", {"requestId": "req-3", "brief": "Brief"})
