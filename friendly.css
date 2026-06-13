@@ -51,6 +51,8 @@ body.ui-mode-friendly .pro-only{ display:none !important; }
 
 /* Friendly mode: dọn bớt cho gọn (ẩn nút help inline, làm nhạt kicker) */
 body.ui-mode-friendly .help-button{ display:none !important; }
+/* Giữ lại nút "?" tổng của cụm nút thao tác trong Friendly (giống Pro) */
+body.ui-mode-friendly .action-button-row .action-help{ display:inline-flex !important; }
 body.ui-mode-friendly .section-kicker{ opacity:.7; }
 
 body.ui-mode-friendly{
@@ -147,11 +149,7 @@ body.ui-mode-friendly .launch-card[data-friendly-readiness="unknown"]::after{
   color:#5f635c;
 }
 
-body.ui-mode-friendly #demoMode,
-body.ui-mode-friendly #exportReport,
-body.ui-mode-friendly #analyzeBrief{
-  display:none !important;
-}
+/* Friendly: hiện đủ cụm nút thao tác giống Pro (Demo/Export/Chạy phân tích/Xóa launch) theo yêu cầu — các chip trong chat vẫn giữ nguyên. */
 
 body.ui-mode-friendly .launch-card.friendly-session-draft{
   border-style:dashed;

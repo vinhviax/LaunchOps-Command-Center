@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260613a">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260613a">
+  <link rel="stylesheet" href="styles.css?v=fix-20260613b">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260613b">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -140,32 +140,34 @@
           <div id="detailSub" class="detail-meta-row">Tạo hoặc chọn launch trước khi phân tích.</div>
         </div>
 
-        <div class="hero-metrics">
-          <div id="readinessMetric" class="metric score-metric yellow">
-            <span>Mức sẵn sàng <button class="help-button inline" type="button" aria-label="Giải thích mức sẵn sàng" data-tooltip="Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.">?</button></span>
-            <strong id="scoreValue">0/12</strong>
-            <small id="scoreColor">Vàng</small>
-          </div>
-          <div class="metric">
-            <span>Lịch sử <button class="help-button inline" type="button" aria-label="Giải thích lịch sử" data-tooltip="Số lần đã phân tích launch này và số bài học đã lưu sau launch. Dùng để xem lại quyết định cũ.">?</button></span>
-            <div id="launchMemoryStats" class="metric-lines">
-              <strong>0 lần phân tích</strong>
-              <strong>0 bài học</strong>
+        <div class="detail-right-cluster">
+          <div class="detail-actions">
+            <div class="action-button-row">
+              <button id="demoMode" type="button">Demo mode</button>
+              <button id="exportReport" type="button">Export report</button>
+              <button id="saveLaunch" type="button">Lưu launch</button>
+              <button id="analyzeBrief" type="button" class="primary">Chạy phân tích</button>
+              <button class="help-button action-help" type="button" aria-label="Giải thích các nút thao tác launch" data-tooltip="Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.">?</button>
+              <button id="deleteLaunch" type="button" class="danger-button">Xóa launch</button>
             </div>
-            <small>Lưu local</small>
+            <div id="analysisRunStatus" class="analysis-run-status" role="status" aria-live="polite"></div>
           </div>
-        </div>
 
-        <div class="detail-actions">
-          <div class="action-button-row">
-            <button id="demoMode" type="button">Demo mode</button>
-            <button id="exportReport" type="button">Export report</button>
-            <button id="saveLaunch" type="button">Lưu launch</button>
-            <button id="analyzeBrief" type="button" class="primary">Chạy phân tích</button>
-            <button class="help-button action-help" type="button" aria-label="Giải thích các nút thao tác launch" data-tooltip="Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.">?</button>
-            <button id="deleteLaunch" type="button" class="danger-button pro-only">Xóa launch</button>
+          <div class="hero-metrics">
+            <div id="readinessMetric" class="metric score-metric yellow">
+              <span>Mức sẵn sàng <button class="help-button inline" type="button" aria-label="Giải thích mức sẵn sàng" data-tooltip="Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.">?</button></span>
+              <strong id="scoreValue">0/12</strong>
+              <small id="scoreColor">Vàng</small>
+            </div>
+            <div class="metric">
+              <span>Lịch sử <button class="help-button inline" type="button" aria-label="Giải thích lịch sử" data-tooltip="Số lần đã phân tích launch này và số bài học đã lưu sau launch. Dùng để xem lại quyết định cũ.">?</button></span>
+              <div id="launchMemoryStats" class="metric-lines">
+                <strong>0 lần phân tích</strong>
+                <strong>0 bài học</strong>
+              </div>
+              <small>Lưu local</small>
+            </div>
           </div>
-          <div id="analysisRunStatus" class="analysis-run-status" role="status" aria-live="polite"></div>
         </div>
       </section>
 
@@ -819,9 +821,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=fix-20260613a"></script>
-  <script src="app.js?v=fix-20260613a"></script>
-  <script src="friendly-ui.js?v=fix-20260613a"></script>
-  <script src="i18n-clean.js?v=fix-20260613a"></script>
+  <script src="config.js?v=fix-20260613b"></script>
+  <script src="app.js?v=fix-20260613b"></script>
+  <script src="friendly-ui.js?v=fix-20260613b"></script>
+  <script src="i18n-clean.js?v=fix-20260613b"></script>
 </body>
 </html>

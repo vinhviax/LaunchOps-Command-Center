@@ -1150,6 +1150,12 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   color: var(--muted);
 }
 
+/* Chống "?" trong metric bị co/đè lên nhãn khi chật */
+.metric span .help-button.inline {
+  flex: 0 0 auto;
+  margin-left: 1px;
+}
+
 .metric strong {
   font-size: 17px;
   font-weight: 800;
