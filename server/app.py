@@ -1022,6 +1022,19 @@ def template_prompt_context(template: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+VI_DIACRITIC_CHARS = set(
+    "ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ"
+)
+
+
+def detect_brief_language(text: str) -> str:
+    """Best-effort output language: Vietnamese if the brief carries Vietnamese diacritics, else English."""
+    if not text:
+        return "vi"
+    vi_count = sum(1 for ch in text.lower() if ch in VI_DIACRITIC_CHARS)
+    return "vi" if vi_count >= 3 else "en"
+
+
 def build_prompt(brief: str, launch_context: dict[str, Any] | None = None) -> str:
     launch_context = launch_context or {}
     launch_name = str(launch_context.get("name") or "Chưa đặt tên")
@@ -1040,6 +1053,12 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None) -> st
         {"persona": persona, "worry": "string", "evidence": "string", "fix": "string"}
         for persona in template_context["redTeamPersonas"]
     ]
+    out_lang = detect_brief_language(brief)
+    lang_rule = (
+        "- Toàn bộ giá trị text trong JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) PHẢI viết bằng tiếng Việt."
+        if out_lang == "vi"
+        else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
+    )
 
     return f"""
 Bạn là LaunchOps Command Center, một Super Agent giúp team kiểm tra rủi ro trước launch.
@@ -1067,6 +1086,7 @@ Luật rất quan trọng:
 - checklist nên bám checklistExamples nhưng có thể bổ sung chi tiết từ brief.
 - postmortem nên bám postmortemBlocks.
 - Green/Yellow/Red tính theo tỷ lệ điểm: Green >= 80%, Yellow >= 50%, Red < 50%.
+{lang_rule}
 
 Schema bắt buộc:
 {{

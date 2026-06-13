@@ -11,6 +11,27 @@ if str(SERVER_DIR) not in sys.path:
 app = importlib.import_module("app")
 
 
+class DetectBriefLanguageTests(unittest.TestCase):
+    def test_vietnamese_brief(self):
+        self.assertEqual(
+            app.detect_brief_language("Sự kiện quay thưởng cuối tuần, chưa có người phụ trách."),
+            "vi",
+        )
+
+    def test_english_brief(self):
+        self.assertEqual(
+            app.detect_brief_language("Lucky Wheel Weekend event. No owner, no rollback plan, payment untested."),
+            "en",
+        )
+
+    def test_empty_defaults_vi(self):
+        self.assertEqual(app.detect_brief_language(""), "vi")
+
+    def test_ascii_vietnamese_without_diacritics_falls_back_en(self):
+        # Known limitation: Vietnamese typed without diacritics is treated as English.
+        self.assertEqual(app.detect_brief_language("Su kien quay thuong cuoi tuan"), "en")
+
+
 class ExtractJsonTests(unittest.TestCase):
     def test_clean_json(self):
         self.assertEqual(app.extract_json('{"ok": true, "score": 9}'), {"ok": True, "score": 9})
