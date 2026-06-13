@@ -423,11 +423,15 @@ button:disabled:hover {
 }
 
 .help-button.inline {
-  width: 17px;
-  height: 17px;
-  min-height: 17px;
-  font-size: 10px;
-  vertical-align: text-bottom;
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+  font-size: 9px;
+  vertical-align: middle;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .help-button:hover,
@@ -1032,20 +1036,27 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 
 .detail-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) auto;
-  grid-template-areas:
-    "title metrics"
-    "actions actions";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title right-cluster";
   align-items: center;
   column-gap: 26px;
   row-gap: 14px;
-  padding: 20px 24px;
+  padding: 16px 24px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background:
     radial-gradient(640px 200px at 100% 0%, rgba(240, 90, 34, 0.06), transparent 70%),
     var(--surface);
   box-shadow: var(--shadow);
+}
+
+.detail-right-cluster {
+  grid-area: right-cluster;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .detail-title-block {
@@ -1128,6 +1139,10 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 }
 
 .metric span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -1175,14 +1190,12 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   font-weight: 800;
 }
 
-/* Hàng nút thao tác */
+/* Hàng nút thao tác — nằm cùng hàng với hero metrics để tiết kiệm chiều dọc */
 .detail-actions {
-  grid-area: actions;
-  display: grid;
-  gap: 8px;
-  justify-items: end;
-  padding-top: 14px;
-  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 .action-button-row {
@@ -1412,6 +1425,14 @@ textarea {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 13px;
+  margin-bottom: 13px;
+}
+
+/* Hàng riêng cho Start/End Launch — luôn nằm cạnh nhau dưới cùng */
+.form-grid-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px;
   margin-bottom: 16px;
 }
@@ -3308,6 +3329,8 @@ body.is-analyzing #traceConsoleBody::after {
   }
 }
 
+/* 1560px breakpoint removed */
+
 @media (max-width: 1180px) {
   .analysis-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -3321,8 +3344,11 @@ body.is-analyzing #traceConsoleBody::after {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "title"
-      "metrics"
-      "actions";
+      "right-cluster";
+  }
+  .detail-right-cluster {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .hero-metrics {
@@ -3376,6 +3402,14 @@ body.is-analyzing #traceConsoleBody::after {
 
   .detail-hero {
     padding: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "right-cluster";
+  }
+  .detail-right-cluster {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .hero-metrics {

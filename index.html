@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260612a">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260612a">
+  <link rel="stylesheet" href="styles.css?v=fix-20260612g">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260612g">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -393,11 +393,14 @@
               <span>Người phụ trách <button class="help-button inline" type="button" aria-label="Giải thích người phụ trách" data-tooltip="Người hoặc team chịu trách nhiệm chính cho launch. Có thể là PM LiveOps, Tech Lead, CS Lead hoặc Business Owner.">?</button></span>
               <input id="launchOwner" type="text" autocomplete="off">
             </label>
+          </div>
+
+          <div class="form-grid-dates">
             <label class="field">
-              <span>Start Launch <button class="help-button inline" type="button" aria-label="Giải thích Start Launch" data-tooltip="Ngày bắt đầu launch. Bấm biểu tượng lịch trong ô ngày để chọn nhanh.">?</button></span>
+              <span>Start Launch <button class="help-button inline" type="button" aria-label="Giải thích Start Launch" data-tooltip="Ngày giờ bắt đầu launch (dd/mm/yyyy hh:mm — giờ phút có thể bỏ trống). Bấm biểu tượng lịch để chọn nhanh.">?</button></span>
               <div class="date-input-wrap">
-                <input id="launchTargetDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
-                <button id="launchTargetDatePicker" class="date-picker-button" type="button" aria-label="Chọn Start Launch" title="Chọn ngày">
+                <input id="launchTargetDate" type="text" autocomplete="off" placeholder="dd/mm/yyyy hh:mm">
+                <button id="launchTargetDatePicker" class="date-picker-button" type="button" aria-label="Chọn Start Launch" title="Chọn ngày giờ">
                   <svg aria-hidden="true" viewBox="0 0 24 24">
                     <path d="M8 2v4"></path>
                     <path d="M16 2v4"></path>
@@ -405,14 +408,14 @@
                     <rect x="3" y="4" width="18" height="18" rx="2"></rect>
                   </svg>
                 </button>
-                <input id="launchTargetDateNative" class="native-date-input" type="date" tabindex="-1" aria-hidden="true">
+                <input id="launchTargetDateNative" class="native-date-input" type="datetime-local" tabindex="-1" aria-hidden="true">
               </div>
             </label>
             <label class="field">
-              <span>End Launch <button class="help-button inline" type="button" aria-label="Giải thích End Launch" data-tooltip="Ngày kết thúc hoặc ngày dự kiến tổng kết launch. Bấm biểu tượng lịch trong ô ngày để chọn nhanh.">?</button></span>
+              <span>End Launch <button class="help-button inline" type="button" aria-label="Giải thích End Launch" data-tooltip="Ngày giờ kết thúc hoặc tổng kết launch (dd/mm/yyyy hh:mm — giờ phút có thể bỏ trống). Bấm biểu tượng lịch để chọn nhanh.">?</button></span>
               <div class="date-input-wrap">
-                <input id="launchEndDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
-                <button id="launchEndDatePicker" class="date-picker-button" type="button" aria-label="Chọn End Launch" title="Chọn ngày">
+                <input id="launchEndDate" type="text" autocomplete="off" placeholder="dd/mm/yyyy hh:mm">
+                <button id="launchEndDatePicker" class="date-picker-button" type="button" aria-label="Chọn End Launch" title="Chọn ngày giờ">
                   <svg aria-hidden="true" viewBox="0 0 24 24">
                     <path d="M8 2v4"></path>
                     <path d="M16 2v4"></path>
@@ -420,7 +423,7 @@
                     <rect x="3" y="4" width="18" height="18" rx="2"></rect>
                   </svg>
                 </button>
-                <input id="launchEndDateNative" class="native-date-input" type="date" tabindex="-1" aria-hidden="true">
+                <input id="launchEndDateNative" class="native-date-input" type="datetime-local" tabindex="-1" aria-hidden="true">
               </div>
             </label>
           </div>
@@ -809,9 +812,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=fix-20260612a"></script>
-  <script src="app.js?v=fix-20260612a"></script>
-  <script src="friendly-ui.js?v=fix-20260612a"></script>
-  <script src="i18n-clean.js?v=fix-20260612a"></script>
+  <script src="config.js?v=fix-20260612g"></script>
+  <script src="app.js?v=fix-20260612g"></script>
+  <script src="friendly-ui.js?v=fix-20260612g"></script>
+  <script src="i18n-clean.js?v=fix-20260612g"></script>
 </body>
 </html>

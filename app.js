@@ -314,6 +314,34 @@ const COLOR_LABELS = {
   Yellow: "Vàng",
   Red: "Đỏ"
 };
+const STATUS_LABELS_EN = {
+  running: "Running",
+  upcoming: "Upcoming",
+  completed: "Completed"
+};
+const COLOR_LABELS_EN = {
+  Green: "Green",
+  Yellow: "Yellow",
+  Red: "Red"
+};
+
+function uiLang() {
+  try {
+    return localStorage.getItem("launchops_lang") || "vi";
+  } catch (error) {
+    return "vi";
+  }
+}
+
+function tr(vi, en) {
+  return uiLang() === "en" ? en : vi;
+}
+
+function statusDisplayLabel(status) {
+  return uiLang() === "en"
+    ? (STATUS_LABELS_EN[status] || status || "")
+    : (STATUS_LABELS[status] || status || "");
+}
 const PERSONA_LABELS = {
   "Angry user": "Người chơi bức xúc",
   "Exploit hunter": "Người tìm cách lách luật",
@@ -1133,17 +1161,35 @@ function parseDateOnly(value) {
   const text = String(value || "").trim();
   if (!text) return null;
 
-  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+  // ISO: YYYY-MM-DD hoặc YYYY-MM-DDTHH:mm (giờ phút tùy chọn)
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{2}))?/);
   if (iso) {
-    return { year: iso[1], month: padDatePart(iso[2]), day: padDatePart(iso[3]) };
+    return {
+      year: iso[1],
+      month: padDatePart(iso[2]),
+      day: padDatePart(iso[3]),
+      hour: iso[4] !== undefined ? padDatePart(iso[4]) : "",
+      minute: iso[5] !== undefined ? iso[5] : ""
+    };
   }
 
-  const display = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s,].*)?$/);
+  // Hiển thị: dd/mm/yyyy hoặc dd/mm/yyyy HH:mm
+  const display = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s,]+(\d{1,2}):(\d{2}))?/);
   if (display) {
-    return { year: display[3], month: padDatePart(display[2]), day: padDatePart(display[1]) };
+    return {
+      year: display[3],
+      month: padDatePart(display[2]),
+      day: padDatePart(display[1]),
+      hour: display[4] !== undefined ? padDatePart(display[4]) : "",
+      minute: display[5] !== undefined ? display[5] : ""
+    };
   }
 
   return null;
+}
+
+function dateTimeSuffix(parts) {
+  return parts && parts.hour !== "" && parts.minute !== "" ? ` ${parts.hour}:${parts.minute}` : "";
 }
 
 function formatDateOnly(value, fallback = "Chưa có ngày") {
@@ -1151,7 +1197,7 @@ function formatDateOnly(value, fallback = "Chưa có ngày") {
   if (!text) return fallback;
 
   const parts = parseDateOnly(text);
-  if (parts) return `${parts.day}/${parts.month}/${parts.year}`;
+  if (parts) return `${parts.day}/${parts.month}/${parts.year}${dateTimeSuffix(parts)}`;
 
   const date = new Date(text);
   if (Number.isNaN(date.getTime())) return text;
@@ -1161,7 +1207,10 @@ function formatDateOnly(value, fallback = "Chưa có ngày") {
 function formatDateForInput(value) {
   const parts = parseDateOnly(value);
   if (!parts) return "";
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  // datetime-local bắt buộc có giờ phút — mặc định 00:00 khi value chỉ có ngày.
+  const hour = parts.hour !== "" ? parts.hour : "00";
+  const minute = parts.minute !== "" ? parts.minute : "00";
+  return `${parts.year}-${parts.month}-${parts.day}T${hour}:${minute}`;
 }
 
 function normalizeDateForStorage(value) {
@@ -1170,7 +1219,8 @@ function normalizeDateForStorage(value) {
 
   const parts = parseDateOnly(text);
   if (!parts) return text;
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  const time = parts.hour !== "" && parts.minute !== "" ? `T${parts.hour}:${parts.minute}` : "";
+  return `${parts.year}-${parts.month}-${parts.day}${time}`;
 }
 
 function setVisibleDateValue(textInput, nativeInput, value) {
@@ -1311,6 +1361,7 @@ function sourceLabelFor(result, override) {
 }
 
 function colorLabel(color) {
+  if (uiLang() === "en") return COLOR_LABELS_EN[color] || color || "N/A";
   return COLOR_LABELS[color] || color || "Chưa có";
 }
 
@@ -1973,16 +2024,16 @@ function renderLaunchGroups() {
         const readinessClass = statusClassFromDecision(launch.decision) || "unknown";
         const readinessLabel = launch.decision
           ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
-          : "Chưa có điểm readiness";
+          : tr("Chưa có điểm readiness", "No readiness score yet");
         return `
           <button class="launch-card ${isActive ? "active" : ""} readiness-${escapeHTML(readinessClass)}" type="button" data-launch-id="${escapeHTML(launch.id)}" aria-label="Mở chi tiết ${escapeHTML(launchNameText)}. ${escapeHTML(readinessLabel)}" title="${escapeHTML(readinessLabel)}">
             <strong>${escapeHTML(launchNameText)}</strong>
             <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(templateNameText)}</small>
-            <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : "Chưa có owner")} · ${escapeHTML(lastSavedLabel)}</small>
+            <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : tr("Chưa có owner", "No owner yet"))} · ${escapeHTML(lastSavedLabel)}</small>
             <span class="launch-card-history ${lastSavedAt ? "" : "empty"}">
-              <span>Lịch sử đã lưu</span>
-              <strong>${escapeHTML(analysisCount)} phân tích · ${escapeHTML(lessonCount)} bài học</strong>
-              <small>Mức sẵn sàng: ${escapeHTML(readinessLabel)}</small>
+              <span>${tr("Lịch sử đã lưu", "Saved history")}</span>
+              <strong>${escapeHTML(analysisCount)} ${tr("phân tích", "analyses")} · ${escapeHTML(lessonCount)} ${tr("bài học", "lessons")}</strong>
+              <small>${tr("Mức sẵn sàng", "Readiness")}: ${escapeHTML(readinessLabel)}</small>
             </span>
           </button>
         `;
@@ -1991,7 +2042,7 @@ function renderLaunchGroups() {
 
     return `
       <section class="launch-group">
-        <h3>${STATUS_LABELS[status]} <span class="launch-count">${items.length}</span></h3>
+        <h3>${statusDisplayLabel(status)} <span class="launch-count">${items.length}</span></h3>
         <div class="launch-list">${cards}</div>
       </section>
     `;
@@ -2035,14 +2086,14 @@ function renderLaunchSnapshot() {
   const lessons = launch?.lessonsLearned || [];
   const latest = analyses.length ? analyses[analyses.length - 1].result?.decision : null;
   launchMemoryStats.innerHTML = `
-    <strong>${escapeHTML(analyses.length)} lần phân tích</strong>
-    <strong>${escapeHTML(lessons.length)} bài học</strong>
+    <strong>${escapeHTML(analyses.length)} ${tr("lần phân tích", "analyses")}</strong>
+    <strong>${escapeHTML(lessons.length)} ${tr("bài học", "lessons")}</strong>
   `;
   detailTitle.textContent = launch?.name || "Launch mới";
   detailSub.innerHTML = `
-    <span class="meta-chip status">${escapeHTML(STATUS_LABELS[normalizeStatus(launch?.status)])}</span>
+    <span class="meta-chip status">${escapeHTML(statusDisplayLabel(normalizeStatus(launch?.status)))}</span>
     <span class="meta-chip">${escapeHTML(typeLabel(launch?.type))}</span>
-    <span class="meta-chip">${escapeHTML(launch?.owner || "Chưa có người phụ trách")}</span>
+    <span class="meta-chip">${escapeHTML(launch?.owner || tr("Chưa có người phụ trách", "No owner yet"))}</span>
   `;
 
   launchSnapshot.innerHTML = `
@@ -3084,7 +3135,7 @@ async function saveCurrentLaunch({ silent = false } = {}) {
   if (!launchData.id) launchData.id = slugify(launchData.name);
 
   saveLaunchButton.disabled = true;
-  if (!silent) saveLaunchButton.textContent = "Đang lưu...";
+  if (!silent) saveLaunchButton.textContent = tr("Đang lưu...", "Saving...");
 
   try {
     if (backendAvailable) {
@@ -3125,7 +3176,7 @@ async function saveCurrentLaunch({ silent = false } = {}) {
     throw error;
   } finally {
     saveLaunchButton.disabled = false;
-    saveLaunchButton.textContent = "Lưu launch";
+    saveLaunchButton.textContent = tr("Lưu launch", "Save launch");
     applyLaunchPermissions();
   }
 }
@@ -3167,8 +3218,8 @@ async function analyze() {
   }
 
   analyzeButton.disabled = true;
-  analyzeButton.textContent = "Đang phân tích...";
-  analysisSource.textContent = "Đang gọi AI...";
+  analyzeButton.textContent = tr("Đang phân tích...", "Analyzing...");
+  analysisSource.textContent = tr("Đang gọi AI...", "Calling AI...");
   setAnalysisRunStatus("running", "Hệ thống Agent đang phân tích dữ liệu vui lòng chờ...");
   document.body.classList.add("is-analyzing");
   const startedAt = Date.now();
@@ -3225,7 +3276,7 @@ async function analyze() {
   } finally {
     document.body.classList.remove("is-analyzing");
     analyzeButton.disabled = false;
-    analyzeButton.textContent = "Chạy phân tích";
+    analyzeButton.textContent = tr("Chạy phân tích", "Run analysis");
   }
 }
 
@@ -3582,7 +3633,11 @@ function activateTab(target) {
   const isConfigScreen = target === "templateConfig";
   if (!isConfigScreen) previousLaunchView = target || "briefView";
   appShell?.classList.toggle("config-mode", isConfigScreen);
-  document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", !isConfigScreen && item.dataset.view === target));
+  document.querySelectorAll(".tab").forEach((item) => {
+    const isActive = !isConfigScreen && item.dataset.view === target;
+    item.classList.toggle("active", isActive);
+    item.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
   openTemplateConfigButton?.classList.toggle("active", isConfigScreen);
   if (openTemplateConfigButton) {
     openTemplateConfigButton.textContent = isConfigScreen ? "Quay lại launch" : "Cấu hình phân loại";
@@ -4483,6 +4538,29 @@ document.getElementById("newLaunch").addEventListener("click", () => {
   activateTab("briefView");
 });
 
+// i18n-clean.js gọi hook này khi user bấm nút VI/EN — re-render các chuỗi động.
+window.launchopsOnLanguageApplied = () => {
+  try {
+    renderLaunchGroups();
+    renderLaunchWorkspace();
+    renderLatestAnalysisOrPreview();
+  } catch (error) {
+    console.warn("Language re-render failed.", error);
+  }
+};
+
+
+document.getElementById("runLogFilter")?.addEventListener("change", renderRunLog);
+document.getElementById("clearRunLog")?.addEventListener("click", () => {
+  const launchId = currentLaunch?.id || "(nh?p)";
+  // Remove backwards to avoid index shifting
+  for (let i = runLogEvents.length - 1; i >= 0; i--) {
+    if (runLogEvents[i].launchId === launchId) {
+      runLogEvents.splice(i, 1);
+    }
+  }
+  renderRunLog();
+});
 document.getElementById("copyRunLog")?.addEventListener("click", async (event) => {
   try {
     await navigator.clipboard.writeText(runLogPlainText());
@@ -4490,7 +4568,7 @@ document.getElementById("copyRunLog")?.addEventListener("click", async (event) =
   } catch (error) {
     event.target.textContent = "Copy lỗi";
   }
-  window.setTimeout(() => { event.target.textContent = "Copy log"; }, 1500);
+  window.setTimeout(() => { event.target.textContent = LAUNCHOPS_LANG_MAP[currentLang].runLogCopy; }, 1500);
 });
 
 if (openTemplateConfigButton) {
@@ -4779,6 +4857,7 @@ const LAUNCHOPS_LANG_MAP = {
     saveLaunch: "Lưu launch",
     exportReport: "Tải báo cáo",
     demoMode: "Nạp demo",
+    deleteLaunch: "Xóa launch",
     assistantTitle: "LaunchOps Assistant",
     assistantInputPlaceholder: "Hỏi hoặc dán brief trong LaunchOps",
     assistantSend: "Gửi",
@@ -4808,6 +4887,24 @@ const LAUNCHOPS_LANG_MAP = {
     statusAll: "All",
     statusRunning: "Running",
     statusCompleted: "Completed",
+    runLogFilterAll: "All",
+    runLogFilterError: "Error",
+    runLogFilterWarn: "Warning",
+    runLogClear: "Clear session log",
+    runLogTitle: "Analysis run log (Admin)",
+    runLogClient: "Session events (client)",
+    runLogServer: "Saved analysis traces (server trace)",
+    runLogCopy: "Copy log",
+    runLogCopied: "Copied",
+    runLogCopyError: "Copy error",
+    runLogAdminOnly: "Logs are restricted to Admin.",
+    runLogNoEvents: "No events recorded in this session for the selected launch.",
+    runLogNoTraces: "No saved analysis traces found for this launch.",
+    runLogNoAgentTrace: "No agent traces available for this run.",
+    errTimeoutClient: "Client canceled due to 240s timeout (server might still be running). Rendered local rule fallback.",
+    errTimeoutStatus: "Analysis timed out ? showing fallback results. Retry or report to Admin.",
+    errNoBrief: "No brief available for analysis...",
+    errNoBriefStatus: "No brief available for analysis. Enter a brief and try again.",
     statusUpcoming: "Upcoming",
     searchLabel: "Search",
     searchPlaceholder: "Name or type",
@@ -4825,6 +4922,7 @@ const LAUNCHOPS_LANG_MAP = {
     saveLaunch: "Save Launch",
     exportReport: "Export Report",
     demoMode: "Load Demo",
+    deleteLaunch: "Delete launch",
     assistantTitle: "LaunchOps Assistant",
     assistantInputPlaceholder: "Ask assistant or paste brief...",
     assistantSend: "Send",
@@ -4874,6 +4972,22 @@ function updateUILanguage(lang) {
   if (modeProBtn) modeProBtn.textContent = dict.modePro;
 
   // Search & Filters labels
+
+  const runLogTitleEl = document.querySelector("#runLog .title-row h3");
+  if (runLogTitleEl) runLogTitleEl.textContent = dict.runLogTitle;
+
+  const runLogFilter = document.getElementById("runLogFilter");
+  if (runLogFilter) {
+    runLogFilter.options[0].text = dict.runLogFilterAll;
+    runLogFilter.options[1].text = dict.runLogFilterError;
+    runLogFilter.options[2].text = dict.runLogFilterWarn;
+  }
+  const clearRunLogBtn = document.getElementById("clearRunLog");
+  if (clearRunLogBtn) clearRunLogBtn.textContent = dict.runLogClear;
+
+  const copyRunLogBtn = document.getElementById("copyRunLog");
+  if (copyRunLogBtn) copyRunLogBtn.textContent = dict.runLogCopy;
+
   const searchSpan = document.querySelector(".board-search span");
   if (searchSpan) searchSpan.textContent = dict.searchLabel;
   const searchInput = document.getElementById("launchSearch");
@@ -4929,13 +5043,15 @@ function updateUILanguage(lang) {
 
   // Action Buttons
   const analyzeBtn = document.getElementById("analyzeBrief");
-  if (analyzeBtn) analyzeBtn.textContent = dict.runAnalyze;
+  if (analyzeBtn && !document.body.classList.contains("is-analyzing")) analyzeBtn.textContent = dict.runAnalyze;
   const saveBtn = document.getElementById("saveLaunch");
   if (saveBtn) saveBtn.textContent = dict.saveLaunch;
   const exportBtn = document.getElementById("exportReport");
   if (exportBtn) exportBtn.textContent = dict.exportReport;
-  const demoBtn = document.getElementById("loadDemoMode");
+  const demoBtn = document.getElementById("demoMode");
   if (demoBtn) demoBtn.textContent = dict.demoMode;
+  const deleteBtn = document.getElementById("deleteLaunch");
+  if (deleteBtn) deleteBtn.textContent = dict.deleteLaunch;
 
   // Assistant
   const asstKicker = document.querySelector(".assistant-panel .section-kicker");

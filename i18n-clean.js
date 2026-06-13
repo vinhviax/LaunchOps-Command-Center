@@ -45,7 +45,38 @@ const CLEAN_I18N_DICT = {
     helpActionBtn: "Giải thích các nút thao tác launch",
     helpActionTooltip: "Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.",
     helpHistoryBtn: "Giải thích lịch sử phân tích",
-    helpHistoryTooltip: "Mỗi lần bấm Chạy phân tích sẽ lưu một bản ghi. Bấm Mở lại để xem kết quả cũ và so sánh với lần mới."
+    helpHistoryTooltip: "Mỗi lần bấm Chạy phân tích sẽ lưu một bản ghi. Bấm Mở lại để xem kết quả cũ và so sánh với lần mới.",
+    actionDemo: "Demo mode",
+    actionExport: "Tải báo cáo",
+    actionSave: "Lưu launch",
+    actionAnalyze: "Chạy phân tích",
+    actionDelete: "Xóa launch",
+    metricReadiness: "Mức sẵn sàng",
+    metricHistory: "Lịch sử",
+    metricLocal: "Lưu local",
+    formTitle: "Thông tin launch",
+    loadBadBrief: "Nạp Brief Mẫu",
+    labelName: "Tên launch",
+    labelType: "Phân loại",
+    labelStatus: "Trạng thái",
+    labelOwner: "Người phụ trách",
+    labelStart: "Start Launch",
+    labelEnd: "End Launch",
+    statusOptUpcoming: "Sắp chạy",
+    statusOptRunning: "Đang chạy",
+    statusOptCompleted: "Đã chạy",
+    tabBrief: "Tóm tắt",
+    tabAnalysis: "Phân tích",
+    tabChecklist: "Việc cần làm",
+    tabHistory: "Lịch sử",
+    tabLessons: "Bài học",
+    tabLog: "Log",
+    vizKicker: "Friendly mode",
+    vizTitle: "Visualize 5 bước trước khi launch",
+    vizReplay: "Về bước 1",
+    vizPrev: "Trước",
+    vizNext: "Tiếp",
+    vizSteps: ["Đọc brief", "Chấm điểm", "Phản biện", "Việc cần làm", "Bài học"]
   },
   en: {
     introKicker: "Demo Introduction",
@@ -92,7 +123,38 @@ const CLEAN_I18N_DICT = {
     helpActionBtn: "Explain action buttons",
     helpActionTooltip: "Demo mode: load a mock brief to record a demo. Export report: download the Markdown report for this launch. Save launch: save metadata and brief. Run Analysis: send brief to backend/AI to generate readiness, red team, and checklist.",
     helpHistoryBtn: "Explain analysis history",
-    helpHistoryTooltip: "Every Run Analysis click saves a record. Click Reopen to load history and compare with the latest run."
+    helpHistoryTooltip: "Every Run Analysis click saves a record. Click Reopen to load history and compare with the latest run.",
+    actionDemo: "Demo mode",
+    actionExport: "Export report",
+    actionSave: "Save launch",
+    actionAnalyze: "Run analysis",
+    actionDelete: "Delete launch",
+    metricReadiness: "Readiness",
+    metricHistory: "History",
+    metricLocal: "Saved locally",
+    formTitle: "Launch info",
+    loadBadBrief: "Load Sample Brief",
+    labelName: "Launch name",
+    labelType: "Type",
+    labelStatus: "Status",
+    labelOwner: "Owner",
+    labelStart: "Start Launch",
+    labelEnd: "End Launch",
+    statusOptUpcoming: "Upcoming",
+    statusOptRunning: "Running",
+    statusOptCompleted: "Completed",
+    tabBrief: "Brief",
+    tabAnalysis: "Analysis",
+    tabChecklist: "To-do",
+    tabHistory: "History",
+    tabLessons: "Lessons",
+    tabLog: "Log",
+    vizKicker: "Friendly mode",
+    vizTitle: "Visualize the 5 pre-launch steps",
+    vizReplay: "Back to step 1",
+    vizPrev: "Back",
+    vizNext: "Next",
+    vizSteps: ["Read brief", "Scoring", "Red team", "To-do", "Lessons"]
   }
 };
 
@@ -229,6 +291,78 @@ function applyCleanTranslations(lang) {
     histHelpBtn.setAttribute("aria-label", dict.helpHistoryBtn);
     histHelpBtn.setAttribute("data-tooltip", dict.helpHistoryTooltip);
   }
+
+  // Action buttons (bỏ qua khi đang bận để không stomp text trạng thái của app.js)
+  const setButtonText = (id, text) => {
+    const btn = document.getElementById(id);
+    if (btn && !btn.disabled) btn.textContent = text;
+  };
+  setButtonText("demoMode", dict.actionDemo);
+  setButtonText("exportReport", dict.actionExport);
+  setButtonText("saveLaunch", dict.actionSave);
+  if (!document.body.classList.contains("is-analyzing")) setButtonText("analyzeBrief", dict.actionAnalyze);
+  setButtonText("deleteLaunch", dict.actionDelete);
+
+  // Hero metrics labels (giữ help-button bên trong span)
+  const setLabelKeepHelp = (span, text) => {
+    if (!span) return;
+    const help = span.querySelector(".help-button");
+    span.textContent = `${text} `;
+    if (help) span.appendChild(help);
+  };
+  setLabelKeepHelp(document.querySelector("#readinessMetric > span"), dict.metricReadiness);
+  const historyMetric = document.querySelector(".hero-metrics .metric:nth-child(2)");
+  if (historyMetric) {
+    setLabelKeepHelp(historyMetric.querySelector(":scope > span"), dict.metricHistory);
+    const localNote = historyMetric.querySelector(":scope > small");
+    if (localNote) localNote.textContent = dict.metricLocal;
+  }
+
+  // Form thông tin launch
+  const formTitle = document.querySelector("#briefView .card-head .title-row h3");
+  if (formTitle) formTitle.textContent = dict.formTitle;
+  setButtonText("loadBadBrief", dict.loadBadBrief);
+  const fieldLabel = (inputId) => document.getElementById(inputId)?.closest(".field")?.querySelector(":scope > span");
+  setLabelKeepHelp(fieldLabel("launchName"), dict.labelName);
+  setLabelKeepHelp(fieldLabel("launchType"), dict.labelType);
+  setLabelKeepHelp(fieldLabel("launchStatus"), dict.labelStatus);
+  setLabelKeepHelp(fieldLabel("launchOwner"), dict.labelOwner);
+  setLabelKeepHelp(fieldLabel("launchTargetDate"), dict.labelStart);
+  setLabelKeepHelp(fieldLabel("launchEndDate"), dict.labelEnd);
+  const launchStatusSelect = document.getElementById("launchStatus");
+  if (launchStatusSelect) {
+    [...launchStatusSelect.options].forEach((opt) => {
+      if (opt.value === "upcoming") opt.text = dict.statusOptUpcoming;
+      if (opt.value === "running") opt.text = dict.statusOptRunning;
+      if (opt.value === "completed") opt.text = dict.statusOptCompleted;
+    });
+  }
+
+  // Tabs theo data-view
+  const tabDict = {
+    briefView: dict.tabBrief,
+    redTeam: dict.tabAnalysis,
+    checklist: dict.tabChecklist,
+    history: dict.tabHistory,
+    lessons: dict.tabLessons,
+    runLog: dict.tabLog
+  };
+  document.querySelectorAll(".tabs .tab").forEach((tab) => {
+    const text = tabDict[tab.dataset.view];
+    if (text) tab.textContent = text;
+  });
+
+  // Friendly visualize statics
+  const vizKicker = document.querySelector(".friendly-viz-kicker");
+  if (vizKicker) vizKicker.textContent = dict.vizKicker;
+  const vizTitle = document.querySelector(".friendly-viz-head h3");
+  if (vizTitle) vizTitle.textContent = dict.vizTitle;
+  setButtonText("friendlyVizReplay", dict.vizReplay);
+  setButtonText("friendlyVizPrev", dict.vizPrev);
+  setButtonText("friendlyVizNext", dict.vizNext);
+  document.querySelectorAll("#friendlyVisualize .friendly-viz-step b").forEach((label, index) => {
+    if (dict.vizSteps[index]) label.textContent = dict.vizSteps[index];
+  });
 }
 
 // Bind language elements on early load and window triggers
@@ -236,8 +370,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const viBtn = document.getElementById("langViBtn");
   const enBtn = document.getElementById("langEnBtn");
 
-  if (viBtn) viBtn.addEventListener("click", () => applyCleanTranslations("vi"));
-  if (enBtn) enBtn.addEventListener("click", () => applyCleanTranslations("en"));
+  const applyAndRerender = (lang) => {
+    applyCleanTranslations(lang);
+    // app.js re-render các chuỗi động (group titles, chips, score color...)
+    if (typeof window.launchopsOnLanguageApplied === "function") window.launchopsOnLanguageApplied();
+  };
+  if (viBtn) viBtn.addEventListener("click", () => applyAndRerender("vi"));
+  if (enBtn) enBtn.addEventListener("click", () => applyAndRerender("en"));
 
   applyCleanTranslations(activeLang);
 
