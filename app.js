@@ -4549,7 +4549,7 @@ function closeProductSelect() {
 }
 
 function selectProduct(id) {
-  if (id !== "demo") return; // Crossfire Legends is locked in this demo
+  if (id !== "demo") return; // Product XYZ is locked in this demo
   try { localStorage.setItem("launchops_product", id); } catch (error) {}
   closeProductSelect();
 }

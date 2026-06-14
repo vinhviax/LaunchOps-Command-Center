@@ -99,7 +99,8 @@ const CLEAN_I18N_DICT = {
     productDemoDesc: "Bản demo dùng chung — đầy đủ phân loại mẫu (game event, marketing, feature release...).",
     productDemoCta: "Vào →",
     productLockBadge: "Sắp có",
-    productCrossfireDesc: "Bộ phân loại & template riêng cho Crossfire Legends. Đang khóa trong bản demo này.",
+    productLockedTitle: "Sản Phẩm XYZ",
+    productLockedDesc: "Bộ phân loại & template riêng cho Sản Phẩm XYZ. Đang khóa trong bản demo này.",
     productLockedCta: "Đã khóa"
   },
   en: {
@@ -201,7 +202,8 @@ const CLEAN_I18N_DICT = {
     productDemoDesc: "Shared demo build — full sample classifications (game event, marketing, feature release...).",
     productDemoCta: "Enter →",
     productLockBadge: "Coming soon",
-    productCrossfireDesc: "Dedicated classifications & templates for Crossfire Legends. Locked in this demo.",
+    productLockedTitle: "Product XYZ",
+    productLockedDesc: "Dedicated classifications & templates for Product XYZ. Locked in this demo.",
     productLockedCta: "Locked"
   }
 };
@@ -512,7 +514,8 @@ function applyCleanTranslations(lang) {
   setTextById("productDemoDesc", dict.productDemoDesc);
   setTextById("productDemoCta", dict.productDemoCta);
   setTextById("productLockBadge", dict.productLockBadge);
-  setTextById("productCrossfireDesc", dict.productCrossfireDesc);
+  setTextById("productLockedTitle", dict.productLockedTitle);
+  setTextById("productLockedDesc", dict.productLockedDesc);
   setTextById("productLockedCta", dict.productLockedCta);
 }
 
