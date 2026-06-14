@@ -617,6 +617,56 @@ class RoleAwareMemoryTests(unittest.TestCase):
         self.assertIn("/launchops/knowledge/game-event-h5", captured)
 
 
+class SixLlmAgentTests(unittest.TestCase):
+    """WS5: memory + orchestrator become real LLM agents -> 6 agents in the analyze pipeline."""
+
+    def test_memory_agent_distill_llm_accepted(self):
+        recs = [{"lesson": "[role=all] luôn cần reward cap"}, {"lesson": "[role=redteam] coi chừng farm"}]
+        with patch.dict(os.environ, {"LAUNCHOPS_MEMORY_LLM_ENABLED": "true"}), \
+                patch.object(app, "call_llm_raw", return_value=({"insight": "Cần reward cap + chống farm."}, {"source": "llm", "model": "m", "latencyMs": 50, "schemaAccepted": True})):
+            insight, trace = app.memory_agent_distill("Lucky Wheel", recs)
+        self.assertEqual(insight, "Cần reward cap + chống farm.")
+        self.assertEqual(trace["agent"], "memory")
+        self.assertEqual(trace["source"], "llm")
+
+    def test_memory_agent_distill_fallback(self):
+        recs = [{"lesson": "x"}]
+        with patch.dict(os.environ, {"LAUNCHOPS_MEMORY_LLM_ENABLED": "true"}), \
+                patch.object(app, "call_llm_raw", return_value=(None, {"source": "fallback", "model": "m", "latencyMs": 0, "schemaAccepted": False, "fallbackReason": "timeout"})):
+            insight, trace = app.memory_agent_distill("Lucky Wheel", recs)
+        self.assertEqual(insight, "")
+        self.assertEqual(trace["source"], "fallback")
+        self.assertEqual(trace["fallbackReason"], "timeout")
+
+    def test_memory_agent_no_knowledge_is_rule(self):
+        insight, trace = app.memory_agent_distill("Lucky Wheel", [])
+        self.assertEqual(trace["source"], "rule")
+
+    def test_orchestrator_agent_summary_llm_accepted(self):
+        base = app.fallback_result("base")
+        with patch.dict(os.environ, {"LAUNCHOPS_ORCHESTRATOR_LLM_ENABLED": "true"}), \
+                patch.object(app, "call_llm_raw", return_value=({"goNoGo": "No-Go", "executiveSummary": "Chưa nên launch.", "topActions": ["a", "b"]}, {"source": "llm", "model": "m", "latencyMs": 60, "schemaAccepted": True})):
+            summary, trace = app.orchestrator_agent_summary("Lucky Wheel", base)
+        self.assertEqual(summary["goNoGo"], "No-Go")
+        self.assertEqual(trace["agent"], "orchestrator")
+        self.assertEqual(trace["source"], "llm")
+
+    def test_orchestrate_pipeline_has_six_agent_traces(self):
+        # Rule mode (no LLM): memory + orchestrator still appear in the trace (rule/fallback), proving 6 agents.
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "false", "LAUNCHOPS_MULTI_MODEL_ENABLED": "false", "LAUNCHOPS_RAG_ENABLED": "false"}, clear=True):
+            result = app.orchestrate_launchops_analysis("Lucky Wheel. No owner, no rollback, no CS FAQ.")
+        agents = [t.get("agent") for t in result.get("agentsTrace", []) if t.get("agent") in ("readiness", "red_team", "checklist", "postmortem", "memory", "orchestrator")]
+        for a in ("readiness", "red_team", "checklist", "postmortem", "memory", "orchestrator"):
+            self.assertIn(a, agents)
+
+    def test_fast_path_skips_memory_and_orchestrator(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_LLM_ENABLED": "false", "LAUNCHOPS_MULTI_MODEL_ENABLED": "false"}, clear=True):
+            result = app.orchestrate_launchops_analysis("Lucky Wheel no owner", force_fast=True)
+        agents = [t.get("agent") for t in result.get("agentsTrace", [])]
+        self.assertNotIn("memory", agents)
+        self.assertNotIn("orchestrator", agents)
+
+
 class GuardrailTests(unittest.TestCase):
     """WS3: enforce guardrail — reject hard secrets, mask soft PII."""
 

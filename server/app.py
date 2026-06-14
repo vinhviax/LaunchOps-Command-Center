@@ -2323,6 +2323,12 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
     if not force_fast and rag_enabled():
         knowledge, rag_trace = recall_knowledge(brief, product_context.get("launchType", ""), product_context.get("gameId", ""))
     launch_context["knowledge"] = knowledge
+    # WS5 Memory agent: LLM distills recalled knowledge into a grounded insight (skip on fast path).
+    memory_agent_trace = None
+    if not force_fast:
+        insight, memory_agent_trace = memory_agent_distill(brief, knowledge)
+        if insight:
+            launch_context["knowledgeInsight"] = insight
     result = readiness_agent(brief, launch_context, force_fast=force_fast)
     result["productContext"] = product_context
     result["memoryTrace"] = product_context.get("memoryTrace", {})
@@ -2330,6 +2336,14 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
     result = red_team_agent(result, launch_context, force_fast=force_fast)
     result = checklist_agent(result, launch_context, force_fast=force_fast)
     result = postmortem_agent(result, launch_context, force_fast=force_fast)
+    # WS5 Memory + Orchestrator agents complete the 6-agent LLM pipeline.
+    if memory_agent_trace is not None:
+        result.setdefault("trace", []).append(memory_agent_trace)
+    if not force_fast:
+        summary, orch_trace = orchestrator_agent_summary(brief, result)
+        if summary:
+            result["executiveSummary"] = summary
+        result.setdefault("trace", []).append(orch_trace)
     result["agentsTrace"] = result.get("trace", [])
     result["source"] = result.get("source", "rule")
     result["llmRouting"] = {
@@ -2607,10 +2621,13 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
         else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
     )
 
-    # WS1 RAG + WS2 role-aware: each agent recalls the knowledge slice tagged for its role (+ untagged/all).
+    # WS1 RAG + WS2 role-aware + WS5 distilled insight: ground each agent in recalled knowledge.
     knowledge_records = launch_context.get("knowledge") if isinstance(launch_context.get("knowledge"), list) else []
+    knowledge_insight = str(launch_context.get("knowledgeInsight") or "").strip()
     role = agent_step_role(agent_step)  # "" for default/full -> keep all
     knowledge_block = ""
+    if knowledge_insight:
+        knowledge_block = f"\nInsight tổng hợp từ Memory agent (RAG đã distill, ưu tiên dùng):\n{knowledge_insight}\n"
     if knowledge_records:
         lines = []
         for rec in knowledge_records:
@@ -2626,7 +2643,7 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
             if len(lines) >= 5:
                 break
         if lines:
-            knowledge_block = (
+            knowledge_block += (
                 "\nPlaybook / bài học liên quan (RAG, dùng để phản biện sâu hơn, KHÔNG copy nguyên văn):\n"
                 + "\n".join(lines)
                 + "\n"
@@ -3165,6 +3182,129 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
         return result
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
+
+
+# WS5: generic LLM JSON call for the memory + orchestrator agents (no deterministic post-processing).
+def call_llm_raw(prompt: str, agent_step: str | None = None) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    config = llm_config_for_step(agent_step)
+    api_key = config["apiKey"]
+    base_url = config["baseUrl"]
+    model = config["model"]
+    timeout = int(config["timeoutSeconds"])
+
+    def _meta(source: str, schema_accepted: bool, latency_ms: float, fallback_reason: str = "") -> dict[str, Any]:
+        m: dict[str, Any] = {"source": source, "model": model or "not_configured", "latencyMs": int(latency_ms), "schemaAccepted": bool(schema_accepted)}
+        if fallback_reason:
+            m["fallbackReason"] = fallback_reason
+        return m
+
+    if not api_key or not base_url or not model:
+        return None, _meta("fallback", False, 0, "missing_config")
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "Bạn chỉ trả về JSON hợp lệ theo schema người dùng yêu cầu."},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0,
+    }
+    request = urllib.request.Request(
+        chat_completions_url(base_url),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) LaunchOpsCommandCenter/0.1",
+        },
+        method="POST",
+    )
+
+    def perform() -> dict[str, Any]:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read().decode("utf-8")
+        content = json.loads(raw)["choices"][0]["message"]["content"]
+        return extract_json(content)
+
+    start = time.time()
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(perform)
+    try:
+        data = future.result(timeout=timeout + 5)
+        return data, _meta("llm", True, (time.time() - start) * 1000)
+    except FutureTimeoutError:
+        write_backend_log(f"LLM raw call timeout for {agent_step}")
+        return None, _meta("fallback", False, (time.time() - start) * 1000, "timeout")
+    except Exception as exc:
+        code = getattr(exc, "code", None)
+        reason = f"http_{code}" if code else type(exc).__name__
+        write_backend_log(f"LLM raw call failed for {agent_step}: {reason}")
+        return None, _meta("fallback", False, (time.time() - start) * 1000, reason)
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
+def memory_llm_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_MEMORY_LLM_ENABLED", "true")
+
+
+def orchestrator_llm_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_ORCHESTRATOR_LLM_ENABLED", "true")
+
+
+def memory_agent_distill(brief: str, knowledge_records: list[dict[str, Any]]) -> tuple[str, dict[str, Any]]:
+    """WS5 Memory agent: LLM distills recalled knowledge into a short grounded insight. Returns (insight, trace)."""
+    n = len(knowledge_records)
+    if not knowledge_records or not memory_llm_enabled():
+        return "", _agent_trace("memory", "memory", "rule", None, recordsRecalled=n)
+    lines = []
+    for rec in knowledge_records[:6]:
+        raw = str(rec.get("lesson") or rec.get("memory") or rec.get("content") or rec.get("text") or "")
+        _, clean = parse_record_role(raw)
+        if clean:
+            lines.append("- " + clean[:300])
+    lang = "tiếng Việt" if detect_brief_language(brief) == "vi" else "English"
+    prompt = (
+        "Bạn là Memory Retriever Agent của LaunchOps. Dưới đây là bài học/playbook recall được cho launch brief.\n"
+        f"Tổng hợp thành 2-4 câu insight ngắn gọn ({lang}), nêu rủi ro/điều cần chú ý nhất, KHÔNG copy nguyên văn.\n"
+        f"Brief: {brief}\nBài học:\n" + "\n".join(lines) + "\nChỉ trả JSON: {\"insight\": \"string\"}"
+    )
+    data, meta = call_llm_raw(prompt, "memory")
+    insight = str((data or {}).get("insight") or "").strip()
+    if meta.get("source") == "llm" and insight:
+        return insight, _agent_trace("memory", "memory", "llm", meta, recordsRecalled=n)
+    reason = meta.get("fallbackReason") or ("empty_insight" if meta.get("source") == "llm" else "llm_unavailable")
+    return "", _agent_trace("memory", "memory", "fallback", {**meta, "fallbackReason": reason, "schemaAccepted": False}, recordsRecalled=n)
+
+
+def orchestrator_agent_summary(brief: str, result: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """WS5 Orchestrator agent: LLM writes an executive go/no-go synthesis across all agent outputs."""
+    if not orchestrator_llm_enabled():
+        return None, _agent_trace("orchestrator", "orchestrator", "rule", None)
+    decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
+    risks = [str(x) for x in (result.get("topRisks") or [])[:3]]
+    worries = [str(c.get("worry") or "") for c in (result.get("redTeam") or [])[:5] if isinstance(c, dict)]
+    tasks = [str(t.get("task") or "") for t in (result.get("checklist") or [])[:5] if isinstance(t, dict)]
+    lang = "tiếng Việt" if detect_brief_language(brief) == "vi" else "English"
+    prompt = (
+        "Bạn là Mission Control (Orchestrator) của LaunchOps, tổng hợp điều hành từ kết quả các agent.\n"
+        f"Viết {lang}, ngắn gọn cho người ra quyết định.\n"
+        f"Readiness: {decision.get('color')} {decision.get('score')}/{decision.get('maxScore')} - {decision.get('reason', '')}\n"
+        f"Top risks: {risks}\nRed Team worries: {worries}\nChecklist: {tasks}\n"
+        "Chỉ trả JSON: {\"goNoGo\": \"Go|No-Go|Conditional\", \"executiveSummary\": \"3-5 câu\", \"topActions\": [\"string\", \"string\", \"string\"]}"
+    )
+    data, meta = call_llm_raw(prompt, "orchestrator")
+    if meta.get("source") == "llm" and isinstance(data, dict) and str(data.get("executiveSummary") or "").strip():
+        summary = {
+            "goNoGo": str(data.get("goNoGo") or "").strip(),
+            "executiveSummary": str(data.get("executiveSummary") or "").strip(),
+            "topActions": [str(a).strip() for a in (data.get("topActions") or []) if str(a).strip()][:5],
+        }
+        return summary, _agent_trace("orchestrator", "orchestrator", "llm", meta)
+    reason = meta.get("fallbackReason") or ("empty_summary" if meta.get("source") == "llm" else "llm_unavailable")
+    return None, _agent_trace("orchestrator", "orchestrator", "fallback", {**meta, "fallbackReason": reason, "schemaAccepted": False})
+
 
 def assistant_fallback_reply(message: str, context: dict[str, Any] | None = None, local_reply: str = "") -> str:
     text = str(message or "").strip()
