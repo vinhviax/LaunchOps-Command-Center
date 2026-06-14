@@ -1,192 +1,178 @@
 # LaunchOps Command Center
 
-> Cập nhật: 14/06/2026 — bản production đang chạy: image `v19`, runtime version 23 trên VNG AgentBase.
+> Cập nhật: 14/06/2026 — production đang chạy trên VNG AgentBase, image `v26`, runtime version 32, storage backend `cloud`.
 
-LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**: đọc launch brief (sự kiện game, campaign marketing, release tính năng, hotfix...), chấm điểm readiness Green/Yellow/Red, phản biện bằng Red Team 5 persona, sinh checklist có owner/deadline/priority và chuẩn bị post-mortem để team học lại sau mỗi lần launch.
+LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**. Người dùng dán launch brief, hệ thống chấm readiness Green/Yellow/Red, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, viết post-mortem questions và lưu bài học cho các lần launch sau.
 
 **Demo live:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
+## Trạng thái hiện tại
+
+| Thành phần | Trạng thái |
+|---|---|
+| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 32, ACTIVE |
+| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v26` |
+| Web/API/MCP endpoint | Public HTTPS endpoint ở trên |
+| Storage | VNG vDB/PostgreSQL qua `LAUNCHOPS_STORAGE_BACKEND=cloud` |
+| Memory | AgentBase Memory `launchops-memory` + knowledge store `launchops-knowledge` |
+| RAG | Production dùng Memory semantic search; Platform RAG Engine `launchops-rag` đã tạo sẵn |
+| Governance | App guardrail ON, app rate limit ON, platform Guardrail/Rate Limit đã tạo |
+| MCP | Gateway `launchops-server`, target `launchops_server_mcp`, tools `lcc` + workspace CRUD |
+
 ## Kiến trúc
 
-Toàn bộ chạy trong **1 Docker image duy nhất** (`python:3.11-slim`, không framework; core dùng stdlib, cloud Postgres dùng `psycopg` tùy chọn), deploy lên VNG AgentBase Agent Runtime:
+Toàn bộ app chạy trong **một Docker image Python duy nhất**. Backend dùng `ThreadingHTTPServer`, không framework web; UI là HTML/CSS/vanilla JS, không build step.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  AgentBase Runtime (port 8080, public endpoint HTTPS)        │
-│  server/app.py — ThreadingHTTPServer                         │
-│                                                              │
-│  GET  /                  → Web UI (Pro / Friendly, VI/EN)    │
-│  GET  /health            → healthcheck (Service Contract)    │
-│  POST /api/analyze       → pipeline 5 agent LLM (~90-120s)   │
-│  POST /api/assistant     → chatbot 1 call LLM (~3s)          │
-│  POST /api/launches/...  → CRUD launch + analyze per launch  │
-│  POST /mcp               → MCP streamable-http (JSON-RPC)    │
-│  GET/DELETE /mcp         → 405 (đúng spec, KHÔNG đổi)        │
-│  POST /webhooks/telegram, /webhooks/zalo                     │
-└─────────────────────────────────────────────────────────────┘
-        ▲                              ▲
-        │ HTTPS                        │ MCP qua Gateway (IAM)
-   Người dùng web              MCP Gateway `launchops-server`
-                                       ▲
-                               OpenClaw (chỉ hỗ trợ stdio)
-                               → bridge: npx mcp-remote <url>/mcp
+```text
+User Browser / Reviewer
+        |
+        v
+AgentBase Runtime HTTPS endpoint
+        |
+        +-- GET  /                  -> Web UI Pro/Friendly
+        +-- POST /api/analyze       -> full LaunchOps analysis
+        +-- POST /api/assistant     -> chatbot
+        +-- POST /api/launches/...  -> launch CRUD + saved analysis
+        +-- POST /mcp               -> MCP JSON-RPC
+        +-- GET/DELETE /mcp         -> 405 by spec
+        |
+        +-- VNG MaaS LLM models
+        +-- VNG vDB/PostgreSQL
+        +-- AgentBase Memory
+        +-- AgentBase MCP Gateway
 ```
 
-## Pipeline 5 agent (multi-model)
+Production hiện chạy dạng **monolith orchestrator** để demo ổn định. Code đã có contract `POST /invocations` và `LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory` để tách thành nhiều AgentBase runtimes khi cần. Năm child runtimes và một canary orchestrator đã được tạo/verify, nhưng production chính vẫn dùng một runtime duy nhất để giảm rủi ro vận hành.
 
-Mỗi agent gọi một model riêng qua **API OpenAI-compatible** (`/v1/chat/completions`) trên VNG MaaS — đổi model chỉ cần đổi env, không sửa code:
+## Pipeline 6 LLM agents
 
-| Agent | Env | Model hiện tại |
+Luồng full `/api/analyze` dùng 6 agent LLM thật, mỗi agent có vai trò rõ và trace riêng:
+
+| Agent | Vai trò | Model hiện tại |
 |---|---|---|
-| Readiness | `LAUNCHOPS_MODEL_READINESS` | `deepseek/deepseek-v4-pro` |
-| Red Team | `LAUNCHOPS_MODEL_REDTEAM` | `minimax/minimax-m2.5` |
-| Checklist | `LAUNCHOPS_MODEL_CHECKLIST` | `qwen/qwen3.7-plus` |
-| Post-mortem | `LAUNCHOPS_MODEL_POSTMORTEM` | `google/gemma-4-31b-it` |
-| Assistant (chatbot) | `LAUNCHOPS_MODEL_ASSISTANT` | `deepseek/deepseek-v4-flash` |
+| Readiness | Chấm Green/Yellow/Red, giải thích rủi ro | `deepseek/deepseek-v4-pro` |
+| Red Team | Phản biện 5 persona | `minimax/minimax-m2.5` |
+| Checklist | Sinh việc cần làm có owner/deadline | `qwen/qwen3.7-plus` |
+| Post-mortem | Gợi ý câu hỏi/report sau launch | `google/gemma-4-31b-it` |
+| Memory | Tóm tắt bài học/RAG thành insight | `qwen/qwen3.7-plus` |
+| Orchestrator | Tổng hợp go/no-go executive summary | `qwen/qwen3.7-plus` |
 
-- Response API có `trace` + `agentsTrace` chứng minh từng agent đã chạy với model nào.
-- Điểm readiness cuối cùng luôn được tính lại bằng **rule cố định** (deterministic) — LLM chỉ giải thích rủi ro, không tự chấm điểm tùy hứng.
-- Nếu LLM lỗi/timeout, từng agent tự fallback về rule local — pipeline không bao giờ chết giữa chừng.
-- `POST /mcp tools/call` dùng **fast path deterministic (<1s)** để không vượt timeout 15s của MCP Gateway; `/api/analyze` mới chạy full LLM.
-- MCP giữ 2 tool phân tích cũ: `analyze_launch_brief` (backward-compatible) và alias ngắn `lcc`.
-- MCP cũng expose tool thao tác LaunchOps từ OpenClaw/Zalo: `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch` (cần confirm), `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, `lcc_set_launch_template`.
+Assistant chatbot là luồng LLM riêng, dùng `deepseek/deepseek-v4-flash`.
 
-## Chuẩn bị tách runtime AgentBase
+Điểm readiness cuối cùng vẫn được tính bằng rubric deterministic để không bị model chấm tùy hứng. LLM dùng để giải thích, phản biện và tổng hợp. Nếu model lỗi, timeout hoặc trả schema sai, agent fallback về rule local và ghi rõ trong `agentsTrace`.
 
-Production hiện vẫn chạy **1 runtime orchestrator** để giữ demo ổn định. Code đã có contract nhỏ cho Phase 4 để cùng một image có thể chạy nhiều runtime độc lập bằng env:
+## RAG, Memory và Cloud DB
 
-```text
-LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory
-```
+- `launchops-knowledge`: knowledge store cho RAG, chứa playbook/risk pattern theo launch type và product namespace.
+- `launchops-memory`: memory store cho bài học, post-result và context theo actor/session.
+- `launchops-rag`: Platform RAG Engine đã tạo sẵn, hiện dùng như tài nguyên platform dự phòng vì module Knowledge base/Tool của RAG chưa attach dữ liệu được trong flow này.
+- VNG vDB/PostgreSQL lưu launch, product, template, analysis history và postmortem; local JSON/SQLite vẫn là fallback/dev mode.
 
-- `GET /health` trả thêm `role`.
-- `POST /invocations` dispatch theo `LAUNCHOPS_AGENT_ROLE`.
-- Runtime con nhận payload chung: `requestId`, `brief`, `launch`, `productContext`, `previousResults`.
-- Response chung: `ok`, `agent`, `role`, `requestId`, `result`, `trace`, `fallback`, `error`.
-- `/api/analyze`, Web UI và MCP mặc định vẫn đi qua pipeline cũ trong orchestrator.
-- Chỉ bật điều phối runtime con sau khi endpoint đã verify:
+Rollback nhanh nếu DB lỗi: đổi `LAUNCHOPS_STORAGE_BACKEND=local`. Rollback nhanh nếu Memory lỗi: đổi `LAUNCHOPS_MEMORY_ENABLED=false`.
 
-```text
-LAUNCHOPS_USE_REMOTE_AGENTS=true
-LAUNCHOPS_READINESS_URL=https://...
-LAUNCHOPS_REDTEAM_URL=https://...
-LAUNCHOPS_CHECKLIST_URL=https://...
-LAUNCHOPS_POSTMORTEM_URL=https://...
-LAUNCHOPS_MEMORY_URL=https://...
-LAUNCHOPS_AGENT_TIMEOUT_SECONDS=75
-LAUNCHOPS_AGENT_INVOCATION_TOKEN=<optional shared bearer token>
-```
+## Guardrail và Rate Limit
 
-Nếu thiếu URL hoặc runtime con lỗi, orchestrator fallback riêng agent đó về logic local và ghi lý do vào `agentsTrace`.
+LaunchOps có hai lớp bảo vệ:
 
-## Memory
+- **App-level guardrail:** reject private key/credential/payment secret, mask email/phone trước khi gọi LLM hoặc ghi memory.
+- **App-level rate limit:** giới hạn expensive analyze path, đang bật production ở mức 50 requests/phút và 1000 requests/ngày; MCP fast path được exempt.
+- **Platform Guardrail/Rate Limit:** đã tạo trên Protect & Govern để bảo vệ phía MaaS/model access.
 
-App có đường tích hợp **AgentBase Memory** sau feature flag:
+Platform Policy Gateway chưa bật vì rule sai có thể chặn nhầm MCP/OpenClaw. Phần này sẽ làm cuối với policy allow rộng trước rồi mới siết.
 
-- `LAUNCHOPS_MEMORY_ENABLED=true`
-- `LAUNCHOPS_MEMORY_ID=<memory-id>`
-- `LAUNCHOPS_MEMORY_STRATEGY_ID=<strategy-id>`
-- `LAUNCHOPS_MEMORY_NAMESPACE_MODE=actor|session|product|global`
+## MCP và OpenClaw
 
-Khi bật, backend recall long-term memory records trước khi phân tích và trả `memoryTrace` trong response. Nếu Memory lỗi, thiếu cấu hình hoặc thiếu header `X-GreenNode-AgentBase-User-Id` / `X-GreenNode-AgentBase-Session-Id`, app tự fallback về SQLite lessons local, không làm chết `/api/analyze`. Muốn demo không có header có thể bật `LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED=true`, nhưng production nên để `false` để tránh trộn memory nhiều user.
+Endpoint `/mcp` hỗ trợ streamable HTTP JSON-RPC:
 
-Rollback nhanh: đặt `LAUNCHOPS_MEMORY_ENABLED=false` để quay về local lessons.
+- `initialize`
+- `notifications/initialized`
+- `ping`
+- `tools/list`
+- `tools/call`
 
-## Cloud DB
+`GET /mcp` và `DELETE /mcp` trả `405` đúng spec, không được đổi.
 
-Launch data mặc định vẫn dùng local JSON/SQLite để demo offline. Nếu có VNG vDB/Postgres, bật:
+Các tool chính:
 
-```text
-LAUNCHOPS_STORAGE_BACKEND=cloud
-LAUNCHOPS_DB_URL=postgresql://USER:PASSWORD@RW_ENDPOINT:5432/DBNAME?sslmode=require
-```
+- `lcc`: phân tích nhanh deterministic cho MCP/OpenClaw, tránh timeout gateway.
+- `analyze_launch_brief`: tool cũ, giữ backward-compatible.
+- `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch`.
+- `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, `lcc_set_launch_template`.
 
-Dùng RW endpoint trong VNG vDB `Connectivity & Security` → `Endpoint & Port`. Không commit DB URL thật; nếu cloud DB lỗi, đặt `LAUNCHOPS_STORAGE_BACKEND=local` để rollback.
+OpenClaw có thể kết nối qua `npx mcp-remote <endpoint>/mcp`.
 
 ## Web UI
 
-- **2 mode:** Pro (dashboard đầy đủ) và Friendly (NPC hướng dẫn + visualize từng bước, đọc DOM thật của Pro). Mặc định mở Friendly.
-- **Tab Log (chỉ Admin):** mở URL với `?role=admin` để hiện tab Log — nhật ký client (save → gọi API → kết quả/timeout) + server trace (agent nào chạy model nào, fallback ở đâu) cho từng launch. Tắt bằng `?role=human`. Người xem demo bằng URL thường không thấy tab này.
-- Phân tích từ web mất **~90–120 giây** (4 lần gọi LLM tuần tự) — timeout client đặt 240s.
-- VI/EN switch, responsive, cache-bust bằng query `?v=` trong `index.html`.
-
-## OpenClaw qua MCP
-
-OpenClaw 2026.3.23 chỉ hỗ trợ MCP **stdio**, nên kết nối qua bridge `mcp-remote`:
-
-```
-openclaw mcp set launchops_gateway '{"command":"npx","args":["-y","mcp-remote","https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/mcp"]}'
-# rồi gõ /restart trong OpenClaw
-```
-
-Lưu ý server-side: phải giữ đầy đủ MCP handshake (`initialize` → `notifications/initialized` → `tools/list` → `tools/call`) và trả **405** cho `GET`/`DELETE /mcp` theo spec streamable-http (chi tiết trong `server/app.py`).
-
-Tool Zalo/OpenClaw có thể đọc/ghi dữ liệu giống Web UI:
-
-- `lcc_list_launches`: xem danh sách launch đã lưu.
-- `lcc_get_launch`: lấy launch theo id hoặc tên gần đúng.
-- `lcc_create_launch`: tạo launch mới từ chat.
-- `lcc_update_launch`: sửa metadata/brief/status/owner.
-- `lcc_analyze_launch`: phân tích launch đã lưu và append kết quả vào history.
-- `lcc_list_types` / `lcc_get_type` / `lcc_create_type`: xem hoặc thêm phân loại launch.
-- `lcc_set_launch_template`: gắn template/risk groups/persona/checklist riêng cho launch.
-- `lcc_delete_launch`: chỉ xóa khi có `confirm="DELETE <launchId>"`.
-
-## Chatbot commands
-
-Lệnh chính dùng namespace `lcc`:
-
-```text
-lcc help
-lcc status
-lcc list
-lcc config
-lcc analyze <brief>
-lcc report <brief>
-lcc guardrail <brief>
-lcc infra <brief>
-```
-
-Các lệnh cũ như `status`, `analyze <brief>`, `report <brief>` vẫn hoạt động tạm trong 1 version và sẽ gợi ý chuyển sang `lcc ...`. Nếu người dùng dán một brief dài không có lệnh, bot tự chạy phân tích. Bot cũng hiểu vài câu tự nhiên như "kiểm tra brief này", "đánh giá launch này", "red team giúp tôi", "tạo checklist", "viết report", "brief này có rủi ro gì".
+- **Friendly mode:** trải nghiệm mặc định cho reviewer, có hướng dẫn và visualize theo từng bước.
+- **Pro mode:** dashboard đầy đủ cho người vận hành, có readiness, red team, checklist, postmortem, RAG insight và trace.
+- **Admin log:** mở bằng `?role=admin`, dùng để xem client events và server trace theo từng launch.
+- **VI/EN:** UI có chuyển ngữ, output LLM theo ngôn ngữ của brief.
+- **Responsive:** mobile overflow đã xử lý; desktop UI/UX giữ nguyên.
 
 ## Chạy local
 
 ```bash
-# Cách 1: rule mode (nhanh, không cần LLM) — khuyên dùng khi dev UI
+# Rule mode nhanh, không cần API key
 LAUNCHOPS_LLM_ENABLED=false PORT=8788 python server/app.py
 
-# Cách 2: full LLM — cần .env có LAUNCHOPS_AGENTBASE_API_KEY + BASE_URL
+# Full mode, cần .env có MaaS/AgentBase config
 PORT=8788 python server/app.py
 ```
 
-Mở `http://127.0.0.1:8788/` — UI và API cùng origin. Mẫu env: `.env.example`.
+Mở `http://127.0.0.1:8788/`.
 
-## Deploy lên AgentBase
+## Env quan trọng
 
-1. Build + push image: `docker build -t vcr.vngcloud.vn/111480-abp111734/launchops-command-center:vNN .` → `docker push ...`
-2. PATCH runtime qua API (mint IAM token từ client credentials → `PATCH /runtime/agent-runtimes/{id}` mirror config version mới nhất, chỉ đổi `imageUrl`). **Đổi model/env cũng PATCH như vậy, không cần rebuild.**
-3. DEFAULT endpoint tự rollout sang version mới (~15–40s). Verify bằng nội dung (grep `?v=` trong index) chứ đừng tin field `status` ngay sau PATCH.
+```text
+LAUNCHOPS_AGENTBASE_BASE_URL=https://...
+LAUNCHOPS_AGENTBASE_API_KEY=...
+LAUNCHOPS_MODEL_READINESS=deepseek/deepseek-v4-pro
+LAUNCHOPS_MODEL_REDTEAM=minimax/minimax-m2.5
+LAUNCHOPS_MODEL_CHECKLIST=qwen/qwen3.7-plus
+LAUNCHOPS_MODEL_POSTMORTEM=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ASSISTANT=deepseek/deepseek-v4-flash
+
+LAUNCHOPS_STORAGE_BACKEND=cloud
+LAUNCHOPS_DB_URL=postgresql://USER:PASSWORD@RW_ENDPOINT:5432/DBNAME?sslmode=disable
+
+LAUNCHOPS_MEMORY_ENABLED=true
+LAUNCHOPS_MEMORY_ID=...
+LAUNCHOPS_MEMORY_STRATEGY_ID=...
+LAUNCHOPS_KNOWLEDGE_MEMORY_ID=...
+LAUNCHOPS_RAG_ENABLED=true
+
+LAUNCHOPS_GUARDRAIL_ENABLED=true
+LAUNCHOPS_RATELIMIT_ENABLED=true
+LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN=50
+LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY=1000
+```
+
+Không commit `.env` hoặc credential thật.
 
 ## Cấu trúc repo
 
-```
-index.html          # Web UI markup (tabs, views, cache version ?v=)
-app.js              # Logic Pro UI: launch CRUD, analyze, run log, permissions
-friendly-ui.js      # Layer Friendly (2 IIFE riêng biệt: mode switcher + hệ Friendly)
-i18n-clean.js       # Chuyển ngữ VI/EN
-styles.css          # Toàn bộ style (token VNG Orange)
-friendly.css        # Style riêng phần Friendly
-config.js           # window.LAUNCHOPS_API_BASE = "/api" (same-origin)
-server/app.py       # Backend duy nhất: UI serving + API + MCP + webhooks
-server/test_app.py  # Unit test các hàm thuần (python -m unittest server.test_app)
-server/migrate_to_cloud_db.py # Migrate local launch JSON sang Postgres khi có DB URL
-data/               # Brief mẫu + rubric + vai trò agent
-prompts/            # Prompt nền cho OpenClaw backup
-Dockerfile          # python:3.11-slim, EXPOSE 8080
-README_EN.md        # English version of this README
+```text
+index.html                 # Web UI markup
+app.js                     # Pro UI, launch CRUD, analyze, run log
+friendly-ui.js             # Friendly mode
+i18n-clean.js              # VI/EN translations
+styles.css                 # Main UI styles
+friendly.css               # Friendly-specific styles
+config.js                  # Same-origin API config
+server/app.py              # Web server + API + MCP + agent pipeline
+server/db.py               # Local/cloud storage layer
+server/test_app.py         # stdlib unit tests
+server/migrate_to_cloud_db.py
+server/seed_knowledge.py
+data/                      # sample/rubric data
+prompts/                   # prompt assets
+Dockerfile
+README_EN.md
 ```
 
 ## Bảo mật
 
-- Không commit `.env`, token, key, log, file DB. `.gitignore` đã chặn sẵn.
-- Endpoint public không auth (chủ đích cho demo hackathon); MCP Gateway có inbound IAM cho đường gọi chính thức.
+- Không commit `.env`, `.greennode.json`, API key, DB URL thật, log hoặc file database.
+- Endpoint public intentionally mở cho demo hackathon.
+- Đường MCP chính thức đi qua AgentBase MCP Gateway/IAM.
+- Guardrail xử lý secret/PII trước khi gọi LLM hoặc ghi memory.

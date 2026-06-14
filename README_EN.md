@@ -1,155 +1,178 @@
 # LaunchOps Command Center
 
-> Updated: 2026-06-14 — production build: image `v19`, runtime version 23 on VNG AgentBase.
+> Updated: 2026-06-14 — production runs on VNG AgentBase, image `v26`, runtime version 32, storage backend `cloud`.
 
-LaunchOps Command Center is a **launch-risk Super Agent**: it reads a launch brief (game event, marketing campaign, feature release, hotfix...), scores readiness as Green/Yellow/Red, challenges the plan with a 5-persona Red Team, generates an owner/deadline/priority checklist, and prepares a post-mortem so the team learns from every launch.
+LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launch brief, and the system scores readiness as Green/Yellow/Red, runs a 5-persona Red Team review, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for future launches.
 
 **Live demo:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
+## Current Status
+
+| Component | Status |
+|---|---|
+| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 32, ACTIVE |
+| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v26` |
+| Web/API/MCP endpoint | Public HTTPS endpoint above |
+| Storage | VNG vDB/PostgreSQL via `LAUNCHOPS_STORAGE_BACKEND=cloud` |
+| Memory | AgentBase Memory `launchops-memory` + knowledge store `launchops-knowledge` |
+| RAG | Production uses Memory semantic search; Platform RAG Engine `launchops-rag` is prepared |
+| Governance | App guardrail ON, app rate limit ON, platform Guardrail/Rate Limit created |
+| MCP | Gateway `launchops-server`, target `launchops_server_mcp`, tools `lcc` + workspace CRUD |
+
 ## Architecture
 
-Everything runs in **one Docker image** (`python:3.11-slim`, no framework; core uses stdlib, cloud Postgres uses optional `psycopg`), deployed to a VNG AgentBase Agent Runtime:
+The app runs in **one Python Docker image**. The backend uses `ThreadingHTTPServer` with no web framework. The UI is HTML/CSS/vanilla JS with no build step.
 
-- `GET /` — Web UI (Pro / Friendly modes, VI/EN)
-- `GET /health` — healthcheck (AgentBase Service Contract)
-- `POST /api/analyze` — full 5-agent LLM pipeline (~90–120s)
-- `POST /api/assistant` — single-call LLM chatbot (~3s)
-- `POST /api/launches/...` — launch CRUD + per-launch analyze
-- `POST /mcp` — MCP streamable-http (JSON-RPC: initialize / tools/list / tools/call)
-- `GET/DELETE /mcp` — **405 by spec (do not change)**
-- `POST /webhooks/telegram`, `/webhooks/zalo`
+```text
+User Browser / Reviewer
+        |
+        v
+AgentBase Runtime HTTPS endpoint
+        |
+        +-- GET  /                  -> Pro/Friendly Web UI
+        +-- POST /api/analyze       -> full LaunchOps analysis
+        +-- POST /api/assistant     -> chatbot
+        +-- POST /api/launches/...  -> launch CRUD + saved analysis
+        +-- POST /mcp               -> MCP JSON-RPC
+        +-- GET/DELETE /mcp         -> 405 by spec
+        |
+        +-- VNG MaaS LLM models
+        +-- VNG vDB/PostgreSQL
+        +-- AgentBase Memory
+        +-- AgentBase MCP Gateway
+```
 
-OpenClaw (stdio-only MCP client) connects through the `npx mcp-remote <endpoint>/mcp` bridge, optionally via the IAM-protected MCP Gateway `launchops-server`.
+Production currently uses a **monolith orchestrator** for demo stability. The code already supports `POST /invocations` and `LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory` so the same image can run as separate AgentBase runtimes later. Five child runtimes and one canary orchestrator have been created and verified, but the main production runtime stays single-runtime to reduce operational risk.
 
-## Multi-model agent pipeline
+## Six-LLM-Agent Pipeline
 
-Each agent calls its own model through the **OpenAI-compatible** `/v1/chat/completions` API on VNG MaaS — switching models is an env change, not a code change:
+The full `/api/analyze` path runs 6 real LLM agents with separate roles and trace entries:
 
-| Agent | Env | Current model |
+| Agent | Role | Current model |
 |---|---|---|
-| Readiness | `LAUNCHOPS_MODEL_READINESS` | `deepseek/deepseek-v4-pro` |
-| Red Team | `LAUNCHOPS_MODEL_REDTEAM` | `minimax/minimax-m2.5` |
-| Checklist | `LAUNCHOPS_MODEL_CHECKLIST` | `qwen/qwen3.7-plus` |
-| Post-mortem | `LAUNCHOPS_MODEL_POSTMORTEM` | `google/gemma-4-31b-it` |
-| Assistant | `LAUNCHOPS_MODEL_ASSISTANT` | `deepseek/deepseek-v4-flash` |
+| Readiness | Green/Yellow/Red readiness explanation | `deepseek/deepseek-v4-pro` |
+| Red Team | 5-persona critique | `minimax/minimax-m2.5` |
+| Checklist | Owner/deadline action plan | `qwen/qwen3.7-plus` |
+| Post-mortem | Post-launch questions/report blocks | `google/gemma-4-31b-it` |
+| Memory | Distills recalled lessons into an insight | `qwen/qwen3.7-plus` |
+| Orchestrator | Executive go/no-go summary | `qwen/qwen3.7-plus` |
 
-- API responses carry `trace` + `agentsTrace` proving which agent ran on which model.
-- The final readiness score is always recomputed by a **deterministic rule** — the LLM explains risks, it does not freestyle the score.
-- Every agent falls back to local rules on LLM error/timeout — the pipeline never dies midway.
-- `POST /mcp tools/call` uses a **deterministic fast path (<1s)** to stay under the MCP Gateway's 15s timeout; `/api/analyze` is the full LLM path.
-- MCP keeps the two original analysis tools: `analyze_launch_brief` for backward compatibility and the short alias `lcc`.
-- MCP also exposes LaunchOps operations for OpenClaw/Zalo: `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch` (confirmation required), `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, and `lcc_set_launch_template`.
+The assistant chatbot is a separate LLM path using `deepseek/deepseek-v4-flash`.
 
-## Independent AgentBase runtime prep
+The final readiness score is recomputed by a deterministic rubric so the model cannot freestyle the score. LLMs explain, challenge, and summarize. If a model fails, times out, or returns an invalid schema, that agent falls back to local rules and records the reason in `agentsTrace`.
 
-Production still runs **one orchestrator runtime** to keep the demo stable. The code now has a small Phase 4 contract so the same image can run separate runtimes by env:
+## RAG, Memory, and Cloud DB
 
-```text
-LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory
-```
+- `launchops-knowledge`: knowledge store for RAG, with playbooks and risk patterns by launch type and product namespace.
+- `launchops-memory`: memory store for lessons, post-result context, and actor/session memory.
+- `launchops-rag`: Platform RAG Engine is prepared, but production currently uses Memory semantic search because the RAG module's Knowledge base/Tool attachment is not ready for this flow.
+- VNG vDB/PostgreSQL stores launches, products, templates, analysis history, and postmortems. Local JSON/SQLite remains as fallback/dev mode.
 
-- `GET /health` includes the active `role`.
-- `POST /invocations` dispatches by `LAUNCHOPS_AGENT_ROLE`.
-- Child runtimes accept a shared payload: `requestId`, `brief`, `launch`, `productContext`, `previousResults`.
-- Shared response shape: `ok`, `agent`, `role`, `requestId`, `result`, `trace`, `fallback`, `error`.
-- `/api/analyze`, Web UI, and MCP still use the existing orchestrator pipeline by default.
-- Enable child runtime orchestration only after the child endpoints are deployed and verified:
+Fast DB rollback: set `LAUNCHOPS_STORAGE_BACKEND=local`. Fast Memory rollback: set `LAUNCHOPS_MEMORY_ENABLED=false`.
 
-```text
-LAUNCHOPS_USE_REMOTE_AGENTS=true
-LAUNCHOPS_READINESS_URL=https://...
-LAUNCHOPS_REDTEAM_URL=https://...
-LAUNCHOPS_CHECKLIST_URL=https://...
-LAUNCHOPS_POSTMORTEM_URL=https://...
-LAUNCHOPS_MEMORY_URL=https://...
-LAUNCHOPS_AGENT_TIMEOUT_SECONDS=75
-LAUNCHOPS_AGENT_INVOCATION_TOKEN=<optional shared bearer token>
-```
+## Guardrail and Rate Limit
 
-If a URL is missing or a child runtime fails, the orchestrator falls back for that agent only and records the reason in `agentsTrace`.
+LaunchOps has two protection layers:
 
-## Memory
+- **App-level guardrail:** rejects private keys, credentials, and payment secrets; masks email/phone before calling LLMs or writing memory.
+- **App-level rate limit:** protects the expensive analysis path; production is set to 50 requests/minute and 1000 requests/day. MCP fast path is exempt.
+- **Platform Guardrail/Rate Limit:** created in Protect & Govern to protect MaaS/model access.
 
-The backend can use **AgentBase Memory** behind feature flags:
+Platform Policy Gateway is intentionally not enabled yet because an overly strict policy can block MCP/OpenClaw. It should be added last with broad allow rules first, then tightened.
 
-- `LAUNCHOPS_MEMORY_ENABLED=true`
-- `LAUNCHOPS_MEMORY_ID=<memory-id>`
-- `LAUNCHOPS_MEMORY_STRATEGY_ID=<strategy-id>`
-- `LAUNCHOPS_MEMORY_NAMESPACE_MODE=actor|session|product|global`
+## MCP and OpenClaw
 
-When enabled, the backend recalls long-term memory records before analysis and returns `memoryTrace` in the response. If Memory is misconfigured, unavailable, or missing the `X-GreenNode-AgentBase-User-Id` / `X-GreenNode-AgentBase-Session-Id` headers, the app falls back to local SQLite lessons and keeps `/api/analyze` alive. For headerless demos, `LAUNCHOPS_MEMORY_DEMO_FALLBACK_ENABLED=true` provides an explicit demo actor/session; production should keep it `false` to avoid mixing users.
+`/mcp` supports streamable HTTP JSON-RPC:
 
-Fast rollback: set `LAUNCHOPS_MEMORY_ENABLED=false` to return to local lessons.
+- `initialize`
+- `notifications/initialized`
+- `ping`
+- `tools/list`
+- `tools/call`
 
-## Cloud DB
+`GET /mcp` and `DELETE /mcp` return `405` by spec and should not be changed.
 
-Launch data defaults to local JSON/SQLite for offline demos. With VNG vDB/Postgres, enable:
+Main tools:
 
-```text
-LAUNCHOPS_STORAGE_BACKEND=cloud
-LAUNCHOPS_DB_URL=postgresql://USER:PASSWORD@RW_ENDPOINT:5432/DBNAME?sslmode=require
-```
+- `lcc`: deterministic fast analysis for MCP/OpenClaw to avoid gateway timeout.
+- `analyze_launch_brief`: legacy analysis tool kept for compatibility.
+- `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch`.
+- `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, `lcc_set_launch_template`.
 
-Use the RW endpoint from VNG vDB `Connectivity & Security` -> `Endpoint & Port`. Do not commit a real DB URL; if cloud DB fails, set `LAUNCHOPS_STORAGE_BACKEND=local` to roll back.
-
-## Chatbot commands
-
-Primary commands use the `lcc` namespace:
-
-```text
-lcc help
-lcc status
-lcc list
-lcc config
-lcc analyze <brief>
-lcc report <brief>
-lcc guardrail <brief>
-lcc infra <brief>
-```
-
-Legacy commands such as `status`, `analyze <brief>`, and `report <brief>` still work for one version and suggest the `lcc ...` form. If a user pastes a long brief without a command, the bot analyzes it by default. Natural prompts such as "check this brief", "review this launch", "red team this", "create checklist", and "what risks" also route to LaunchOps analysis.
-
-OpenClaw/Zalo can operate the saved LaunchOps workspace through MCP tools:
-
-- `lcc_list_launches`: list saved launches.
-- `lcc_get_launch`: get a launch by id or fuzzy name.
-- `lcc_create_launch`: create a launch from chat.
-- `lcc_update_launch`: update metadata, brief, status, owner, or dates.
-- `lcc_analyze_launch`: analyze a saved launch and append the result to its history.
-- `lcc_list_types` / `lcc_get_type` / `lcc_create_type`: inspect or create launch classifications.
-- `lcc_set_launch_template`: attach launch-specific risk groups, personas, checklist examples, and postmortem blocks.
-- `lcc_delete_launch`: deletes only when `confirm="DELETE <launchId>"`.
+OpenClaw can connect through `npx mcp-remote <endpoint>/mcp`.
 
 ## Web UI
 
-- **Two modes:** Pro (full dashboard) and Friendly (guided NPC + step visualizer reading the real Pro DOM). Friendly is the default.
-- **Admin-only Log tab:** open the URL with `?role=admin` to reveal a per-launch Log tab — client events (save → API call → result/timeout) plus server traces (which agent ran on which model, where fallbacks happened). Turn off with `?role=human`.
-- A web analysis takes **~90–120s** (4 sequential LLM calls); the client timeout is 240s.
-- Cache-busting via the `?v=` query in `index.html` — bump it whenever JS/CSS change.
+- **Friendly mode:** default reviewer experience with guided flow and step visualization.
+- **Pro mode:** full operations dashboard with readiness, Red Team, checklist, post-mortem, RAG insight, and trace.
+- **Admin log:** open with `?role=admin` to inspect client events and server trace per launch.
+- **VI/EN:** UI is bilingual; LLM output follows the brief language.
+- **Responsive:** mobile overflow is fixed while desktop UI/UX remains unchanged.
 
-## Run locally
+## Run Locally
 
 ```bash
-# Rule mode (fast, no LLM) — best for UI work
+# Fast rule mode, no API key required
 LAUNCHOPS_LLM_ENABLED=false PORT=8788 python server/app.py
 
-# Full LLM — requires .env with LAUNCHOPS_AGENTBASE_API_KEY + BASE_URL
+# Full mode, requires MaaS/AgentBase config in .env
 PORT=8788 python server/app.py
 ```
 
-Open `http://127.0.0.1:8788/` — UI and API share one origin. Env template: `.env.example`.
+Open `http://127.0.0.1:8788/`.
 
-## Deploy
+## Important Env Vars
 
-1. Build & push: `docker build -t vcr.vngcloud.vn/111480-abp111734/launchops-command-center:vNN .` → `docker push ...`
-2. PATCH the runtime via the management API (mint an IAM token, mirror the latest version config, change only `imageUrl`). **Model/env changes are the same PATCH — no rebuild.**
-3. The DEFAULT endpoint auto-rolls to the new version (~15–40s). Verify by content (grep the `?v=` version in the served index), not by the `status` field right after PATCH.
+```text
+LAUNCHOPS_AGENTBASE_BASE_URL=https://...
+LAUNCHOPS_AGENTBASE_API_KEY=...
+LAUNCHOPS_MODEL_READINESS=deepseek/deepseek-v4-pro
+LAUNCHOPS_MODEL_REDTEAM=minimax/minimax-m2.5
+LAUNCHOPS_MODEL_CHECKLIST=qwen/qwen3.7-plus
+LAUNCHOPS_MODEL_POSTMORTEM=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ASSISTANT=deepseek/deepseek-v4-flash
 
-## Repo layout
+LAUNCHOPS_STORAGE_BACKEND=cloud
+LAUNCHOPS_DB_URL=postgresql://USER:PASSWORD@RW_ENDPOINT:5432/DBNAME?sslmode=disable
 
-See `README.md` (Vietnamese) for the annotated file map, `BRIEF.md` for contributor/agent ground rules, and `OPENCLAW_BUILD_CHECKLIST.md` for the OpenClaw/MCP integration details.
+LAUNCHOPS_MEMORY_ENABLED=true
+LAUNCHOPS_MEMORY_ID=...
+LAUNCHOPS_MEMORY_STRATEGY_ID=...
+LAUNCHOPS_KNOWLEDGE_MEMORY_ID=...
+LAUNCHOPS_RAG_ENABLED=true
+
+LAUNCHOPS_GUARDRAIL_ENABLED=true
+LAUNCHOPS_RATELIMIT_ENABLED=true
+LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN=50
+LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY=1000
+```
+
+Never commit real credentials.
+
+## Repo Layout
+
+```text
+index.html                 # Web UI markup
+app.js                     # Pro UI, launch CRUD, analyze, run log
+friendly-ui.js             # Friendly mode
+i18n-clean.js              # VI/EN translations
+styles.css                 # Main UI styles
+friendly.css               # Friendly-specific styles
+config.js                  # Same-origin API config
+server/app.py              # Web server + API + MCP + agent pipeline
+server/db.py               # Local/cloud storage layer
+server/test_app.py         # stdlib unit tests
+server/migrate_to_cloud_db.py
+server/seed_knowledge.py
+data/                      # sample/rubric data
+prompts/                   # prompt assets
+Dockerfile
+README.md
+```
 
 ## Security
 
-- Never commit `.env`, tokens, keys, logs, or DB files (`.gitignore` already covers them).
-- The public endpoint is intentionally unauthenticated for the hackathon demo; the MCP Gateway provides the IAM-protected path.
+- Do not commit `.env`, `.greennode.json`, API keys, real DB URLs, logs, or database files.
+- The public endpoint is intentionally open for the hackathon demo.
+- The official MCP path goes through AgentBase MCP Gateway/IAM.
+- Guardrail checks secrets/PII before LLM calls or memory writes.
