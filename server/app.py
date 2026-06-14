@@ -580,7 +580,7 @@ def knowledge_namespace(launch_type: str) -> str:
     return f"/launchops/knowledge/{slugify(launch_type or 'generic')}"
 
 
-def recall_knowledge(brief: str, launch_type: str, limit: int = 4) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def recall_knowledge(brief: str, launch_type: str, limit: int = 5) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Top-k semantic recall from the knowledge store to ground the agents. Flag-gated; safe no-op when off."""
     trace: dict[str, Any] = {"enabled": rag_enabled(), "source": "disabled", "namespace": "", "recordsRecalled": 0, "store": "knowledge"}
     if not rag_enabled():
@@ -590,15 +590,16 @@ def recall_knowledge(brief: str, launch_type: str, limit: int = 4) -> tuple[list
         trace["source"] = "missing_knowledge_id"
         return [], trace
     namespace = knowledge_namespace(launch_type)
+    search_limit = max(int(limit), 5)  # AgentBase memory search requires limit >= 5
     trace.update({"source": "agentbase", "namespace": namespace})
     try:
         payload = agentbase_memory_request(
             "POST",
             f"/memories/{memory_id}/memory-records:search",
-            {"query": mask_sensitive_text(brief), "limit": limit},
+            {"query": mask_sensitive_text(brief), "limit": search_limit},
             {"namespace": namespace},
         )
-        records = extract_memory_records(payload, limit=limit)
+        records = extract_memory_records(payload, limit=search_limit)
         trace["recordsRecalled"] = len(records)
         trace["recordIds"] = [str(r.get("id") or r.get("title") or "")[:48] for r in records]
         return records, trace
