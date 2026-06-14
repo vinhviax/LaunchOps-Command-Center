@@ -36,6 +36,21 @@ class DetectBriefLanguageTests(unittest.TestCase):
         self.assertEqual(app.detect_brief_language("Su kien quay thuong cuoi tuan"), "en")
 
 
+class LegacyEncodingRepairTests(unittest.TestCase):
+    def test_repair_mojibake_text(self):
+        clean = "Sự kiện đạt mục tiêu giữ chân nhẹ."
+        damaged = clean.encode("utf-8").decode("latin-1")
+        self.assertEqual(app.repair_legacy_text(damaged), clean)
+
+    def test_may_login_sample_resets_lossy_text(self):
+        damaged_brief = "M" + "?c ti" + "?u, " + "??i t??ng ho?c ph?m vi c?n m? h?."
+        launch = {"id": "may-login-streak", "brief": damaged_brief, "analyses": []}
+        clean = app.sanitize_launch_for_response(launch)
+        self.assertEqual(clean["id"], "may-login-streak")
+        self.assertIn("Mục tiêu ban đầu", clean["brief"])
+        self.assertNotIn("??", clean["brief"])
+
+
 class ExtractJsonTests(unittest.TestCase):
     def test_clean_json(self):
         self.assertEqual(app.extract_json('{"ok": true, "score": 9}'), {"ok": True, "score": 9})

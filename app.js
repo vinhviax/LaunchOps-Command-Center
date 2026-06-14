@@ -616,6 +616,102 @@ const fallbackLaunches = [
   }
 ];
 
+const MOJIBAKE_MARKERS = [
+  "Ã¡", "Ã ", "Ã¢", "Ã£", "Ã©", "Ã¨", "Ãª", "Ã­", "Ã¬", "Ã³", "Ã²", "Ã´", "Ãµ", "Ãº", "Ã¹", "Ã½",
+  "Ä‘", "Ä", "áº", "á»", "Æ°", "Æ¡", "â€", "Â "
+];
+const LOSSY_TEXT_RE = /(?:[A-Za-zÀ-ỹ]\?[A-Za-zÀ-ỹ]|\?\?[A-Za-zÀ-ỹ]|[A-Za-zÀ-ỹ]\?\?|\?\?)/;
+const CP1252_BYTE_MAP = {
+  "€": 0x80, "‚": 0x82, "ƒ": 0x83, "„": 0x84, "…": 0x85, "†": 0x86, "‡": 0x87,
+  "ˆ": 0x88, "‰": 0x89, "Š": 0x8a, "‹": 0x8b, "Œ": 0x8c, "Ž": 0x8e,
+  "‘": 0x91, "’": 0x92, "“": 0x93, "”": 0x94, "•": 0x95, "–": 0x96, "—": 0x97,
+  "˜": 0x98, "™": 0x99, "š": 0x9a, "›": 0x9b, "œ": 0x9c, "ž": 0x9e, "Ÿ": 0x9f
+};
+
+function textDamageScore(text) {
+  const value = String(text || "");
+  let score = 0;
+  MOJIBAKE_MARKERS.forEach((marker) => {
+    let index = value.indexOf(marker);
+    while (index >= 0) {
+      score += 3;
+      index = value.indexOf(marker, index + marker.length);
+    }
+  });
+  if (LOSSY_TEXT_RE.test(value)) score += 5;
+  score += (value.match(/�/g) || []).length * 5;
+  return score;
+}
+
+function hasTextEncodingDamage(text) {
+  return textDamageScore(text) > 0;
+}
+
+function mojibakeBytes(text) {
+  const bytes = [];
+  for (const char of String(text || "")) {
+    const code = char.charCodeAt(0);
+    if (code <= 0xff) {
+      bytes.push(code);
+    } else if (Object.prototype.hasOwnProperty.call(CP1252_BYTE_MAP, char)) {
+      bytes.push(CP1252_BYTE_MAP[char]);
+    } else {
+      return null;
+    }
+  }
+  return bytes;
+}
+
+function repairLegacyText(value) {
+  const text = String(value ?? "");
+  if (!hasTextEncodingDamage(text) || LOSSY_TEXT_RE.test(text)) return text;
+  const bytes = mojibakeBytes(text);
+  if (!bytes?.length || typeof TextDecoder === "undefined") return text;
+  try {
+    const decoded = new TextDecoder("utf-8", { fatal: false }).decode(Uint8Array.from(bytes));
+    return textDamageScore(decoded) < textDamageScore(text) ? decoded : text;
+  } catch (error) {
+    return text;
+  }
+}
+
+function sanitizeLegacyEncoding(value) {
+  if (typeof value === "string") return repairLegacyText(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeLegacyEncoding(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, sanitizeLegacyEncoding(item)]));
+  }
+  return value;
+}
+
+function containsEncodingDamage(value) {
+  if (typeof value === "string") return hasTextEncodingDamage(value);
+  if (Array.isArray(value)) return value.some((item) => containsEncodingDamage(item));
+  if (value && typeof value === "object") return Object.values(value).some((item) => containsEncodingDamage(item));
+  return false;
+}
+
+function cleanMayLoginSample(launch) {
+  const clean = cloneData(fallbackLaunches.find((item) => item.id === "may-login-streak") || launch);
+  return {
+    ...clean,
+    createdAt: launch?.createdAt || clean.createdAt,
+    updatedAt: launch?.updatedAt || clean.updatedAt
+  };
+}
+
+function sanitizeAnalysisResult(result) {
+  return sanitizeLegacyEncoding(result || {});
+}
+
+function sanitizeLaunchData(launch) {
+  if (!launch || typeof launch !== "object") return launch;
+  if (launch.id === "may-login-streak" && containsEncodingDamage(launch)) {
+    return cleanMayLoginSample(launch);
+  }
+  return sanitizeLegacyEncoding(launch);
+}
+
 const appShell = document.getElementById("appShell");
 const launchGroups = document.getElementById("launchGroups");
 const launchSearch = document.getElementById("launchSearch");
@@ -1906,6 +2002,7 @@ function renderLocalAnalysis(sourceLabel = "Rule-based local preview") {
 }
 
 function renderApiAnalysis(result, sourceOverride) {
+  result = sanitizeAnalysisResult(result);
   const decision = result?.decision || {};
   const color = decision.color || "Yellow";
   const score = Number(decision.score) || 0;
@@ -1958,6 +2055,7 @@ function latestHistoryTimestamp(launch) {
 }
 
 function summarizeClientLaunch(launch) {
+  launch = sanitizeLaunchData(launch);
   const analyses = launch?.analyses || [];
   const latest = analyses.length ? analyses[analyses.length - 1].result : null;
   return {
@@ -1978,7 +2076,8 @@ function summarizeClientLaunch(launch) {
 }
 
 function upsertLaunchSummary(launchOrSummary) {
-  const summary = launchOrSummary.analyses ? summarizeClientLaunch(launchOrSummary) : launchOrSummary;
+  const cleanLaunch = sanitizeLaunchData(launchOrSummary);
+  const summary = cleanLaunch.analyses ? summarizeClientLaunch(cleanLaunch) : cleanLaunch;
   const index = launches.findIndex((item) => item.id === summary.id);
   if (index >= 0) launches[index] = { ...launches[index], ...summary };
   else launches.push(summary);
@@ -3056,7 +3155,7 @@ async function fetchJson(url, options = {}) {
 async function loadLaunches() {
   if (!API_BASE) {
     backendAvailable = false;
-    launches = fallbackLaunches.map(summarizeClientLaunch);
+    launches = fallbackLaunches.map(sanitizeLaunchData).map(summarizeClientLaunch);
     renderLaunchGroups();
     const first = launches.find((item) => item.status === "running") || launches[0];
     if (first) {
@@ -3070,11 +3169,11 @@ async function loadLaunches() {
   try {
     const payload = await fetchJson(`${API_BASE}/launches`);
     backendAvailable = true;
-    launches = payload.launches || [];
+    launches = (payload.launches || []).map(sanitizeLaunchData);
   } catch (error) {
     console.warn("Launch list API unavailable, using local fallback.", error);
     backendAvailable = false;
-    launches = fallbackLaunches.map(summarizeClientLaunch);
+    launches = fallbackLaunches.map(sanitizeLaunchData).map(summarizeClientLaunch);
   }
 
   renderLaunchGroups();
@@ -3090,9 +3189,9 @@ async function selectLaunch(id) {
   try {
     if (backendAvailable) {
       const payload = await fetchJson(`${API_BASE}/launches/${encodeURIComponent(id)}`);
-      currentLaunch = payload.launch;
+      currentLaunch = sanitizeLaunchData(payload.launch);
     } else {
-      currentLaunch = fallbackLaunches.find((launch) => launch.id === id) || null;
+      currentLaunch = sanitizeLaunchData(fallbackLaunches.find((launch) => launch.id === id) || null);
     }
     draftMode = false;
     setFormFromLaunch(currentLaunch);
@@ -3152,11 +3251,11 @@ async function saveCurrentLaunch({ silent = false } = {}) {
         method: "POST",
         body: JSON.stringify({ launch: launchData })
       });
-      currentLaunch = payload.launch;
+      currentLaunch = sanitizeLaunchData(payload.launch);
       draftMode = false;
       upsertLaunchSummary(payload.summary || currentLaunch);
     } else {
-      currentLaunch = {
+      currentLaunch = sanitizeLaunchData({
         ...currentLaunch,
         ...launchData,
         id: currentLaunch?.id || launchData.id,
@@ -3165,7 +3264,7 @@ async function saveCurrentLaunch({ silent = false } = {}) {
         lessonSuggestions: currentLaunch?.lessonSuggestions || [],
         lessonsLearned: currentLaunch?.lessonsLearned || [],
         postLaunchResult: currentLaunch?.postLaunchResult || ""
-      };
+      });
       const index = fallbackLaunches.findIndex((launch) => launch.id === currentLaunch.id);
       if (index >= 0) fallbackLaunches[index] = currentLaunch;
       else fallbackLaunches.push(currentLaunch);
@@ -3242,7 +3341,7 @@ async function analyze() {
         body: JSON.stringify(collectLaunchFromForm()),
         timeoutMs: ANALYZE_CLIENT_TIMEOUT_MS
       });
-      currentLaunch = payload.launch;
+      currentLaunch = sanitizeLaunchData(payload.launch);
       upsertLaunchSummary(payload.summary || currentLaunch);
       setFormFromLaunch(currentLaunch);
       renderLaunchWorkspace();
@@ -3396,7 +3495,7 @@ async function saveLesson() {
 function showSavedAnalysis(analysisId) {
   const analysis = (currentLaunch?.analyses || []).find((item) => item.id === analysisId);
   if (!analysis) return;
-  renderApiAnalysis(analysis.result, `Lịch sử đã lưu · ${formatDate(analysis.createdAt)}`);
+  renderApiAnalysis(sanitizeAnalysisResult(analysis.result), `Lịch sử đã lưu · ${formatDate(analysis.createdAt)}`);
   activateTab("redTeam");
 }
 

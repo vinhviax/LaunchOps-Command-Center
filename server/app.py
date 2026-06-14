@@ -42,7 +42,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260614d"
+UI_CACHE_VERSION = "fix-20260614e"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -781,6 +781,124 @@ def sample_decision(color: str, score: int, reason: str) -> dict[str, Any]:
     return result
 
 
+def may_login_sample_result() -> dict[str, Any]:
+    result = sample_decision(
+        "Yellow",
+        8,
+        "Sự kiện đạt mục tiêu giữ chân nhẹ và không vượt ngân sách, nhưng thông điệp reset ngày, FAQ CS và ngưỡng pause chưa đủ rõ.",
+    )
+    result["riskBreakdown"] = [
+        {"label": "Mục tiêu và scope", "score": 2, "maxScore": 2, "missing": "Mục tiêu và đối tượng đã đủ rõ."},
+        {"label": "Người phụ trách và hạn xử lý", "score": 1, "maxScore": 2, "missing": "Chưa ghi rõ owner trực trong 6 giờ đầu launch."},
+        {"label": "Sẵn sàng kỹ thuật", "score": 1, "maxScore": 2, "missing": "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai."},
+        {"label": "User impact", "score": 1, "maxScore": 2, "missing": "Thông điệp reset ngày và điều kiện chuỗi liên tục chưa đủ rõ."},
+        {"label": "Business và reward", "score": 2, "maxScore": 2, "missing": "Reward không vượt ngân sách."},
+        {"label": "Bài học sau launch", "score": 1, "maxScore": 2, "missing": "Post-mortem chưa có câu hỏi về hiểu nhầm điều kiện event."},
+    ]
+    result["topRisks"] = [
+        "Người chơi hiểu nhầm mốc reset ngày và điều kiện đăng nhập liên tục.",
+        "CS FAQ chưa đủ rõ cho các trường hợp mất chuỗi.",
+        "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai.",
+    ]
+    result["redTeam"] = [
+        {
+            "persona": "Người chơi bức xúc",
+            "worry": "Người chơi bỏ một ngày nhưng vẫn nghĩ mình đủ điều kiện nhận rương tổng kết.",
+            "evidence": "Ticket CS tăng trong 6 giờ đầu vì hiểu nhầm điều kiện reset ngày.",
+            "fix": "Ghi rõ mốc reset ngày, điều kiện liên tục và ví dụ minh họa trong in-game message.",
+        },
+        {
+            "persona": "Trưởng nhóm CS",
+            "worry": "CS mất thời gian giải thích lặp lại cùng một lỗi hiểu nhầm.",
+            "evidence": "FAQ có nhưng chưa đủ case về mất chuỗi và reset ngày.",
+            "fix": "Bổ sung macro trả lời theo từng trường hợp: bỏ ngày, reset ngày, claim rương tổng kết.",
+        },
+        {
+            "persona": "Kỹ thuật trực sự cố",
+            "worry": "Nếu hệ thống ghi nhận login sai thì team chưa có ngưỡng pause rõ.",
+            "evidence": "Brief ghi không có lỗi nghiêm trọng nhưng chưa nêu alert/pause rule.",
+            "fix": "Thêm alert và ngưỡng pause nếu login streak hoặc claim reward bất thường.",
+        },
+    ]
+    result["checklist"] = [
+        {"task": "Viết lại in-game message về mốc reset ngày và điều kiện đăng nhập liên tục", "owner": "PM LiveOps", "deadline": "Trước event tiếp theo", "status": "Todo", "priority": "High"},
+        {"task": "Bổ sung CS FAQ cho case mất chuỗi, reset ngày và claim rương tổng kết", "owner": "CS Lead", "deadline": "Trước event tiếp theo", "status": "Todo", "priority": "High"},
+        {"task": "Thêm alert nếu tỷ lệ claim reward thấp bất thường", "owner": "Tech Owner", "deadline": "Trước event tiếp theo", "status": "Todo", "priority": "Medium"},
+    ]
+    result["postmortem"] = [
+        {"title": "Bài học chính", "items": ["Thông điệp điều kiện event phải có ví dụ cụ thể.", "CS FAQ cần cover các hiểu nhầm phổ biến trước launch."]},
+        {"title": "Cần sửa template", "items": ["Thêm câu hỏi kiểm tra mốc reset ngày.", "Thêm checklist CS macro cho điều kiện nhận reward."]},
+    ]
+    return result
+
+
+MOJIBAKE_MARKERS = (
+    "Ã¡", "Ã ", "Ã¢", "Ã£", "Ã©", "Ã¨", "Ãª", "Ã­", "Ã¬", "Ã³", "Ã²", "Ã´", "Ãµ", "Ãº", "Ã¹", "Ã½",
+    "Ä‘", "Ä", "áº", "á»", "Æ°", "Æ¡", "â€", "Â ",
+)
+LOSSY_TEXT_RE = re.compile(r"(?:[A-Za-zÀ-ỹ]\?[A-Za-zÀ-ỹ]|\?\?[A-Za-zÀ-ỹ]|[A-Za-zÀ-ỹ]\?\?|\?\?)")
+
+
+def encoding_damage_score(value: Any) -> int:
+    text = str(value or "")
+    score = sum(text.count(marker) * 3 for marker in MOJIBAKE_MARKERS)
+    if LOSSY_TEXT_RE.search(text):
+        score += 5
+    score += text.count("�") * 5
+    return score
+
+
+def repair_legacy_text(value: Any) -> str:
+    text = str(value or "")
+    if not encoding_damage_score(text) or LOSSY_TEXT_RE.search(text):
+        return text
+    candidates = [text]
+    for encoding in ("latin-1", "cp1252"):
+        try:
+            candidates.append(text.encode(encoding).decode("utf-8"))
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return min(candidates, key=encoding_damage_score)
+
+
+def sanitize_legacy_encoding(value: Any) -> Any:
+    if isinstance(value, str):
+        return repair_legacy_text(value)
+    if isinstance(value, list):
+        return [sanitize_legacy_encoding(item) for item in value]
+    if isinstance(value, dict):
+        return {key: sanitize_legacy_encoding(item) for key, item in value.items()}
+    return value
+
+
+def contains_encoding_damage(value: Any) -> bool:
+    if isinstance(value, str):
+        return encoding_damage_score(value) > 0
+    if isinstance(value, list):
+        return any(contains_encoding_damage(item) for item in value)
+    if isinstance(value, dict):
+        return any(contains_encoding_damage(item) for item in value.values())
+    return False
+
+
+def clean_may_login_sample(existing: dict[str, Any]) -> dict[str, Any]:
+    clean = next((item for item in default_sample_launches() if item.get("id") == "may-login-streak"), dict(existing))
+    merged = json.loads(json.dumps(clean, ensure_ascii=False))
+    if existing.get("createdAt"):
+        merged["createdAt"] = existing.get("createdAt")
+    if existing.get("updatedAt"):
+        merged["updatedAt"] = existing.get("updatedAt")
+    return merged
+
+
+def sanitize_launch_for_response(launch: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(launch, dict):
+        return launch
+    if launch.get("id") == "may-login-streak" and contains_encoding_damage(launch):
+        return clean_may_login_sample(launch)
+    return sanitize_legacy_encoding(launch)
+
+
 def default_sample_launches() -> list[dict[str, Any]]:
     created = now_iso()
     sample_brief = read_sample_brief()
@@ -877,11 +995,7 @@ Kết quả thực tế:
                     "id": "analysis-sample-1",
                     "createdAt": created,
                     "briefSnapshot": may_brief[:2000],
-                    "result": sample_decision(
-                        "Yellow",
-                        8,
-                        "Sự kiện đạt mục tiêu giữ chân nhẹ và không vượt ngân sách, nhưng thông điệp reset ngày, FAQ CS và ngưỡng pause chưa đủ rõ.",
-                    ),
+                    "result": may_login_sample_result(),
                 }
             ],
             "postLaunchResult": "Hoàn thành launch. Login rate tăng nhẹ trong 2 ngày đầu, reward không vượt ngân sách, nhưng ticket CS tăng trong 6 giờ đầu vì người chơi hỏi mốc reset ngày và điều kiện giữ chuỗi.",
@@ -924,19 +1038,21 @@ def list_launches() -> list[dict[str, Any]]:
                     break
             cloud_result = try_cloud_storage("list_launches_after_seed", cloud_list_launches)
         if cloud_result is not _CLOUD_STORAGE_ERROR:
-            return cloud_result
+            return [sanitize_launch_for_response(item) or item for item in cloud_result]
 
     seed_launches_if_empty()
     launches = []
     for path in sorted(LAUNCHES_DIR.glob("*.json")):
         try:
-            launches.append(read_json(path))
+            launch = read_json(path)
+            launches.append(sanitize_launch_for_response(launch) or launch)
         except (json.JSONDecodeError, OSError):
             write_backend_log(f"Skipped unreadable launch memory file: {path.name}")
     return launches
 
 
 def summarize_launch(launch: dict[str, Any]) -> dict[str, Any]:
+    launch = sanitize_launch_for_response(launch) or launch
     analyses = launch.get("analyses") or []
     lessons = launch.get("lessonsLearned") or []
     latest_analysis = analyses[-1]["result"] if analyses else None
@@ -970,10 +1086,11 @@ def get_launch(launch_id: str) -> dict[str, Any] | None:
         return None
     cloud_result = try_cloud_storage("get_launch", cloud_get_launch, launch_id)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
-        return cloud_result
+        return sanitize_launch_for_response(cloud_result)
     if not path.exists():
         return None
-    return read_json(path)
+    launch = read_json(path)
+    return sanitize_launch_for_response(launch) or launch
 
 
 def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None) -> dict[str, Any]:
@@ -1006,9 +1123,9 @@ def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None)
     }
     cloud_result = try_cloud_storage("save_launch", cloud_save_launch, launch)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
-        return cloud_result
+        return sanitize_launch_for_response(cloud_result) or cloud_result
     write_json(launch_file(launch_id), launch)
-    return launch
+    return sanitize_launch_for_response(launch) or launch
 
 
 def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) -> dict[str, Any]:
@@ -1026,9 +1143,9 @@ def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) 
     launch["updatedAt"] = stamp
     cloud_result = try_cloud_storage("append_analysis", cloud_append_analysis, launch, analysis)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
-        return cloud_result
+        return sanitize_launch_for_response(cloud_result) or cloud_result
     write_json(launch_file(str(launch["id"])), launch)
-    return launch
+    return sanitize_launch_for_response(launch) or launch
 
 
 def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_context: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -1043,9 +1160,9 @@ def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_con
     launch["updatedAt"] = now_iso()
     cloud_result = try_cloud_storage("save_post_result", cloud_save_postmortem, launch)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
-        return cloud_result
+        return sanitize_launch_for_response(cloud_result) or cloud_result
     write_json(launch_file(str(launch["id"])), launch)
-    return launch
+    return sanitize_launch_for_response(launch) or launch
 
 
 def delete_launch(launch_id: str) -> bool:
