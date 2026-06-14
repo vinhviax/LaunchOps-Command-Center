@@ -3746,6 +3746,13 @@ body.is-analyzing #traceConsoleBody::after {
   body {
     overflow-x: hidden;
   }
+  /* ROOT CAUSE of mobile h-overflow: the "?" tooltip ::after is an absolutely-positioned 290px box,
+     visibility:hidden (still laid out) and centered on a tiny button near the right edge -> pushes the
+     page ~100px wider than the viewport. Tooltips are hover-only (useless on touch), so drop them on phones. */
+  .help-button::after,
+  .help-button::before {
+    display: none !important;
+  }
   /* Long unbreakable strings (ids, urls, trace/model names) must wrap instead of forcing overflow. */
   .content-card,
   .decision-card,
