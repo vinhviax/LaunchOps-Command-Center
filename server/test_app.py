@@ -534,6 +534,70 @@ class BuildPromptTests(unittest.TestCase):
         self.assertIn("English", en)
 
 
+class GuardrailTests(unittest.TestCase):
+    """WS3: enforce guardrail — reject hard secrets, mask soft PII."""
+
+    def test_private_key_is_rejected(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_GUARDRAIL_ENABLED": "true"}):
+            c = app.guardrail_check("Launch plan\n-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----")
+        self.assertEqual(c["action"], "reject")
+        self.assertIn("private_key", c["hard"])
+
+    def test_payment_secret_is_rejected(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_GUARDRAIL_ENABLED": "true"}):
+            c = app.guardrail_check("Lucky Wheel. User CVV 123 and card number leaked.")
+        self.assertEqual(c["action"], "reject")
+        self.assertIn("payment_sensitive", c["hard"])
+
+    def test_email_is_masked_not_rejected(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_GUARDRAIL_ENABLED": "true"}):
+            c = app.guardrail_check("Lucky Wheel, owner alice@vng.com.vn, no rollback.")
+        self.assertEqual(c["action"], "mask")
+        self.assertNotIn("alice@vng.com.vn", c["brief"])
+        self.assertIn("[REDACTED_EMAIL]", c["brief"])
+
+    def test_clean_brief_passes(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_GUARDRAIL_ENABLED": "true"}):
+            c = app.guardrail_check("Lucky Wheel weekend. No owner, no rollback plan, no CS FAQ.")
+        self.assertEqual(c["action"], "pass")
+        self.assertEqual(c["findings"], [])
+
+    def test_disabled_guardrail_passes_even_with_secret(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_GUARDRAIL_ENABLED": "false"}):
+            c = app.guardrail_check("password=hunter2 card number 4111111111111111")
+        self.assertEqual(c["action"], "pass")
+        self.assertFalse(c["enabled"])
+
+
+class RateLimitTests(unittest.TestCase):
+    """WS4: app-level sliding-window rate limit."""
+
+    def setUp(self):
+        app._RATE_LIMIT_HITS.clear()
+
+    def tearDown(self):
+        app._RATE_LIMIT_HITS.clear()
+
+    def test_disabled_by_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(app.ratelimit_enabled())
+
+    def test_within_limit_allowed_then_429(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN": "2", "LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY": "100"}):
+            self.assertTrue(app.rate_limit_check("k1")["allowed"])
+            self.assertTrue(app.rate_limit_check("k1")["allowed"])
+            blocked = app.rate_limit_check("k1")
+        self.assertFalse(blocked["allowed"])
+        self.assertEqual(blocked["scope"], "minute")
+        self.assertGreaterEqual(blocked["retryAfter"], 1)
+
+    def test_separate_keys_independent(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN": "1"}):
+            self.assertTrue(app.rate_limit_check("a")["allowed"])
+            self.assertTrue(app.rate_limit_check("b")["allowed"])
+            self.assertFalse(app.rate_limit_check("a")["allowed"])
+
+
 class StorageBackendTests(unittest.TestCase):
     def test_storage_backend_defaults_local(self):
         with patch.dict(os.environ, {}, clear=True):

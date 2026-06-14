@@ -379,6 +379,112 @@ def mask_sensitive_text(text: str) -> str:
     masked = re.sub(r"(?:\+?84|0)[0-9 .-]{8,12}", "[REDACTED_PHONE]", masked)
     return masked
 
+# WS3 guardrail: hard signals -> reject analyze; soft PII -> mask + proceed.
+GUARDRAIL_HARD_PATTERNS = [
+    ("private_key", r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    ("credential", r"(?i)(api[_ -]?key|token|secret|password|passwd|pwd)\s*[:=]\s*\S+"),
+    ("payment_sensitive", r"(?i)\b(card number|credit card|cvv|otp|bank account|so the|so tai khoan)\b"),
+]
+GUARDRAIL_SOFT_PATTERNS = [
+    ("email", r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
+    ("phone", r"(?:\+?84|0)[0-9 .-]{8,12}"),
+]
+
+
+def guardrail_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_GUARDRAIL_ENABLED", "true")
+
+
+def guardrail_check(brief: str) -> dict[str, Any]:
+    """Return {enabled, action: pass|mask|reject, findings, hard, soft, brief}. brief is masked when action==mask."""
+    text = str(brief or "")
+    if not guardrail_enabled():
+        return {"enabled": False, "action": "pass", "findings": [], "hard": [], "soft": [], "brief": text}
+    hard = [label for label, pat in GUARDRAIL_HARD_PATTERNS if re.search(pat, text)]
+    soft = [label for label, pat in GUARDRAIL_SOFT_PATTERNS if re.search(pat, text)]
+    if hard:
+        return {"enabled": True, "action": "reject", "findings": hard + soft, "hard": hard, "soft": soft, "brief": text}
+    if soft:
+        return {"enabled": True, "action": "mask", "findings": soft, "hard": [], "soft": soft, "brief": mask_sensitive_text(text)}
+    return {"enabled": True, "action": "pass", "findings": [], "hard": [], "soft": [], "brief": text}
+
+
+def guardrail_trace(check: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "enabled": bool(check.get("enabled")),
+        "action": check.get("action", "pass"),
+        "findings": check.get("findings", []),
+    }
+
+
+def guardrail_reject_message(check: dict[str, Any]) -> str:
+    labels = ", ".join(check.get("hard", []) or check.get("findings", []))
+    return (
+        f"Brief chứa dữ liệu nhạy cảm ({labels}). Vì an toàn, LaunchOps không phân tích brief có secret/PII nặng. "
+        "Hãy xoá key/token/mật khẩu/số thẻ/CVV/OTP và thay dữ liệu thật bằng ví dụ giả, rồi phân tích lại."
+    )
+
+
+# WS4 app-level rate limit (sliding window, in-memory). Default OFF; protects the expensive LLM analyze path.
+# Caveat: in-memory => resets on container restart and is NOT shared across replicas (production min/max=1 so OK).
+_RATE_LIMIT_HITS: dict[str, list[float]] = {}
+
+
+def ratelimit_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_RATELIMIT_ENABLED", "false")
+
+
+def _ratelimit_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    try:
+        return int(raw) if raw else default
+    except ValueError:
+        return default
+
+
+def rate_limit_client_key(handler: Any) -> str:
+    headers = getattr(handler, "headers", None)
+    xff = headers.get("X-Forwarded-For", "") if headers else ""
+    if xff:
+        return xff.split(",")[0].strip() or "unknown"
+    addr = getattr(handler, "client_address", None)
+    return addr[0] if addr else "unknown"
+
+
+def rate_limit_check(key: str) -> dict[str, Any]:
+    """Sliding window per key. Returns {allowed, retryAfter, scope, limit, remainingMin, remainingDay}."""
+    per_min = _ratelimit_int("LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN", 10)
+    per_day = _ratelimit_int("LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY", 200)
+    now = time.time()
+    hits = [t for t in _RATE_LIMIT_HITS.get(key, []) if now - t < 86400]
+    last_min = [t for t in hits if now - t < 60]
+    if len(last_min) >= per_min:
+        retry = int(60 - (now - min(last_min))) + 1
+        _RATE_LIMIT_HITS[key] = hits
+        return {"allowed": False, "retryAfter": max(retry, 1), "scope": "minute", "limit": per_min}
+    if len(hits) >= per_day:
+        retry = int(86400 - (now - min(hits))) + 1
+        _RATE_LIMIT_HITS[key] = hits
+        return {"allowed": False, "retryAfter": max(retry, 1), "scope": "day", "limit": per_day}
+    hits.append(now)
+    _RATE_LIMIT_HITS[key] = hits
+    return {"allowed": True, "retryAfter": 0, "scope": "", "limit": per_min, "remainingMin": per_min - len(last_min) - 1, "remainingDay": per_day - len(hits)}
+
+
+def enforce_analyze_rate_limit(handler: Any) -> bool:
+    """Returns True if allowed; otherwise writes a 429 response and returns False. No-op when disabled."""
+    if not ratelimit_enabled():
+        return True
+    verdict = rate_limit_check(f"analyze:{rate_limit_client_key(handler)}")
+    if not verdict["allowed"]:
+        json_response(handler, 429, {
+            "ok": False,
+            "error": f"Rate limit exceeded ({verdict['scope']}, limit={verdict['limit']}). Thử lại sau {verdict['retryAfter']}s.",
+            "retryAfter": verdict["retryAfter"],
+        })
+        return False
+    return True
+
 def memory_namespace(strategy_id: str, actor_id: str, session_id: str, launch_type: str, game_id: str) -> str:
     mode = os.getenv("LAUNCHOPS_MEMORY_NAMESPACE_MODE", "actor").strip().lower()
     if mode == "product":
@@ -1004,9 +1110,14 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         brief = str(args.get("brief", "")).strip()
         if not brief:
             return {"ok": False, "error": "missing_brief", "message": "Missing parameter: brief"}
+        gcheck = guardrail_check(brief)
+        if gcheck["action"] == "reject":
+            return {"ok": False, "error": "guardrail_blocked", "message": guardrail_reject_message(gcheck), "guardrailTrace": guardrail_trace(gcheck)}
+        brief = gcheck["brief"]
         launch_type = str(args.get("type") or "").strip()
         launch_ctx = {"type": launch_type} if launch_type else None
         result = orchestrate_launchops_analysis(brief, launch_ctx, force_fast=force_fast)
+        result["guardrailTrace"] = guardrail_trace(gcheck)
         return {"ok": True, "tool": tool_name, "result": result}
 
     if tool_name == LCC_LIST_LAUNCHES_TOOL:
@@ -1083,9 +1194,14 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         brief = str(args.get("brief") or launch.get("brief") or "").strip()
         if not brief:
             return {"ok": False, "error": "missing_brief", "message": "Launch has no brief. Update it first."}
+        gcheck = guardrail_check(brief)
+        if gcheck["action"] == "reject":
+            return {"ok": False, "error": "guardrail_blocked", "message": guardrail_reject_message(gcheck), "guardrailTrace": guardrail_trace(gcheck)}
+        brief = gcheck["brief"]
         launch["brief"] = brief
         analysis_context = {**launch, "memoryContext": {"actorId": "mcp-user", "sessionId": str(launch.get("id") or "mcp")}}
         result = orchestrate_launchops_analysis(brief, analysis_context, force_fast=force_fast)
+        result["guardrailTrace"] = guardrail_trace(gcheck)
         if not force_fast:
             result = record_analysis_memory(brief, analysis_context, result)
         updated = append_analysis(launch, result, brief)
@@ -3251,11 +3367,17 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 json_response(self, 400, {"ok": False, "error": "Missing parameter: brief"})
                 return
 
+            gcheck = guardrail_check(brief)
+            if gcheck["action"] == "reject":
+                json_response(self, 200, mcp_tool_content({"ok": False, "error": "guardrail_blocked", "message": guardrail_reject_message(gcheck), "guardrailTrace": guardrail_trace(gcheck)}))
+                return
+            brief = gcheck["brief"]
+
             try:
                 launch_type = str(args.get("type") or "").strip()
                 launch_ctx = {"type": launch_type} if launch_type else None
                 result = orchestrate_launchops_analysis(brief, launch_ctx)
-                
+
                 # Format response back to MCP specs
                 mcp_text = f"Kết quả phân tích LaunchOps Command Center:\n" \
                            f"- Trạng thái sẵn sàng: {result['decision']['color']} ({result['decision']['score']}/{result['decision']['maxScore']} điểm)\n" \
@@ -3331,12 +3453,21 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             if not brief:
                 json_response(self, 400, {"ok": False, "error": "Missing brief"})
                 return
+            if not enforce_analyze_rate_limit(self):
+                return
+
+            gcheck = guardrail_check(brief)
+            if gcheck["action"] == "reject":
+                json_response(self, 200, {"ok": False, "error": guardrail_reject_message(gcheck), "guardrailTrace": guardrail_trace(gcheck)})
+                return
+            brief = gcheck["brief"]
 
             try:
                 launch_context = payload.get("launch") if isinstance(payload.get("launch"), dict) else {}
                 launch_context = {**launch_context, "memoryContext": memory_context_from_headers(self.headers, launch_context)}
                 result = orchestrate_launchops_analysis(brief, launch_context)
                 result = record_analysis_memory(brief, launch_context, result)
+                result["guardrailTrace"] = guardrail_trace(gcheck)
                 json_response(self, 200, {"ok": True, "result": result})
             except Exception as exc:
                 write_backend_log(f"Analyze handler crashed: {type(exc).__name__}")
@@ -3416,6 +3547,14 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             if not brief:
                 json_response(self, 400, {"ok": False, "error": "Missing brief"})
                 return
+            if not enforce_analyze_rate_limit(self):
+                return
+
+            gcheck = guardrail_check(brief)
+            if gcheck["action"] == "reject":
+                json_response(self, 200, {"ok": False, "error": guardrail_reject_message(gcheck), "guardrailTrace": guardrail_trace(gcheck), "launch": launch})
+                return
+            brief = gcheck["brief"]
 
             for key in ("name", "type", "status", "owner", "targetDate", "endDate", "template", "templateVersions", "lessonSuggestions"):
                 if key in payload:
@@ -3428,6 +3567,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             try:
                 result = orchestrate_launchops_analysis(brief, analysis_context)
                 result = record_analysis_memory(brief, analysis_context, result)
+                result["guardrailTrace"] = guardrail_trace(gcheck)
                 launch = append_analysis(launch, result, brief)
                 json_response(
                     self,
