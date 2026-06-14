@@ -1342,15 +1342,20 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
 
 @media (max-width:960px){
   body.ui-mode-friendly .detail-hero{
-    grid-template-columns:minmax(0,1fr) minmax(220px,auto);
+    grid-template-columns:minmax(0,1fr);
     grid-template-areas:
-      "title metrics"
-      "actions actions";
+      "title"
+      "right-cluster";
   }
 
-  body.ui-mode-friendly .detail-actions{
-    justify-self:stretch;
+  body.ui-mode-friendly .detail-right-cluster{
+    justify-content:flex-start;
     width:100%;
+  }
+
+  body.ui-mode-friendly .detail-hero .hero-metrics{
+    flex-wrap:wrap;
+    max-width:100%;
   }
 
   .friendly-viz-grid{
