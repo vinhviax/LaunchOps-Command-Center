@@ -571,6 +571,42 @@ def agentbase_memory_request(method: str, path: str, payload: dict[str, Any] | N
         return {}
     return json.loads(raw.decode("utf-8"))
 
+# WS1 RAG: semantic recall from a dedicated curated knowledge store (separate from the conversation memory store).
+def rag_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_RAG_ENABLED", "false")
+
+
+def knowledge_namespace(launch_type: str) -> str:
+    return f"/launchops/knowledge/{slugify(launch_type or 'generic')}"
+
+
+def recall_knowledge(brief: str, launch_type: str, limit: int = 4) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Top-k semantic recall from the knowledge store to ground the agents. Flag-gated; safe no-op when off."""
+    trace: dict[str, Any] = {"enabled": rag_enabled(), "source": "disabled", "namespace": "", "recordsRecalled": 0, "store": "knowledge"}
+    if not rag_enabled():
+        return [], trace
+    memory_id = os.getenv("LAUNCHOPS_KNOWLEDGE_MEMORY_ID", "").strip()
+    if not memory_id:
+        trace["source"] = "missing_knowledge_id"
+        return [], trace
+    namespace = knowledge_namespace(launch_type)
+    trace.update({"source": "agentbase", "namespace": namespace})
+    try:
+        payload = agentbase_memory_request(
+            "POST",
+            f"/memories/{memory_id}/memory-records:search",
+            {"query": mask_sensitive_text(brief), "limit": limit},
+            {"namespace": namespace},
+        )
+        records = extract_memory_records(payload, limit=limit)
+        trace["recordsRecalled"] = len(records)
+        trace["recordIds"] = [str(r.get("id") or r.get("title") or "")[:48] for r in records]
+        return records, trace
+    except Exception as exc:
+        trace.update({"source": "agentbase_error", "error": type(exc).__name__})
+        write_backend_log(f"RAG knowledge recall failed: {type(exc).__name__}")
+        return [], trace
+
 def memory_config_error() -> str:
     if not memory_enabled():
         return "disabled"
@@ -2257,9 +2293,16 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
     launch_context = launch_context or {}
     product_context = build_product_context(brief, launch_context)
     launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
+    # WS1 RAG: recall curated knowledge once, ground all agents via launch_context["knowledge"]. Skip on fast path.
+    knowledge: list[dict[str, Any]] = []
+    rag_trace = {"enabled": rag_enabled(), "source": "skipped_fast" if force_fast else "disabled", "recordsRecalled": 0}
+    if not force_fast and rag_enabled():
+        knowledge, rag_trace = recall_knowledge(brief, product_context.get("launchType", ""))
+    launch_context["knowledge"] = knowledge
     result = readiness_agent(brief, launch_context, force_fast=force_fast)
     result["productContext"] = product_context
     result["memoryTrace"] = product_context.get("memoryTrace", {})
+    result["ragSources"] = rag_trace
     result = red_team_agent(result, launch_context, force_fast=force_fast)
     result = checklist_agent(result, launch_context, force_fast=force_fast)
     result = postmortem_agent(result, launch_context, force_fast=force_fast)
@@ -2523,6 +2566,25 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
         else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
     )
 
+    # WS1 RAG: ground the agent in recalled curated knowledge (if any).
+    knowledge_records = launch_context.get("knowledge") if isinstance(launch_context.get("knowledge"), list) else []
+    knowledge_block = ""
+    if knowledge_records:
+        lines = []
+        for rec in knowledge_records[:5]:
+            if not isinstance(rec, dict):
+                continue
+            title = str(rec.get("title") or rec.get("severity") or "Bài học").strip()
+            text = str(rec.get("lesson") or rec.get("memory") or rec.get("content") or rec.get("text") or "").strip()
+            if text:
+                lines.append(f"- [{title}] {text[:400]}")
+        if lines:
+            knowledge_block = (
+                "\nPlaybook / bài học liên quan (RAG, dùng để phản biện sâu hơn, KHÔNG copy nguyên văn):\n"
+                + "\n".join(lines)
+                + "\n"
+            )
+
     personas = template_context["redTeamPersonas"] or build_default_template()["redTeamPersonas"]
     personas = personas[:5]
     while len(personas) < 5:
@@ -2618,7 +2680,7 @@ Metadata của launch:
 
 Template đang dùng:
 {json.dumps(template_context, ensure_ascii=False, indent=2)}
-
+{knowledge_block}
 Luật:
 - Chỉ bám theo template ở trên, không tự thêm nhóm/persona ngoài template.
 - Green/Yellow/Red tính theo tỷ lệ điểm: Green >= 80%, Yellow >= 50%, Red < 50%.

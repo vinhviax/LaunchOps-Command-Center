@@ -534,6 +534,45 @@ class BuildPromptTests(unittest.TestCase):
         self.assertIn("English", en)
 
 
+class RagTests(unittest.TestCase):
+    """WS1: RAG knowledge recall + prompt grounding."""
+
+    def test_rag_disabled_by_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(app.rag_enabled())
+            recs, trace = app.recall_knowledge("Lucky Wheel", "game_event_h5")
+            self.assertEqual(recs, [])
+            self.assertEqual(trace["source"], "disabled")
+
+    def test_rag_enabled_missing_id(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_RAG_ENABLED": "true", "LAUNCHOPS_KNOWLEDGE_MEMORY_ID": ""}, clear=True):
+            recs, trace = app.recall_knowledge("Lucky Wheel", "game_event_h5")
+            self.assertEqual(recs, [])
+            self.assertEqual(trace["source"], "missing_knowledge_id")
+
+    def test_knowledge_namespace_format(self):
+        self.assertEqual(app.knowledge_namespace("Game Event H5"), "/launchops/knowledge/game-event-h5")
+        self.assertEqual(app.knowledge_namespace(""), "/launchops/knowledge/generic")
+
+    def test_build_prompt_injects_knowledge(self):
+        ctx = {"name": "Lucky Wheel", "type": "Game event", "knowledge": [
+            {"title": "Reward cap", "lesson": "Luôn chốt reward cap trước khi mở event."},
+        ]}
+        p = app.build_prompt("Lucky Wheel no owner", ctx, "redteam")
+        self.assertIn("Playbook", p)
+        self.assertIn("reward cap", p.lower())
+
+    def test_build_prompt_without_knowledge_has_no_playbook(self):
+        p = app.build_prompt("Lucky Wheel no owner", {"name": "x", "type": "y"}, "redteam")
+        self.assertNotIn("Playbook", p)
+
+    def test_seed_knowledge_curated_nonempty(self):
+        import importlib
+        seed = importlib.import_module("seed_knowledge")
+        self.assertIn("game_event_h5", seed.CURATED)
+        self.assertTrue(all(len(v) >= 3 for v in seed.CURATED.values()))
+
+
 class GuardrailTests(unittest.TestCase):
     """WS3: enforce guardrail — reject hard secrets, mask soft PII."""
 
