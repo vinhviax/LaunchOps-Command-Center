@@ -2382,7 +2382,7 @@ def detect_brief_language(text: str) -> str:
     return "vi" if vi_count >= 3 else "en"
 
 
-def build_prompt(brief: str, launch_context: dict[str, Any] | None = None) -> str:
+def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent_step: str | None = None) -> str:
     launch_context = launch_context or {}
     launch_name = str(launch_context.get("name") or "Chưa đặt tên")
     launch_type = str(launch_context.get("type") or "Chưa phân loại")
@@ -2407,36 +2407,11 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None) -> st
         else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
     )
 
-    return f"""
-Bạn là LaunchOps Command Center, một Super Agent giúp team kiểm tra rủi ro trước launch.
-
-Hãy đọc metadata + launch brief + template cấu hình và chỉ trả về JSON hợp lệ, không markdown, không giải thích ngoài JSON.
-
-Metadata của launch:
-- Tên launch: {launch_name}
-- Loại launch: {launch_type}
-- Trạng thái hiện tại: {launch_status}
-- Owner: {owner}
-- Start Launch: {target_date}
-- End Launch: {end_date}
-
-Template đang dùng:
-{json.dumps(template_context, ensure_ascii=False, indent=2)}
-
-Luật rất quan trọng:
-- Chỉ chấm theo riskGroups trong template, không tự thêm nhóm ngoài template.
-- Điểm readiness cuối cùng sẽ được backend tính lại bằng scoring rule cố định. AI chỉ cần giải thích rủi ro theo cùng riskGroups.
-- Nếu vẫn trả score, chỉ dùng số nguyên từ 0 đến maxScore của từng nhóm; không dùng điểm lẻ.
-- decision.maxScore phải bằng tổng maxScore của riskGroups: {template_context["maxScore"]}.
-- riskBreakdown phải có đúng các label trong riskGroups.
-- redTeam phải dùng đúng các persona trong redTeamPersonas. Không được tự thêm persona ngoài template.
-- checklist nên bám checklistExamples nhưng có thể bổ sung chi tiết từ brief.
-- postmortem nên bám postmortemBlocks.
-- Green/Yellow/Red tính theo tỷ lệ điểm: Green >= 80%, Yellow >= 50%, Red < 50%.
-{lang_rule}
-
-Schema bắt buộc:
-{{
+    personas = template_context["redTeamPersonas"] or build_default_template()["redTeamPersonas"]
+    personas = personas[:5]
+    while len(personas) < 5:
+        personas.append(f"Reviewer {len(personas) + 1}")
+    full_schema = f"""{{
   "decision": {{
     "color": "Green|Yellow|Red",
     "score": 0,
@@ -2453,7 +2428,89 @@ Schema bắt buộc:
   "postmortem": [
     {{"title": "string", "items": ["string"]}}
   ]
-}}
+}}"""
+
+    step = normalize_agent_step(agent_step).lower() if agent_step else "default"
+    if step == "redteam":
+        task_line = "Nhiệm vụ LẦN NÀY: chỉ tạo phần Red Team phản biện brief."
+        rules_extra = (
+            f"- redTeam PHẢI có ĐÚNG 5 object, mỗi persona một thẻ theo đúng thứ tự: {json.dumps(personas, ensure_ascii=False)}.\n"
+            "- Mỗi thẻ cần persona, worry, evidence, fix — tất cả KHÔNG được rỗng và phải bám nội dung brief.\n"
+            "- Không tự thêm persona ngoài danh sách trên."
+        )
+        rt_schema = [{"persona": p, "worry": "string", "evidence": "string", "fix": "string"} for p in personas]
+        schema_block = f'{{\n  "redTeam": {json.dumps(rt_schema, ensure_ascii=False)}\n}}'
+    elif step == "checklist":
+        task_line = "Nhiệm vụ LẦN NÀY: chỉ tạo checklist việc cần làm trước/sau launch."
+        rules_extra = (
+            "- checklist PHẢI có từ 6 đến 8 object, bám checklistExamples và rủi ro trong brief.\n"
+            "- Mỗi việc cần: task, owner, deadline (T-2|T-1|Launch day|T+48h), status=\"Todo\", priority (High|Medium|Low)."
+        )
+        schema_block = (
+            '{\n  "checklist": [\n'
+            '    {"task": "string", "owner": "string", "deadline": "T-2|T-1|Launch day|T+48h", "status": "Todo", "priority": "High|Medium|Low"}\n'
+            '  ]\n}'
+        )
+    elif step == "postmortem":
+        task_line = "Nhiệm vụ LẦN NÀY: chỉ tạo bộ câu hỏi/khung post-mortem sau launch."
+        rules_extra = (
+            "- postmortem PHẢI có ÍT NHẤT 3 block, bám postmortemBlocks.\n"
+            "- Mỗi block cần: title và items (mảng từ 2 phần tử trở lên: câu hỏi, metric hoặc action)."
+        )
+        schema_block = (
+            '{\n  "postmortem": [\n'
+            '    {"title": "string", "items": ["string", "string"]}\n'
+            '  ]\n}'
+        )
+    elif step == "readiness":
+        task_line = "Nhiệm vụ LẦN NÀY: chỉ giải thích mức sẵn sàng (điểm số backend sẽ tự tính lại bằng rule cố định)."
+        rules_extra = (
+            f"- decision.maxScore = {template_context['maxScore']}; score là số nguyên 0..maxScore.\n"
+            "- riskBreakdown phải đúng các label trong riskGroups, mỗi nhóm giải thích phần còn thiếu.\n"
+            "- topRisks là 3 rủi ro lớn nhất rút từ brief."
+        )
+        schema_block = (
+            '{\n'
+            f'  "decision": {{"color": "Green|Yellow|Red", "score": 0, "maxScore": {template_context["maxScore"]}, "title": "string", "reason": "string"}},\n'
+            f'  "riskBreakdown": {json.dumps(risk_schema, ensure_ascii=False)},\n'
+            '  "topRisks": ["string", "string", "string"]\n'
+            '}'
+        )
+    else:
+        task_line = "Hãy đánh giá toàn bộ launch và trả về JSON đầy đủ."
+        rules_extra = (
+            f"- decision.maxScore phải bằng tổng maxScore của riskGroups: {template_context['maxScore']}.\n"
+            "- riskBreakdown phải có đúng các label trong riskGroups.\n"
+            "- redTeam dùng đúng persona trong redTeamPersonas, đủ 5 thẻ.\n"
+            "- checklist bám checklistExamples; postmortem bám postmortemBlocks."
+        )
+        schema_block = full_schema
+
+    return f"""
+Bạn là LaunchOps Command Center, một Super Agent giúp team kiểm tra rủi ro trước launch.
+
+{task_line}
+Chỉ trả về JSON hợp lệ, không markdown, không giải thích ngoài JSON.
+
+Metadata của launch:
+- Tên launch: {launch_name}
+- Loại launch: {launch_type}
+- Trạng thái hiện tại: {launch_status}
+- Owner: {owner}
+- Start Launch: {target_date}
+- End Launch: {end_date}
+
+Template đang dùng:
+{json.dumps(template_context, ensure_ascii=False, indent=2)}
+
+Luật:
+- Chỉ bám theo template ở trên, không tự thêm nhóm/persona ngoài template.
+- Green/Yellow/Red tính theo tỷ lệ điểm: Green >= 80%, Yellow >= 50%, Red < 50%.
+{rules_extra}
+{lang_rule}
+
+Schema bắt buộc (chỉ trả về đúng các key này):
+{schema_block}
 
 Launch brief:
 {brief}
@@ -2812,7 +2869,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
         "model": model,
         "messages": [
             {"role": "system", "content": "Bạn chỉ trả về JSON hợp lệ theo schema người dùng yêu cầu."},
-            {"role": "user", "content": build_prompt(brief, launch_context)},
+            {"role": "user", "content": build_prompt(brief, launch_context, agent_step)},
         ],
         "temperature": 0,
     }

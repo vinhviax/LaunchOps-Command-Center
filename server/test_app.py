@@ -487,6 +487,53 @@ class AgentLlmObservabilityTests(unittest.TestCase):
         self.assertFalse(meta["schemaAccepted"])
 
 
+class BuildPromptTests(unittest.TestCase):
+    """Phase 4.3 follow-up: per-agent focused prompts so each model produces only its own section."""
+
+    CTX = {"name": "Lucky Wheel", "type": "Game event", "brief": "Lucky Wheel. No owner, no rollback."}
+    BRIEF = "Lucky Wheel weekend. No owner, no rollback plan, no CS FAQ."
+
+    def test_redteam_prompt_demands_exactly_5_cards_and_only_redteam(self):
+        p = app.build_prompt(self.BRIEF, self.CTX, "redteam")
+        self.assertIn("ĐÚNG 5", p)
+        self.assertIn('"redTeam"', p)
+        # Focused: should not ask for the other big sections' schema keys.
+        self.assertNotIn('"checklist"', p)
+        self.assertNotIn('"postmortem"', p)
+
+    def test_checklist_prompt_demands_6_to_8_and_only_checklist(self):
+        p = app.build_prompt(self.BRIEF, self.CTX, "checklist")
+        self.assertIn("6 đến 8", p)
+        self.assertIn('"checklist"', p)
+        self.assertNotIn('"redTeam"', p)
+        self.assertNotIn('"postmortem"', p)
+
+    def test_postmortem_prompt_demands_at_least_3_and_only_postmortem(self):
+        p = app.build_prompt(self.BRIEF, self.CTX, "postmortem")
+        self.assertIn("ÍT NHẤT 3", p)
+        self.assertIn('"postmortem"', p)
+        self.assertNotIn('"redTeam"', p)
+        self.assertNotIn('"checklist"', p)
+
+    def test_readiness_prompt_has_decision_not_other_sections(self):
+        p = app.build_prompt(self.BRIEF, self.CTX, "readiness")
+        self.assertIn('"decision"', p)
+        self.assertIn('"topRisks"', p)
+        self.assertNotIn('"redTeam"', p)
+        self.assertNotIn('"checklist"', p)
+
+    def test_default_prompt_keeps_full_schema(self):
+        p = app.build_prompt(self.BRIEF, self.CTX)
+        for key in ('"decision"', '"redTeam"', '"checklist"', '"postmortem"'):
+            self.assertIn(key, p)
+
+    def test_language_rule_follows_brief(self):
+        vi = app.build_prompt("Sự kiện quay thưởng chưa có người phụ trách rõ ràng.", self.CTX, "redteam")
+        self.assertIn("tiếng Việt", vi)
+        en = app.build_prompt("Lucky Wheel weekend. No owner, no rollback, payment untested.", self.CTX, "redteam")
+        self.assertIn("English", en)
+
+
 class StorageBackendTests(unittest.TestCase):
     def test_storage_backend_defaults_local(self):
         with patch.dict(os.environ, {}, clear=True):
