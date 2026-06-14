@@ -573,6 +573,50 @@ class RagTests(unittest.TestCase):
         self.assertTrue(all(len(v) >= 3 for v in seed.CURATED.values()))
 
 
+class RoleAwareMemoryTests(unittest.TestCase):
+    """WS2: per-agent (role-tagged) + per-product memory."""
+
+    def test_parse_record_role(self):
+        self.assertEqual(app.parse_record_role("[role=redteam] farm vong quay"), ("redteam", "farm vong quay"))
+        self.assertEqual(app.parse_record_role("no tag here"), ("", "no tag here"))
+
+    def test_agent_step_role_mapping(self):
+        self.assertEqual(app.agent_step_role("redteam"), "redteam")
+        self.assertEqual(app.agent_step_role("readiness"), "readiness")
+        self.assertEqual(app.agent_step_role(None), "")
+        self.assertEqual(app.agent_step_role("default"), "")
+
+    def test_knowledge_product_namespace(self):
+        self.assertEqual(app.knowledge_product_namespace("Demo Game", "Game Event H5"), "/launchops/products/demo-game/game-event-h5")
+
+    def test_build_prompt_filters_knowledge_by_role(self):
+        knowledge = [
+            {"title": "RT", "lesson": "[role=redteam] farm vòng quay bằng tài khoản phụ"},
+            {"title": "RD", "lesson": "[role=readiness] cần reward cap trước khi mở"},
+            {"title": "ALL", "lesson": "[role=all] luôn cần owner và rollback"},
+        ]
+        rt = app.build_prompt("brief", {"name": "x", "type": "y", "knowledge": knowledge}, "redteam")
+        self.assertIn("farm vòng quay", rt)
+        self.assertIn("owner và rollback", rt)  # [role=all] visible to everyone
+        self.assertNotIn("reward cap trước khi mở", rt)  # readiness-only, hidden from redteam
+        rd = app.build_prompt("brief", {"name": "x", "type": "y", "knowledge": knowledge}, "readiness")
+        self.assertIn("reward cap trước khi mở", rd)
+        self.assertNotIn("farm vòng quay", rd)
+
+    def test_recall_knowledge_includes_product_namespace(self):
+        captured = []
+
+        def fake_search(memory_id, brief, namespace, limit):
+            captured.append(namespace)
+            return []
+
+        with patch.dict(os.environ, {"LAUNCHOPS_RAG_ENABLED": "true", "LAUNCHOPS_KNOWLEDGE_MEMORY_ID": "mem_k"}, clear=True):
+            with patch.object(app, "_search_knowledge_namespace", side_effect=fake_search):
+                app.recall_knowledge("Lucky Wheel", "game_event_h5", "demo_game")
+        self.assertIn("/launchops/products/demo-game/game-event-h5", captured)
+        self.assertIn("/launchops/knowledge/game-event-h5", captured)
+
+
 class GuardrailTests(unittest.TestCase):
     """WS3: enforce guardrail — reject hard secrets, mask soft PII."""
 

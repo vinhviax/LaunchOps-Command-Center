@@ -60,6 +60,41 @@ CURATED: dict[str, list[str]] = {
 }
 
 
+# WS2: product-specific knowledge -> seeded into the per-product namespace
+# /launchops/products/{gameId}/{launchType} so recall_knowledge can prefer product lessons.
+PRODUCT_CURATED: dict[str, dict[str, list[str]]] = {
+    "demo_game": {
+        "game_event_h5": [
+            "[role=readiness] (demo_game) Event H5 của demo_game trước đây Red khi thiếu reward cap; team luôn yêu cầu cap ngân sách + owner LiveOps rõ trước khi duyệt.",
+            "[role=redteam] (demo_game) Sự cố cũ của demo_game: người chơi farm vòng quay bằng tài khoản phụ vào cuối tuần; cần eligibility theo tuổi tài khoản + giới hạn lượt/ngày.",
+            "[role=postmortem] (demo_game) Lesson demo_game: luôn so chi phí reward thực tế với cap và ghi lại tỉ lệ ticket CS theo loại để chuẩn cho event sau.",
+        ],
+        "campaign": [
+            "[role=readiness] (demo_game) Campaign demo_game cần gắn UTM + baseline CVR từ campaign trước; thiếu tracking là lý do số 1 khiến không đo được ROAS.",
+        ],
+    },
+}
+
+
+def insert_product_records(memory_id: str, game_id: str, launch_type: str, records: list[str]) -> int:
+    namespace = app.knowledge_product_namespace(game_id, launch_type)
+    inserted = 0
+    for text in records:
+        masked = app.mask_sensitive_text(text)
+        try:
+            app.agentbase_memory_request(
+                "POST",
+                f"/memories/{memory_id}/memory-records:insert-directly",
+                {"memoryRecords": [masked]},
+                {"namespace": namespace},
+            )
+            inserted += 1
+        except Exception as exc:  # noqa: BLE001
+            print(f"  ! insert failed ({game_id}/{launch_type}): {type(exc).__name__}: {exc}")
+    print(f"  {game_id}/{launch_type}: inserted {inserted}/{len(records)} into {namespace}")
+    return inserted
+
+
 def insert_records(memory_id: str, launch_type: str, records: list[str]) -> int:
     namespace = app.knowledge_namespace(launch_type)
     inserted = 0
@@ -99,6 +134,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Seed LaunchOps RAG knowledge store")
     parser.add_argument("--memory-id", default=os.getenv("LAUNCHOPS_KNOWLEDGE_MEMORY_ID", "").strip())
     parser.add_argument("--include-local", action="store_true", help="Also seed from saved local lessons")
+    parser.add_argument("--product-only", action="store_true", help="Seed only the per-product records (skip launch-type)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be inserted, no API calls")
     args = parser.parse_args()
 
@@ -106,22 +142,29 @@ def main() -> int:
         print("ERROR: provide --memory-id or set LAUNCHOPS_KNOWLEDGE_MEMORY_ID (or use --dry-run).")
         return 1
 
-    plan = {lt: list(recs) for lt, recs in CURATED.items()}
-    if args.include_local:
+    plan = {} if args.product_only else {lt: list(recs) for lt, recs in CURATED.items()}
+    if args.include_local and not args.product_only:
         for lt, recs in collect_local_lessons().items():
             plan.setdefault(lt, []).extend(recs)
 
+    product_total = sum(len(recs) for bytype in PRODUCT_CURATED.values() for recs in bytype.values())
     total = sum(len(r) for r in plan.values())
-    print(f"Seeding {total} records across {len(plan)} launch types into memory {args.memory_id or '(dry-run)'}")
+    print(f"Seeding {total} launch-type + {product_total} product records into memory {args.memory_id or '(dry-run)'}")
     if args.dry_run:
         for lt, recs in plan.items():
             print(f"  {lt}: {len(recs)} records -> {app.knowledge_namespace(lt)}")
+        for gid, bytype in PRODUCT_CURATED.items():
+            for lt, recs in bytype.items():
+                print(f"  {gid}/{lt}: {len(recs)} records -> {app.knowledge_product_namespace(gid, lt)}")
         return 0
 
     inserted = 0
     for lt, recs in plan.items():
         inserted += insert_records(args.memory_id, lt, recs)
-    print(f"Done. Inserted {inserted}/{total} records.")
+    for gid, bytype in PRODUCT_CURATED.items():
+        for lt, recs in bytype.items():
+            inserted += insert_product_records(args.memory_id, gid, lt, recs)
+    print(f"Done. Inserted {inserted}/{total + product_total} records.")
     return 0
 
 

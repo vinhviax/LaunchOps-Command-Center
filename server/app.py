@@ -580,33 +580,56 @@ def knowledge_namespace(launch_type: str) -> str:
     return f"/launchops/knowledge/{slugify(launch_type or 'generic')}"
 
 
-def recall_knowledge(brief: str, launch_type: str, limit: int = 5) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Top-k semantic recall from the knowledge store to ground the agents. Flag-gated; safe no-op when off."""
-    trace: dict[str, Any] = {"enabled": rag_enabled(), "source": "disabled", "namespace": "", "recordsRecalled": 0, "store": "knowledge"}
+def knowledge_product_namespace(game_id: str, launch_type: str) -> str:
+    return f"/launchops/products/{slugify(game_id or 'demo_game')}/{slugify(launch_type or 'generic')}"
+
+
+def _search_knowledge_namespace(memory_id: str, brief: str, namespace: str, limit: int) -> list[dict[str, Any]]:
+    payload = agentbase_memory_request(
+        "POST",
+        f"/memories/{memory_id}/memory-records:search",
+        {"query": mask_sensitive_text(brief), "limit": max(int(limit), 5)},
+        {"namespace": namespace},
+    )
+    return extract_memory_records(payload, limit=max(int(limit), 5))
+
+
+def recall_knowledge(brief: str, launch_type: str, game_id: str = "", limit: int = 5) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """WS1+WS2: semantic recall grounding the agents. Searches the product-specific namespace first (if a
+    product is known) then the shared launch-type namespace, merged + deduped. Flag-gated; safe no-op when off."""
+    trace: dict[str, Any] = {"enabled": rag_enabled(), "source": "disabled", "namespaces": [], "recordsRecalled": 0, "store": "knowledge"}
     if not rag_enabled():
         return [], trace
     memory_id = os.getenv("LAUNCHOPS_KNOWLEDGE_MEMORY_ID", "").strip()
     if not memory_id:
         trace["source"] = "missing_knowledge_id"
         return [], trace
-    namespace = knowledge_namespace(launch_type)
-    search_limit = max(int(limit), 5)  # AgentBase memory search requires limit >= 5
-    trace.update({"source": "agentbase", "namespace": namespace})
-    try:
-        payload = agentbase_memory_request(
-            "POST",
-            f"/memories/{memory_id}/memory-records:search",
-            {"query": mask_sensitive_text(brief), "limit": search_limit},
-            {"namespace": namespace},
-        )
-        records = extract_memory_records(payload, limit=search_limit)
-        trace["recordsRecalled"] = len(records)
-        trace["recordIds"] = [str(r.get("id") or r.get("title") or "")[:48] for r in records]
-        return records, trace
-    except Exception as exc:
-        trace.update({"source": "agentbase_error", "error": type(exc).__name__})
-        write_backend_log(f"RAG knowledge recall failed: {type(exc).__name__}")
+    namespaces: list[str] = []
+    if game_id:
+        namespaces.append(knowledge_product_namespace(game_id, launch_type))
+    namespaces.append(knowledge_namespace(launch_type))
+    trace.update({"source": "agentbase", "namespaces": namespaces})
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    errors: list[str] = []
+    for namespace in namespaces:
+        try:
+            for rec in _search_knowledge_namespace(memory_id, brief, namespace, limit):
+                key = str(rec.get("memory") or rec.get("content") or rec.get("text") or rec.get("id") or "")[:120]
+                if key and key not in seen:
+                    seen.add(key)
+                    merged.append(rec)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{namespace}:{type(exc).__name__}")
+            write_backend_log(f"RAG knowledge recall failed ({namespace}): {type(exc).__name__}")
+    if errors and not merged:
+        trace.update({"source": "agentbase_error", "errors": errors})
         return [], trace
+    if errors:
+        trace["partialErrors"] = errors
+    trace["recordsRecalled"] = len(merged)
+    trace["recordIds"] = [str(r.get("id") or r.get("title") or "")[:48] for r in merged]
+    return merged, trace
 
 def memory_config_error() -> str:
     if not memory_enabled():
@@ -2298,7 +2321,7 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
     knowledge: list[dict[str, Any]] = []
     rag_trace = {"enabled": rag_enabled(), "source": "skipped_fast" if force_fast else "disabled", "recordsRecalled": 0}
     if not force_fast and rag_enabled():
-        knowledge, rag_trace = recall_knowledge(brief, product_context.get("launchType", ""))
+        knowledge, rag_trace = recall_knowledge(brief, product_context.get("launchType", ""), product_context.get("gameId", ""))
     launch_context["knowledge"] = knowledge
     result = readiness_agent(brief, launch_context, force_fast=force_fast)
     result["productContext"] = product_context
@@ -2542,6 +2565,23 @@ def detect_brief_language(text: str) -> str:
     return "vi" if vi_count >= 3 else "en"
 
 
+# WS2: knowledge records are seeded with a leading [role=...] tag so each agent recalls its own slice.
+_ROLE_TAG_RE = re.compile(r"^\s*\[role=([a-zA-Z_]+)\]\s*", re.IGNORECASE)
+
+
+def parse_record_role(text: str) -> tuple[str, str]:
+    """Return (role, clean_text). role is '' when untagged."""
+    match = _ROLE_TAG_RE.match(str(text or ""))
+    if not match:
+        return "", str(text or "").strip()
+    return match.group(1).lower(), _ROLE_TAG_RE.sub("", str(text), count=1).strip()
+
+
+def agent_step_role(agent_step: str | None) -> str:
+    step = normalize_agent_step(agent_step).lower() if agent_step else ""
+    return step if step in ("readiness", "redteam", "checklist", "postmortem") else ""
+
+
 def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent_step: str | None = None) -> str:
     launch_context = launch_context or {}
     launch_name = str(launch_context.get("name") or "Chưa đặt tên")
@@ -2567,18 +2607,24 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
         else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
     )
 
-    # WS1 RAG: ground the agent in recalled curated knowledge (if any).
+    # WS1 RAG + WS2 role-aware: each agent recalls the knowledge slice tagged for its role (+ untagged/all).
     knowledge_records = launch_context.get("knowledge") if isinstance(launch_context.get("knowledge"), list) else []
+    role = agent_step_role(agent_step)  # "" for default/full -> keep all
     knowledge_block = ""
     if knowledge_records:
         lines = []
-        for rec in knowledge_records[:5]:
+        for rec in knowledge_records:
             if not isinstance(rec, dict):
                 continue
+            raw = str(rec.get("lesson") or rec.get("memory") or rec.get("content") or rec.get("text") or "").strip()
+            rec_role, clean = parse_record_role(raw)
+            if role and rec_role and rec_role not in (role, "all"):
+                continue  # belongs to another agent's slice
             title = str(rec.get("title") or rec.get("severity") or "Bài học").strip()
-            text = str(rec.get("lesson") or rec.get("memory") or rec.get("content") or rec.get("text") or "").strip()
-            if text:
-                lines.append(f"- [{title}] {text[:400]}")
+            if clean:
+                lines.append(f"- [{title}] {clean[:400]}")
+            if len(lines) >= 5:
+                break
         if lines:
             knowledge_block = (
                 "\nPlaybook / bài học liên quan (RAG, dùng để phản biện sâu hơn, KHÔNG copy nguyên văn):\n"
