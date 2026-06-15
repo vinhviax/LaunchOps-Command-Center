@@ -248,6 +248,8 @@ const STATIC_TEXT_I18N = {
   "Các lần đã phân tích": "Past analyses",
   "Câu hỏi sau launch": "Post-launch questions",
   "Điểm readiness": "Readiness score",
+  "AI đề xuất cập nhật template": "AI template suggestions",
+  "Đề xuất cải tiến": "Improvement suggestions",
   "Cách đọc điểm": "How to read the score",
   "Mỗi nhóm tối đa 2 điểm. Điểm càng thấp nghĩa là brief càng thiếu dữ liệu để team ra quyết định launch.": "Each group scores up to 2. A lower score means the brief lacks data for the team to decide on the launch."
 };
@@ -488,7 +490,7 @@ function applyCleanTranslations(lang) {
 
   // Analyze-tab static headings / kickers / risk guide.
   // Plain-text pass: only translate elements with no child nodes whose VI text is mapped.
-  document.querySelectorAll("#redTeam h3, #redTeam .section-kicker, #checklist h3, #history h3, #lessons h3, .risk-guide strong, .risk-guide p").forEach((el) => {
+  document.querySelectorAll("#redTeam h3, #redTeam .section-kicker, #checklist h3, #history h3, #lessons h3, #lessons .section-kicker, .risk-guide strong, .risk-guide p").forEach((el) => {
     if (el.children.length) return;
     if (!el.dataset.txtVi) el.dataset.txtVi = el.textContent.trim();
     const en = STATIC_TEXT_I18N[el.dataset.txtVi];

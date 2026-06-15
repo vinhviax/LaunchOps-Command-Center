@@ -349,6 +349,11 @@ function statusDisplayLabel(status) {
     ? (STATUS_LABELS_EN[status] || status || "")
     : (STATUS_LABELS[status] || status || "");
 }
+
+function configButtonText(isConfigScreen = false) {
+  return isConfigScreen ? tr("Quay lại launch", "Back to launch") : tr("Cấu hình phân loại", "Classification Config");
+}
+
 const PERSONA_LABELS = {
   "Angry user": { vi: "Người chơi bức xúc", en: "Angry player" },
   "Exploit hunter": { vi: "Người tìm cách lách luật", en: "Exploit hunter" },
@@ -487,6 +492,81 @@ const LUCKY_SPIN_EVENT_TEMPLATE = {
   ]
 };
 LAUNCH_TEMPLATES.lucky_spin_event = LUCKY_SPIN_EVENT_TEMPLATE;
+
+const EN_BRIEF_GUIDES_BY_TEMPLATE = {
+  "Game Event Launch": {
+    description: "Use for in-game events or campaigns with players, rewards, CS handling, and abuse risk.",
+    items: [
+      "Goal, KPI, and target player segment.",
+      "Launch window, owner, and on-call team.",
+      "Event or campaign mechanics, rewards, budget, and limits.",
+      "CS FAQ, player messaging, and complaint risks.",
+      "Technical testing, monitoring, rollback plan, and pause threshold.",
+      "What to measure after launch and where lessons will be saved."
+    ]
+  },
+  "Production System Release": {
+    description: "Use for production system releases that do not default to a business owner.",
+    items: [
+      "Release goal, scope of change, and affected systems.",
+      "Deploy window, owner, and incident on-call.",
+      "Test plan, rollout plan, monitoring, and alerts.",
+      "Rollback plan, incident runbook, and stop thresholds.",
+      "User, service, or data impact and communication plan.",
+      "Post-release uptime, errors, incidents, and operating lessons."
+    ]
+  },
+  "Generic Launch": {
+    description: "Use for launches that are not game events or production releases.",
+    items: [
+      "Goal, scope, and affected audience.",
+      "Owner, approver, and deadline.",
+      "Execution, communication, and support plan.",
+      "Operational, legal, access, or data risks.",
+      "Fallback or rollback plan if the launch fails.",
+      "How results will be measured and lessons recorded."
+    ]
+  },
+  "Lucky Spin Event Playbook": {
+    description: "Dedicated template for in-game lucky-spin events with spin attempts, reward caps, anti-farm rules, CS FAQ, and rollback.",
+    items: [
+      "Event goal/KPI, player segment, and start/end time.",
+      "How players receive spins, eligibility rules, daily reset, and spin limits.",
+      "Reward pool, drop rates, maximum budget, and rules when rewards run out.",
+      "Anti-farm rules for secondary accounts, anomaly logs, and pause conditions.",
+      "CS FAQ, in-game messaging, weekend owner, and escalation path.",
+      "Realtime dashboard, rollback/kill switch, and post-mortem lesson for the next event."
+    ]
+  }
+};
+
+const EN_LUCKY_SPIN_POSTMORTEM = [
+  {
+    title: "Golden Spin results",
+    items: [
+      "Actual participation rate and spin volume?",
+      "Did reward cost exceed the cap?",
+      "Any spin success or reward delivery errors?"
+    ]
+  },
+  {
+    title: "Risk and operations",
+    items: [
+      "Was there spin farming?",
+      "Which CS ticket cases increased?",
+      "Were the pause threshold and kill switch clear enough?"
+    ]
+  },
+  {
+    title: "Lessons for the next event",
+    items: [
+      "Which rule must be added to the template?",
+      "Which message or FAQ should be standardized?",
+      "Which checklist item should be completed earlier?"
+    ]
+  }
+];
+
 const OWNER_LABELS = {
   "Business owner": "Phụ trách kinh doanh",
   "Business Owner": "Phụ trách kinh doanh",
@@ -2275,11 +2355,13 @@ function renderChecklist(items = activeTemplate().checklist) {
 
 function renderPostmortem(blocks) {
   if (Array.isArray(blocks) && blocks.length) {
-    postmortemDraft.innerHTML = blocks.map((block) => `
+    const useEnglishBlocks = uiLang() === "en" && activeTemplate().name === "Lucky Spin Event Playbook" && blocks.length === EN_LUCKY_SPIN_POSTMORTEM.length;
+    const displayBlocks = useEnglishBlocks ? EN_LUCKY_SPIN_POSTMORTEM : blocks;
+    postmortemDraft.innerHTML = displayBlocks.map((block) => `
       <section class="draft-block">
-        <h3>${escapeHTML(headingText(block.title))}</h3>
+        <h3>${escapeHTML(useEnglishBlocks ? block.title : headingText(block.title))}</h3>
         <ul>
-          ${(block.items || []).map((item) => `<li>${escapeHTML(friendlyText(item))}</li>`).join("")}
+          ${(block.items || []).map((item) => `<li>${escapeHTML(useEnglishBlocks ? item : friendlyText(item))}</li>`).join("")}
         </ul>
       </section>
     `).join("");
@@ -2858,11 +2940,15 @@ function renderLaunchSnapshot() {
 
 function renderBriefGuide() {
   const template = activeTemplate();
+  const enGuide = uiLang() === "en" ? EN_BRIEF_GUIDES_BY_TEMPLATE[template.name] : null;
   if (briefGuideDescription) {
-    briefGuideDescription.textContent = template.description || "Viết như một bản mô tả launch thật. Không cần văn hay, nhưng cần đủ dữ liệu để Agent chấm rủi ro.";
+    briefGuideDescription.textContent = enGuide?.description || template.description || tr(
+      "Viết như một bản mô tả launch thật. Không cần văn hay, nhưng cần đủ dữ liệu để Agent chấm rủi ro.",
+      "Write this like a real launch brief. It does not need polished prose, but it needs enough data for the Agent to score risk."
+    );
   }
   if (briefGuideItems) {
-    briefGuideItems.innerHTML = (template.briefGuide || DEFAULT_BRIEF_GUIDE)
+    briefGuideItems.innerHTML = (enGuide?.items || template.briefGuide || DEFAULT_BRIEF_GUIDE)
       .map((item) => `<li>${escapeHTML(item)}</li>`)
       .join("");
   }
@@ -3446,32 +3532,76 @@ function renderLessonSuggestions() {
   ensureLessonSuggestions();
   const suggestions = (currentLaunch?.lessonSuggestions || []).filter((item) => item.status !== "dismissed");
   if (!suggestions.length) {
-    lessonSuggestions.innerHTML = `<div class="empty-state">Chưa có đề xuất. Sau khi có phân tích hoặc bài học, AI sẽ đề xuất cập nhật template để bạn duyệt.</div>`;
+    lessonSuggestions.innerHTML = `<div class="empty-state">${tr("Chưa có đề xuất. Sau khi có phân tích hoặc bài học, AI sẽ đề xuất cập nhật template để bạn duyệt.", "No suggestions yet. After an analysis or saved lesson, AI will suggest template updates for review.")}</div>`;
     return;
   }
 
   const permissionNote = `
     <div class="suggestion-note">
-      AI chỉ đề xuất cập nhật template để tham khảo. Bản demo hiện mở quyền duyệt để bạn áp dụng trực tiếp vào template.
+      ${tr("AI chỉ đề xuất cập nhật template để tham khảo. Bản demo hiện mở quyền duyệt để bạn áp dụng trực tiếp vào template.", "AI only suggests template updates for reference. Approval is open in this demo so you can apply suggestions directly to the template.")}
     </div>
   `;
   lessonSuggestions.innerHTML = permissionNote + suggestions.map((item) => {
     const accepted = item.status === "accepted";
     const locked = !canApproveTemplateSuggestion();
+    const typeLabel = item.type === "riskRequirement"
+      ? tr("Yêu cầu rủi ro", "Risk requirement")
+      : item.type === "checklist"
+        ? tr("Checklist", "Checklist")
+        : item.type === "persona"
+          ? tr("Persona", "Persona")
+          : item.type === "postmortem"
+            ? tr("Post-mortem", "Post-mortem")
+            : item.type;
     return `
       <article class="suggestion-item ${accepted ? "accepted" : ""}">
         <div>
-          <span class="section-kicker">${escapeHTML(item.type)}</span>
-          <h4>${escapeHTML(item.title)}</h4>
-          <p>${escapeHTML(friendlyText(item.reason))}</p>
+          <span class="section-kicker">${escapeHTML(typeLabel)}</span>
+          <h4>${escapeHTML(uiLang() === "en" ? suggestionTitleEn(item) : item.title)}</h4>
+          <p>${escapeHTML(uiLang() === "en" ? suggestionReasonEn(item) : friendlyText(item.reason))}</p>
         </div>
         <div class="suggestion-actions">
-          <button type="button" data-suggestion-apply="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>${accepted ? "Đã duyệt" : "Duyệt vào template"}</button>
-          <button type="button" data-suggestion-dismiss="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>Bỏ qua</button>
+          <button type="button" data-suggestion-apply="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>${accepted ? tr("Đã duyệt", "Approved") : tr("Duyệt vào template", "Approve into template")}</button>
+          <button type="button" data-suggestion-dismiss="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>${tr("Bỏ qua", "Dismiss")}</button>
         </div>
       </article>
     `;
   }).join("");
+}
+
+function suggestionTitleEn(item) {
+  if (item.id === "checklist-rollback-threshold") return "Add rollback / pause-threshold task";
+  if (item.id === "persona-economy-reviewer") return "Add Economy / Reward reviewer";
+  if (item.type === "riskRequirement") return `Add requirement: ${riskLabelEn(item.target || item.payload?.label || "risk group")}`;
+  if (item.type === "checklist") return `Add checklist task: ${item.payload?.task || item.title}`;
+  if (item.type === "persona") return `Add red-team persona: ${item.payload?.persona || item.title}`;
+  if (item.type === "postmortem") return `Add post-mortem question: ${item.payload?.title || item.title}`;
+  return item.title;
+}
+
+function suggestionReasonEn(item) {
+  if (item.id === "checklist-rollback-threshold") return "Past lessons mention rollback or pause thresholds, so the checklist should include this required action.";
+  if (item.id === "persona-economy-reviewer") return "Past lessons mention rewards, so this launch needs a reviewer focused on rates, budget, and abuse risk.";
+  if (item.type === "riskRequirement") return "This risk group needs a clearer requirement so future briefs can be scored consistently.";
+  if (item.type === "checklist") return "Add this task so the operational follow-up is owned and tracked before launch.";
+  if (item.type === "persona") return "Add this perspective so Red Team reviews catch the risk earlier.";
+  if (item.type === "postmortem") return "Add this post-launch question so the next review captures the lesson.";
+  return item.reason || "";
+}
+
+function riskLabelEn(label) {
+  const value = normalizeText(label);
+  const labels = {
+    "muc tieu va pham vi": "Goals and scope",
+    "muc tieu va segment": "Goals and segment",
+    "nguoi phu trach va han xu ly": "Owner and deadline",
+    "co che quay va eligibility": "Spin mechanics and eligibility",
+    "reward cap va economy": "Reward cap and economy",
+    "anti abuse va log": "Anti-abuse and logs",
+    "cs va thong diep": "CS and messaging",
+    "rollback va monitoring": "Rollback and monitoring"
+  };
+  return labels[value] || riskLabel(label);
 }
 
 function findSuggestion(id) {
@@ -3551,30 +3681,30 @@ function renderLessons() {
         <small>${escapeHTML(formatDate(lesson.createdAt))}</small>
       </div>
     `).join("")
-    : `<div class="empty-state">Chưa có bài học nào. Khi launch xong, ghi bài học ở đây để lần sau agent có thêm ngữ cảnh.</div>`;
+    : `<div class="empty-state">${tr("Chưa có bài học nào. Khi launch xong, ghi bài học ở đây để lần sau agent có thêm ngữ cảnh.", "No lessons yet. After the launch, record lessons here so the Agent has more context next time.")}</div>`;
 
   lessonsPanel.innerHTML = `
     <section class="lesson-box">
-      <h3>Kết quả sau launch</h3>
+      <h3>${tr("Kết quả sau launch", "Post-launch results")}</h3>
       <textarea id="postResultInput" spellcheck="false">${escapeHTML(postResult)}</textarea>
       <label class="field">
-        <span>Đổi trạng thái sau khi lưu</span>
+        <span>${tr("Đổi trạng thái sau khi lưu", "Status after saving")}</span>
         <select id="postResultStatus">
-          <option value="completed" ${normalizeStatus(currentLaunch?.status) === "completed" ? "selected" : ""}>Đã chạy</option>
-          <option value="running" ${normalizeStatus(currentLaunch?.status) === "running" ? "selected" : ""}>Đang chạy</option>
-          <option value="upcoming" ${normalizeStatus(currentLaunch?.status) === "upcoming" ? "selected" : ""}>Sắp chạy</option>
+          <option value="completed" ${normalizeStatus(currentLaunch?.status) === "completed" ? "selected" : ""}>${tr("Đã chạy", "Completed")}</option>
+          <option value="running" ${normalizeStatus(currentLaunch?.status) === "running" ? "selected" : ""}>${tr("Đang chạy", "Running")}</option>
+          <option value="upcoming" ${normalizeStatus(currentLaunch?.status) === "upcoming" ? "selected" : ""}>${tr("Sắp chạy", "Upcoming")}</option>
         </select>
       </label>
     </section>
     <section class="lesson-box">
-      <h3>Bài học rút ra</h3>
+      <h3>${tr("Bài học rút ra", "Lessons learned")}</h3>
       <div class="lesson-list">${lessonItems}</div>
       <label class="field brief-field">
-        <span>Thêm bài học mới</span>
-        <textarea id="lessonInput" spellcheck="false" placeholder="Ví dụ: Lần sau phải chốt CS FAQ trước T-1."></textarea>
+        <span>${tr("Thêm bài học mới", "Add a new lesson")}</span>
+        <textarea id="lessonInput" spellcheck="false" placeholder="${escapeHTML(tr("Ví dụ: Lần sau phải chốt CS FAQ trước T-1.", "Example: Next time, lock the CS FAQ before T-1."))}"></textarea>
       </label>
       <div class="actions">
-        <button id="saveLesson" type="button" class="primary">Lưu kết quả / bài học</button>
+        <button id="saveLesson" type="button" class="primary">${tr("Lưu kết quả / bài học", "Save results / lessons")}</button>
       </div>
     </section>
   `;
@@ -4372,7 +4502,7 @@ function activateTab(target) {
   });
   openTemplateConfigButton?.classList.toggle("active", isConfigScreen);
   if (openTemplateConfigButton) {
-    openTemplateConfigButton.textContent = isConfigScreen ? "Quay lại launch" : "Cấu hình phân loại";
+    openTemplateConfigButton.textContent = configButtonText(isConfigScreen);
   }
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === target));
   if (target === "runLog") renderRunLog();
@@ -5298,6 +5428,7 @@ window.launchopsOnLanguageApplied = () => {
     renderLaunchGroups();
     renderLaunchWorkspace();
     renderLatestAnalysisOrPreview();
+    if (openTemplateConfigButton) openTemplateConfigButton.textContent = configButtonText(appShell?.classList.contains("config-mode"));
   } catch (error) {
     console.warn("Language re-render failed.", error);
   }
@@ -5770,7 +5901,7 @@ function updateUILanguage(lang) {
   const newLaunchEl = document.getElementById("newLaunch");
   if (newLaunchEl) newLaunchEl.textContent = dict.newLaunch;
   const configBtn = document.getElementById("openTemplateConfig");
-  if (configBtn) configBtn.textContent = dict.openTemplateConfig;
+  if (configBtn) configBtn.textContent = configButtonText(appShell?.classList.contains("config-mode"));
 
   const modeFriendlyBtn = document.getElementById("modeFriendlyBtn");
   if (modeFriendlyBtn) modeFriendlyBtn.textContent = dict.modeFriendly;
