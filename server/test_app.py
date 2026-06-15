@@ -53,8 +53,18 @@ class LegacyEncodingRepairTests(unittest.TestCase):
     def test_default_demo_samples_are_golden_spin_only(self):
         samples = app.default_sample_launches()
         ids = {item["id"] for item in samples}
-        self.assertEqual(ids, {"golden-spin-may-retro", "golden-spin-weekend-risk", "golden-spin-weekend-v2-ready"})
+        self.assertEqual(ids, {
+            "golden-spin-may-retro",
+            "golden-spin-weekend-risk",
+            "golden-spin-weekend-v2-ready",
+            "golden-spin-demo-01-retro",
+            "golden-spin-demo-02-risk",
+            "golden-spin-demo-03-ready",
+        })
         self.assertTrue(all(item["type"] == "lucky_spin_event" for item in samples))
+        draft_samples = [item for item in samples if item["id"].startswith("golden-spin-demo-")]
+        self.assertEqual(len(draft_samples), 3)
+        self.assertTrue(all(item["analyses"] == [] for item in draft_samples))
         names = " ".join(item["name"] for item in samples)
         self.assertNotIn("Lucky Wheel", names)
         self.assertNotIn("May Login", names)

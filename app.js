@@ -578,6 +578,90 @@ Vận hành:
 - Kill switch và rollback script đã test ở staging.
 - Post-mortem T+48h ghi lại ticket, reward cost, abuse case và lesson cho Golden Spin tháng 7.`;
 
+const luckySpinDraftRetroBrief = `Tên launch: Golden Spin Demo 01 - Retro Draft.
+
+Mục đích demo: Dùng như launch đã chạy để người trình bày nhập/chỉnh lại ngày giờ, sau đó phân tích và lưu bài học cho launch cùng loại.
+
+Trạng thái nháp: Đã chạy. Chưa phân tích trong app.
+
+Bối cảnh:
+- Golden Spin là event quay thưởng cuối tuần cho người chơi game.
+- Mục tiêu cũ là tăng login cuối tuần và kích hoạt gói nạp nhỏ.
+- Event có lượt quay miễn phí khi đăng nhập và lượt quay thêm khi nạp gói 49k/99k.
+
+Kết quả thực tế cần kể trong demo:
+- Login tăng nhẹ, doanh thu gói nhỏ có tăng.
+- Ticket CS tăng vì người chơi không hiểu reset ngày, mất lượt quay và thời điểm nhận quà.
+- Có dấu hiệu tài khoản phụ farm lượt quay trước khi team phát hiện.
+- Team thiếu dashboard realtime cho spin success, reward delivery và abuse flag.
+
+Bài học muốn lưu lại:
+- Brief Lucky Spin phải ghi rõ reset ngày, điều kiện nhận lượt và ví dụ case mất lượt.
+- Phải có reward cap, giới hạn item hiếm và rule tắt item khi gần hết cap.
+- CS cần FAQ/macro trước giờ mở event.
+- Tech cần dashboard realtime, kill switch và ngưỡng pause.`;
+
+const luckySpinDraftRiskBrief = `Tên launch: Golden Spin Demo 02 - Risk Draft.
+
+Mục đích demo: Dùng như launch đang chuẩn bị/chạy nhưng còn thiếu nhiều guardrail. Human sẽ tự chỉnh thời gian rồi bấm phân tích để thấy Yellow/Red Team/checklist.
+
+Trạng thái nháp: Đang chạy hoặc sát giờ chạy. Chưa phân tích trong app.
+
+Mục tiêu:
+- Tăng login cuối tuần.
+- Tăng doanh thu gói nhỏ 49k/99k.
+- Tạo cảm giác vui cho người chơi qua vòng quay may mắn.
+
+Cơ chế dự kiến:
+- Người chơi đăng nhập nhận lượt quay miễn phí mỗi ngày.
+- Người chơi nạp gói bất kỳ nhận thêm lượt quay.
+- Phần thưởng gồm item thường, coupon và một số item hiếm.
+
+Điểm còn mơ hồ:
+- Chưa chốt reset lúc mấy giờ và mất lượt xử lý ra sao.
+- Chưa chốt reward cap, tỷ lệ trúng item hiếm và rule khi hết quà.
+- Chưa có điều kiện chống tài khoản phụ farm lượt quay.
+- Chưa có CS FAQ cho mất lượt, hết quà, phát quà chậm.
+- Chưa rõ dashboard theo dõi, người được quyền pause và rollback script.
+
+Gợi ý khi demo: Sau khi phân tích, dùng Red Team để bổ sung reward cap, anti-abuse, CS FAQ và monitoring.`;
+
+const luckySpinDraftReadyBrief = `Tên launch: Golden Spin Demo 03 - Ready Draft.
+
+Mục đích demo: Dùng như phiên bản đã học từ Retro/Risk và chuẩn bị chạy lại. Human sẽ tự chỉnh thời gian rồi phân tích để kỳ vọng chuyển sang Green.
+
+Trạng thái nháp: Sắp chạy. Chưa phân tích trong app.
+
+Mục tiêu:
+- Tăng login cuối tuần 7%.
+- Tăng doanh thu gói nhỏ 8-10%.
+- Giữ reward cost dưới cap và không làm lệch economy.
+
+Đối tượng:
+- Người chơi level 10+.
+- Tài khoản tạo trước ngày chốt của event.
+- Loại trừ account nằm trong danh sách abuse/refund.
+
+Cơ chế:
+- Mỗi ngày đăng nhập nhận 1 lượt quay miễn phí, reset lúc 05:00.
+- Nạp gói 49k/99k nhận thêm tối đa 3 lượt/ngày.
+- Mỗi account tối đa 9 lượt trong toàn event.
+- Thiết bị/IP bất thường được đưa vào hàng chờ review.
+
+Reward và guardrail:
+- Reward cap tổng event 150 triệu.
+- Item hiếm giới hạn 600 phần.
+- Tắt item hiếm khi đạt 95% cap hoặc khi reward delivery lỗi vượt ngưỡng.
+- Nếu ticket CS tăng gấp 2 baseline hoặc reward delivery lỗi trên 1% trong 10 phút, Tech on-call được quyền pause event.
+
+Vận hành:
+- PM LiveOps owner.
+- CS Lead trực 2 ca với FAQ/macro cho mất lượt, hết quà, phát quà chậm và reset ngày.
+- Tech on-call trực giờ mở event.
+- Dashboard realtime có spin success, reward delivery, ticket CS, abuse flag.
+- Kill switch và rollback script đã test ở staging.
+- Post-mortem T+48h sẽ ghi lại ticket, reward cost, abuse case và lesson cho lần sau.`;
+
 const luckySpinYellowResult = {
   source: "memory_sample",
   decision: {
@@ -751,6 +835,66 @@ const fallbackLaunches = [
       "duyet reward cap va rule tat item hiem o 95% cap|business owner|t-1 ngay": true,
       "brief cs 2 ca truc voi macro mat luot/het qua/phat cham|cs lead|t-1 ngay": true
     },
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "golden-spin-demo-01-retro",
+    name: "Golden Spin Demo 01 - Retro Draft",
+    type: LUCKY_SPIN_TYPE,
+    status: "completed",
+    owner: "PM LiveOps",
+    targetDate: "2026-06-10",
+    endDate: "2026-06-12",
+    brief: luckySpinDraftRetroBrief,
+    template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "golden-spin-demo-02-risk",
+    name: "Golden Spin Demo 02 - Risk Draft",
+    type: LUCKY_SPIN_TYPE,
+    status: "running",
+    owner: "PM LiveOps",
+    targetDate: "2026-06-13",
+    endDate: "2026-06-15",
+    brief: luckySpinDraftRiskBrief,
+    template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "golden-spin-demo-03-ready",
+    name: "Golden Spin Demo 03 - Ready Draft",
+    type: LUCKY_SPIN_TYPE,
+    status: "upcoming",
+    owner: "PM LiveOps + Tech on-call",
+    targetDate: "2026-06-20",
+    endDate: "2026-06-22",
+    brief: luckySpinDraftReadyBrief,
+    template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
     redTeamBriefSupplements: {},
     createdAt: DEMO_CREATED_AT,
     updatedAt: DEMO_CREATED_AT
