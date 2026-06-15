@@ -348,6 +348,7 @@ class AgentRoleInvocationTests(unittest.TestCase):
         remote_result = app.fallback_result("remote readiness")
         remote_result["decision"]["score"] = 3
         remote_result["decision"]["color"] = "Red"
+        remote_result["ragSources"] = {"source": "agentbase", "storeId": "memory-readiness", "recordsRecalled": 2}
         with patch.dict(os.environ, {
             "LAUNCHOPS_USE_REMOTE_AGENTS": "true",
             "LAUNCHOPS_READINESS_URL": "https://readiness.example",
@@ -364,6 +365,7 @@ class AgentRoleInvocationTests(unittest.TestCase):
                 result = app.orchestrate_launchops_analysis("Lucky Wheel. No owner, no rollback plan, no CS FAQ.")
         remote_traces = [item for item in result.get("trace", []) if item.get("source") == "remote_runtime"]
         self.assertEqual(remote_traces[0]["runtimeName"], "lcc-readiness-agent")
+        self.assertEqual(remote_traces[0]["ragSources"]["storeId"], "memory-readiness")
         self.assertEqual(result["orchestration"]["mode"], "remote_agents")
 
 class ChatbotParserTests(unittest.TestCase):
@@ -670,7 +672,8 @@ class RoleAwareMemoryTests(unittest.TestCase):
 
         with patch.dict(os.environ, {"LAUNCHOPS_RAG_ENABLED": "true", "LAUNCHOPS_KNOWLEDGE_MEMORY_ID": "mem_k"}, clear=True):
             with patch.object(app, "_search_knowledge_namespace", side_effect=fake_search):
-                app.recall_knowledge("Lucky Wheel", "game_event_h5", "demo_game")
+                _, trace = app.recall_knowledge("Lucky Wheel", "game_event_h5", "demo_game")
+        self.assertEqual(trace["storeId"], "mem_k")
         self.assertIn("/launchops/products/demo-game/game-event-h5", captured)
         self.assertIn("/launchops/knowledge/game-event-h5", captured)
 

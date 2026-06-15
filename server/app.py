@@ -617,7 +617,7 @@ def recall_knowledge(brief: str, launch_type: str, game_id: str = "", limit: int
     if game_id:
         namespaces.append(knowledge_product_namespace(game_id, launch_type))
     namespaces.append(knowledge_namespace(launch_type))
-    trace.update({"source": "agentbase", "namespaces": namespaces})
+    trace.update({"source": "agentbase", "namespaces": namespaces, "storeId": memory_id})
     merged: list[dict[str, Any]] = []
     seen: set[str] = set()
     errors: list[str] = []
@@ -2403,7 +2403,7 @@ def call_remote_agent_or_fallback(role: str, payload: dict[str, Any], fallback: 
         remote_version = "remote"
         if response_trace and isinstance(response_trace[-1], dict):
             remote_version = str(response_trace[-1].get("runtimeVersion") or remote_version)
-        result.setdefault("trace", []).append({
+        remote_trace = {
             "agent": role,
             "status": "ok",
             "source": "remote_runtime",
@@ -2411,7 +2411,11 @@ def call_remote_agent_or_fallback(role: str, payload: dict[str, Any], fallback: 
             "runtimeName": response.get("agent") or agent_role_name(role),
             "runtimeVersion": remote_version,
             "requestId": response.get("requestId") or request_id,
-        })
+        }
+        rag_sources = result.get("ragSources")
+        if isinstance(rag_sources, dict):
+            remote_trace["ragSources"] = rag_sources
+        result.setdefault("trace", []).append(remote_trace)
         return result
     except Exception as exc:
         result = fallback()
