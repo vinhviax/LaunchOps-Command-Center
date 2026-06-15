@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật: 14/06/2026 — production đang chạy trên VNG AgentBase, image `v26`, runtime version 32, storage backend `cloud`.
+> Cập nhật: 15/06/2026 — production đang chạy trên VNG AgentBase, image `v32`, runtime version 44, storage backend `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**. Người dùng dán launch brief, hệ thống chấm readiness Green/Yellow/Red, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, viết post-mortem questions và lưu bài học cho các lần launch sau.
 
@@ -10,14 +10,15 @@ LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**.
 
 | Thành phần | Trạng thái |
 |---|---|
-| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 32, ACTIVE |
-| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v26` |
+| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 44, ACTIVE |
+| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v32` |
 | Web/API/MCP endpoint | Public HTTPS endpoint ở trên |
 | Storage | VNG vDB/PostgreSQL qua `LAUNCHOPS_STORAGE_BACKEND=cloud` |
-| Memory | AgentBase Memory `launchops-memory` + knowledge store `launchops-knowledge` |
+| Runtime mode | `remote_agents`: orchestrator gọi 4 analysis child runtimes riêng |
+| Memory | AgentBase Memory `launchops-memory` + knowledge stores riêng cho từng analysis agent |
 | RAG | Production dùng Memory semantic search; Platform RAG Engine `launchops-rag` đã tạo sẵn |
 | Governance | App guardrail ON, app rate limit ON, platform Guardrail/Rate Limit đã tạo |
-| MCP | Gateway `launchops-server`, target `launchops_server_mcp`, tools `lcc` + workspace CRUD |
+| MCP | Gateway `launchops-server`, target `launchops_server_mcp`, tools `lcc`, `lcc_docs` + workspace CRUD |
 
 ## Kiến trúc
 
@@ -38,15 +39,16 @@ AgentBase Runtime HTTPS endpoint
         |
         +-- VNG MaaS LLM models
         +-- VNG vDB/PostgreSQL
-        +-- AgentBase Memory
+        +-- 4 child AgentBase runtimes
+        +-- AgentBase Memory stores
         +-- AgentBase MCP Gateway
 ```
 
-Production hiện chạy dạng **monolith orchestrator** để demo ổn định. Code đã có contract `POST /invocations` và `LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory` để tách thành nhiều AgentBase runtimes khi cần. Năm child runtimes và một canary orchestrator đã được tạo/verify, nhưng production chính vẫn dùng một runtime duy nhất để giảm rủi ro vận hành.
+Production hiện chạy dạng **remote multi-agent**: runtime orchestrator nhận request Web/API, gọi 4 child runtime độc lập qua `POST /invocations` (`readiness`, `redteam`, `checklist`, `postmortem`), rồi tổng hợp Memory insight và executive summary. Mỗi analysis child có runtime riêng, model riêng, knowledge memory store riêng và tự semantic-recall trước khi trả kết quả. Nếu remote child lỗi, orchestrator fallback theo từng agent thay vì làm hỏng cả flow.
 
-## Pipeline 6 LLM agents
+## Pipeline multi-agent
 
-Luồng full `/api/analyze` dùng 6 agent LLM thật, mỗi agent có vai trò rõ và trace riêng:
+Luồng full `/api/analyze` dùng các agent LLM thật, mỗi agent có vai trò rõ và trace riêng:
 
 | Agent | Vai trò | Model hiện tại |
 |---|---|---|
@@ -61,9 +63,11 @@ Assistant chatbot là luồng LLM riêng, dùng `deepseek/deepseek-v4-flash`.
 
 Điểm readiness cuối cùng vẫn được tính bằng rubric deterministic để không bị model chấm tùy hứng. LLM dùng để giải thích, phản biện và tổng hợp. Nếu model lỗi, timeout hoặc trả schema sai, agent fallback về rule local và ghi rõ trong `agentsTrace`.
 
+Trace production hiện thể hiện `orchestration.mode=remote_agents`, 4 `remote_runtime` entries và `ragSources.storeId` trên từng child trace để chứng minh mỗi analysis agent tự recall từ store riêng.
+
 ## RAG, Memory và Cloud DB
 
-- `launchops-knowledge`: knowledge store cho RAG, chứa playbook/risk pattern theo launch type và product namespace.
+- Per-agent knowledge stores: mỗi analysis agent có store riêng cho RAG/self-recall, tránh trộn ngữ cảnh giữa readiness, red team, checklist và post-mortem.
 - `launchops-memory`: memory store cho bài học, post-result và context theo actor/session.
 - `launchops-rag`: Platform RAG Engine đã tạo sẵn, hiện dùng như tài nguyên platform dự phòng vì module Knowledge base/Tool của RAG chưa attach dữ liệu được trong flow này.
 - VNG vDB/PostgreSQL lưu launch, product, template, analysis history và postmortem; local JSON/SQLite vẫn là fallback/dev mode.
@@ -95,6 +99,7 @@ Endpoint `/mcp` hỗ trợ streamable HTTP JSON-RPC:
 Các tool chính:
 
 - `lcc`: phân tích nhanh deterministic cho MCP/OpenClaw, tránh timeout gateway.
+- `lcc_docs`: hướng dẫn dùng LaunchOps và chọn tool đúng cho bot/chat client.
 - `analyze_launch_brief`: tool cũ, giữ backward-compatible.
 - `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch`.
 - `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, `lcc_set_launch_template`.
@@ -140,6 +145,13 @@ LAUNCHOPS_MEMORY_ID=...
 LAUNCHOPS_MEMORY_STRATEGY_ID=...
 LAUNCHOPS_KNOWLEDGE_MEMORY_ID=...
 LAUNCHOPS_RAG_ENABLED=true
+
+LAUNCHOPS_USE_REMOTE_AGENTS=true
+LAUNCHOPS_READINESS_URL=https://...
+LAUNCHOPS_REDTEAM_URL=https://...
+LAUNCHOPS_CHECKLIST_URL=https://...
+LAUNCHOPS_POSTMORTEM_URL=https://...
+LAUNCHOPS_AGENT_INVOCATION_TOKEN=...
 
 LAUNCHOPS_GUARDRAIL_ENABLED=true
 LAUNCHOPS_RATELIMIT_ENABLED=true

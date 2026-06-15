@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated: 2026-06-14 — production runs on VNG AgentBase, image `v26`, runtime version 32, storage backend `cloud`.
+> Updated: 2026-06-15 — production runs on VNG AgentBase, image `v32`, runtime version 44, storage backend `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launch brief, and the system scores readiness as Green/Yellow/Red, runs a 5-persona Red Team review, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for future launches.
 
@@ -10,14 +10,15 @@ LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launc
 
 | Component | Status |
 |---|---|
-| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 32, ACTIVE |
-| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v26` |
+| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 44, ACTIVE |
+| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v32` |
 | Web/API/MCP endpoint | Public HTTPS endpoint above |
 | Storage | VNG vDB/PostgreSQL via `LAUNCHOPS_STORAGE_BACKEND=cloud` |
-| Memory | AgentBase Memory `launchops-memory` + knowledge store `launchops-knowledge` |
+| Runtime mode | `remote_agents`: the orchestrator calls 4 separate analysis child runtimes |
+| Memory | AgentBase Memory `launchops-memory` + separate knowledge stores per analysis agent |
 | RAG | Production uses Memory semantic search; Platform RAG Engine `launchops-rag` is prepared |
 | Governance | App guardrail ON, app rate limit ON, platform Guardrail/Rate Limit created |
-| MCP | Gateway `launchops-server`, target `launchops_server_mcp`, tools `lcc` + workspace CRUD |
+| MCP | Gateway `launchops-server`, target `launchops_server_mcp`, tools `lcc`, `lcc_docs` + workspace CRUD |
 
 ## Architecture
 
@@ -38,15 +39,16 @@ AgentBase Runtime HTTPS endpoint
         |
         +-- VNG MaaS LLM models
         +-- VNG vDB/PostgreSQL
-        +-- AgentBase Memory
+        +-- 4 child AgentBase runtimes
+        +-- AgentBase Memory stores
         +-- AgentBase MCP Gateway
 ```
 
-Production currently uses a **monolith orchestrator** for demo stability. The code already supports `POST /invocations` and `LAUNCHOPS_AGENT_ROLE=orchestrator|readiness|redteam|checklist|postmortem|memory` so the same image can run as separate AgentBase runtimes later. Five child runtimes and one canary orchestrator have been created and verified, but the main production runtime stays single-runtime to reduce operational risk.
+Production currently runs as a **remote multi-agent system**: the orchestrator runtime receives Web/API requests, calls 4 independent child runtimes through `POST /invocations` (`readiness`, `redteam`, `checklist`, `postmortem`), then adds Memory insight and an executive summary. Each analysis child has its own runtime, model, knowledge memory store, and semantic self-recall step. If a remote child fails, the orchestrator falls back per agent instead of failing the whole flow.
 
-## Six-LLM-Agent Pipeline
+## Multi-Agent Pipeline
 
-The full `/api/analyze` path runs 6 real LLM agents with separate roles and trace entries:
+The full `/api/analyze` path runs real LLM agents with separate roles and trace entries:
 
 | Agent | Role | Current model |
 |---|---|---|
@@ -61,9 +63,11 @@ The assistant chatbot is a separate LLM path using `deepseek/deepseek-v4-flash`.
 
 The final readiness score is recomputed by a deterministic rubric so the model cannot freestyle the score. LLMs explain, challenge, and summarize. If a model fails, times out, or returns an invalid schema, that agent falls back to local rules and records the reason in `agentsTrace`.
 
+The production trace now shows `orchestration.mode=remote_agents`, 4 `remote_runtime` entries, and `ragSources.storeId` on each child trace to prove that each analysis agent recalls from its own store.
+
 ## RAG, Memory, and Cloud DB
 
-- `launchops-knowledge`: knowledge store for RAG, with playbooks and risk patterns by launch type and product namespace.
+- Per-agent knowledge stores: each analysis agent has its own RAG/self-recall store, so readiness, red team, checklist, and post-mortem context do not get mixed.
 - `launchops-memory`: memory store for lessons, post-result context, and actor/session memory.
 - `launchops-rag`: Platform RAG Engine is prepared, but production currently uses Memory semantic search because the RAG module's Knowledge base/Tool attachment is not ready for this flow.
 - VNG vDB/PostgreSQL stores launches, products, templates, analysis history, and postmortems. Local JSON/SQLite remains as fallback/dev mode.
@@ -95,6 +99,7 @@ Platform Policy Gateway is intentionally not enabled yet because an overly stric
 Main tools:
 
 - `lcc`: deterministic fast analysis for MCP/OpenClaw to avoid gateway timeout.
+- `lcc_docs`: usage guide for LaunchOps and tool-selection help for bot/chat clients.
 - `analyze_launch_brief`: legacy analysis tool kept for compatibility.
 - `lcc_list_launches`, `lcc_get_launch`, `lcc_create_launch`, `lcc_update_launch`, `lcc_analyze_launch`, `lcc_delete_launch`.
 - `lcc_list_types`, `lcc_get_type`, `lcc_create_type`, `lcc_set_launch_template`.
@@ -140,6 +145,13 @@ LAUNCHOPS_MEMORY_ID=...
 LAUNCHOPS_MEMORY_STRATEGY_ID=...
 LAUNCHOPS_KNOWLEDGE_MEMORY_ID=...
 LAUNCHOPS_RAG_ENABLED=true
+
+LAUNCHOPS_USE_REMOTE_AGENTS=true
+LAUNCHOPS_READINESS_URL=https://...
+LAUNCHOPS_REDTEAM_URL=https://...
+LAUNCHOPS_CHECKLIST_URL=https://...
+LAUNCHOPS_POSTMORTEM_URL=https://...
+LAUNCHOPS_AGENT_INVOCATION_TOKEN=...
 
 LAUNCHOPS_GUARDRAIL_ENABLED=true
 LAUNCHOPS_RATELIMIT_ENABLED=true
