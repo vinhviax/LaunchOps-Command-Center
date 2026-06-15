@@ -96,6 +96,23 @@ class ChatCompletionsUrlTests(unittest.TestCase):
         )
 
 
+class PerAgentApiKeyTests(unittest.TestCase):
+    def test_per_agent_key_overrides_shared(self):
+        env = {
+            "LAUNCHOPS_LLM_API_KEY": "shared-key",
+            "LAUNCHOPS_REDTEAM_API_KEY": "redteam-key",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            self.assertEqual(app.llm_config_for_step("redteam")["apiKey"], "redteam-key")
+            # Agent without a dedicated key falls back to the shared key.
+            self.assertEqual(app.llm_config_for_step("checklist")["apiKey"], "shared-key")
+
+    def test_falls_back_to_shared_when_no_per_agent_key(self):
+        env = {"LAUNCHOPS_LLM_API_KEY": "shared-key"}
+        with patch.dict(os.environ, env, clear=True):
+            self.assertEqual(app.llm_config_for_step("readiness")["apiKey"], "shared-key")
+
+
 class DecodeRequestBodyTests(unittest.TestCase):
     def test_utf8(self):
         self.assertEqual(app.decode_request_body("Launch brief".encode("utf-8")), "Launch brief")

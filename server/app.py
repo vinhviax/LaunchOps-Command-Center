@@ -3152,6 +3152,7 @@ def llm_config_for_step(agent_step: str | None = None) -> dict[str, str]:
     provider = first_env(f"LAUNCHOPS_PROVIDER_{step}", "LAUNCHOPS_PROVIDER_DEFAULT") or "agentbase"
     provider_key = normalize_agent_step(provider)
     api_key = first_env(
+        f"LAUNCHOPS_{step}_API_KEY",
         f"LAUNCHOPS_{provider_key}_API_KEY",
         "LAUNCHOPS_AGENTBASE_API_KEY",
         "LAUNCHOPS_AIP_API_KEY",
