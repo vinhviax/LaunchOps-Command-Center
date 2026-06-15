@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật: 15/06/2026 — production đang chạy trên VNG AgentBase, image `v32`, runtime version 44, storage backend `cloud`, mode `remote_agents`.
+> Cập nhật: 16/06/2026 — production đang chạy trên VNG AgentBase, image `v33`, runtime version 46, UI cache `fix-20260616f`, storage backend `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**. Người dùng dán launch brief, hệ thống chấm readiness Green/Yellow/Red, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, viết post-mortem questions và lưu bài học cho các lần launch sau.
 
@@ -10,8 +10,9 @@ LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**.
 
 | Thành phần | Trạng thái |
 |---|---|
-| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 44, ACTIVE |
-| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v32` |
+| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 46, ACTIVE |
+| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v33` |
+| UI cache | `fix-20260616f` |
 | Web/API/MCP endpoint | Public HTTPS endpoint ở trên |
 | Storage | VNG vDB/PostgreSQL qua `LAUNCHOPS_STORAGE_BACKEND=cloud` |
 | Runtime mode | `remote_agents`: orchestrator gọi 4 analysis child runtimes riêng |

@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated: 2026-06-15 — production runs on VNG AgentBase, image `v32`, runtime version 44, storage backend `cloud`, mode `remote_agents`.
+> Updated: 2026-06-16 — production runs on VNG AgentBase, image `v33`, runtime version 46, UI cache `fix-20260616f`, storage backend `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launch brief, and the system scores readiness as Green/Yellow/Red, runs a 5-persona Red Team review, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for future launches.
 
@@ -10,8 +10,9 @@ LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launc
 
 | Component | Status |
 |---|---|
-| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 44, ACTIVE |
-| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v32` |
+| Agent runtime | `runtime-8fe6be1b-efff-4be6-8f1c-1779daabdbbf`, version 46, ACTIVE |
+| Docker image | `vcr.vngcloud.vn/111480-abp111734/launchops-command-center:v33` |
+| UI cache | `fix-20260616f` |
 | Web/API/MCP endpoint | Public HTTPS endpoint above |
 | Storage | VNG vDB/PostgreSQL via `LAUNCHOPS_STORAGE_BACKEND=cloud` |
 | Runtime mode | `remote_agents`: the orchestrator calls 4 separate analysis child runtimes |
