@@ -725,6 +725,25 @@ class SixLlmAgentTests(unittest.TestCase):
         self.assertNotIn("orchestrator", agents)
 
 
+class RemoteOrchestrationFeatureParityTests(unittest.TestCase):
+    def test_remote_path_runs_rag_memory_orchestrator(self):
+        env = {
+            "LAUNCHOPS_LLM_ENABLED": "false",
+            "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+            "LAUNCHOPS_STORAGE_BACKEND": "local",
+            "LAUNCHOPS_RAG_ENABLED": "false",
+        }
+        # No remote child URLs configured -> every agent falls back to the local implementation,
+        # but the orchestrator must still run RAG recall + memory + orchestrator (executiveSummary) steps.
+        with patch.dict(os.environ, env, clear=False):
+            result = app.orchestrate_remote_launchops_analysis("Ra mat su kien, chua co rollback va load test.", {}, force_fast=False)
+        self.assertEqual(result.get("orchestration", {}).get("mode"), "remote_agents")
+        self.assertIn("ragSources", result)
+        agents = [t.get("agent") for t in result.get("trace", [])]
+        self.assertIn("memory", agents)
+        self.assertIn("orchestrator", agents)
+
+
 class GuardrailTests(unittest.TestCase):
     """WS3: enforce guardrail — reject hard secrets, mask soft PII."""
 

@@ -2457,6 +2457,19 @@ def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, 
     request_id = f"orchestrator-{int(time.time() * 1000)}"
     product_context = build_product_context_for_orchestrator(brief, launch_context, request_id)
     launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
+    # WS1 RAG: recall once in the orchestrator and ground every remote agent via launch_context["knowledge"]
+    # (the payload carries launch_context, so children read the same knowledge). Skip on fast path.
+    knowledge: list[dict[str, Any]] = []
+    rag_trace = {"enabled": rag_enabled(), "source": "skipped_fast" if force_fast else "disabled", "recordsRecalled": 0}
+    if not force_fast and rag_enabled():
+        knowledge, rag_trace = recall_knowledge(brief, product_context.get("launchType", ""), product_context.get("gameId", ""))
+    launch_context["knowledge"] = knowledge
+    # WS5 Memory agent: distill recalled knowledge into an insight the remote agents also receive.
+    memory_agent_trace = None
+    if not force_fast:
+        insight, memory_agent_trace = memory_agent_distill(brief, knowledge)
+        if insight:
+            launch_context["knowledgeInsight"] = insight
 
     result = call_remote_agent_or_fallback(
         "readiness",
@@ -2465,6 +2478,7 @@ def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, 
     )
     result["productContext"] = product_context
     result["memoryTrace"] = product_context.get("memoryTrace", {})
+    result["ragSources"] = rag_trace
     result = call_remote_agent_or_fallback(
         "redteam",
         build_remote_payload("redteam", request_id, brief, launch_context, result, force_fast=force_fast),
@@ -2480,6 +2494,14 @@ def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, 
         build_remote_payload("postmortem", request_id, brief, launch_context, result, force_fast=force_fast),
         lambda: postmortem_agent(result, launch_context, force_fast=force_fast),
     )
+    # WS5 Memory + Orchestrator agents complete the 6-agent pipeline (run in the orchestrator after remote agents).
+    if memory_agent_trace is not None:
+        result.setdefault("trace", []).append(memory_agent_trace)
+    if not force_fast:
+        summary, orch_trace = orchestrator_agent_summary(brief, result)
+        if summary:
+            result["executiveSummary"] = summary
+        result.setdefault("trace", []).append(orch_trace)
     result["agentsTrace"] = result.get("trace", [])
     result["source"] = result.get("source", "remote_agents")
     result["orchestration"] = {"mode": "remote_agents", "requestId": request_id}
