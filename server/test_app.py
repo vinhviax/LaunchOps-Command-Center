@@ -167,6 +167,32 @@ class ToolAliasTests(unittest.TestCase):
         self.assertIn("lcc_analyze_launch", names)
         self.assertIn("lcc_set_launch_template", names)
 
+class LccDocsToolTests(unittest.TestCase):
+    def test_docs_tool_in_definitions_and_registry(self):
+        names = [tool["name"] for tool in app.mcp_tool_definitions()]
+        self.assertIn("lcc_docs", names)
+        self.assertIn("lcc_docs", app.LAUNCHOPS_MCP_TOOLS)
+
+    def test_docs_tool_returns_markdown_guide(self):
+        out = app.execute_launchops_tool("lcc_docs", {})
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["format"], "markdown")
+        doc = out["doc"]
+        self.assertIn("LaunchOps Command Center", doc)
+        self.assertIn("lcc_list_launches", doc)
+        self.assertIn("Markdown", doc)
+
+    def test_docs_topic_filter(self):
+        out = app.execute_launchops_tool("lcc_docs", {"topic": "tools"})
+        self.assertIn("Khi nào dùng tool nào", out["doc"])
+
+    def test_docs_tool_leaks_no_secret_values(self):
+        doc = app.execute_launchops_tool("lcc_docs", {})["doc"].lower()
+        # No real config/secret values, env var names, base URLs, or key patterns.
+        for marker in ("launchops_", "maas-llm", "vngcloud", "sk-", "bearer ", "gw-58", ".env", "api_key="):
+            self.assertNotIn(marker, doc)
+
+
 class LaunchOpsMcpToolTests(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()

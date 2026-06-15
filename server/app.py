@@ -56,6 +56,7 @@ LCC_LIST_TYPES_TOOL = "lcc_list_types"
 LCC_GET_TYPE_TOOL = "lcc_get_type"
 LCC_CREATE_TYPE_TOOL = "lcc_create_type"
 LCC_SET_LAUNCH_TEMPLATE_TOOL = "lcc_set_launch_template"
+LCC_DOCS_TOOL = "lcc_docs"
 LAUNCHOPS_MCP_TOOLS = {
     ANALYZE_TOOL_NAME,
     LCC_TOOL_ALIAS,
@@ -69,6 +70,7 @@ LAUNCHOPS_MCP_TOOLS = {
     LCC_GET_TYPE_TOOL,
     LCC_CREATE_TYPE_TOOL,
     LCC_SET_LAUNCH_TEMPLATE_TOOL,
+    LCC_DOCS_TOOL,
 }
 LCC_NAMESPACED_COMMANDS = {"help", "status", "list", "config", "analyze", "guardrail", "infra", "report"}
 LEGACY_CHATBOT_COMMANDS = LCC_NAMESPACED_COMMANDS | {"start", "caveman"}
@@ -250,6 +252,13 @@ def mcp_tool_definition(name: str, description: str, properties: dict[str, Any],
 
 def mcp_tool_definitions() -> list[dict[str, Any]]:
     return [
+        mcp_tool_definition(
+            LCC_DOCS_TOOL,
+            "Read the LaunchOps Command Center (LCC) usage guide: what LCC does, the full tool catalog, and which tool to use for a given user request. Call this FIRST when unsure how to help, then pick the right LCC tool.",
+            {
+                "topic": {"type": "string", "description": "Optional focus: overview, tools, workflow, or a tool name. Empty returns the full guide."},
+            },
+        ),
         analyze_tool_definition(ANALYZE_TOOL_NAME),
         analyze_tool_definition(LCC_TOOL_ALIAS),
         mcp_tool_definition(
@@ -1279,9 +1288,63 @@ def launch_reference_error(args: dict[str, Any], suggestions: list[dict[str, Any
         "suggestions": suggestions or [],
     }
 
+LCC_DOC_SECTIONS: dict[str, str] = {
+    "overview": (
+        "## LaunchOps Command Center (LCC) là gì\n"
+        "LCC là Super Agent kiểm soát rủi ro ra mắt (launch). Luồng làm việc:\n"
+        "brief → chấm điểm sẵn sàng (Green/Yellow/Red) → Red Team 5 góc nhìn → "
+        "checklist có owner/deadline/status → câu hỏi post-mortem → bài học cho lần sau.\n"
+        "Bạn là trợ lý giúp người dùng dùng LCC: hiểu yêu cầu của họ rồi gọi đúng tool LCC."
+    ),
+    "tools": (
+        "## Khi nào dùng tool nào\n"
+        "| Người dùng muốn | Tool nên gọi |\n"
+        "|---|---|\n"
+        "| Dán/đưa một brief, hỏi \"đánh giá brief này\", \"có rủi ro gì\", \"red team giúp\", \"tạo checklist\" | `lcc` (hoặc `analyze_launch_brief`) với tham số `brief` |\n"
+        "| \"Có những launch nào\", \"liệt kê launch\" | `lcc_list_launches` |\n"
+        "| Xem chi tiết một launch | `lcc_get_launch` (`launchId` hoặc `name`) |\n"
+        "| Tạo launch mới | `lcc_create_launch` |\n"
+        "| Sửa/cập nhật launch | `lcc_update_launch` |\n"
+        "| Phân tích lại một launch đã lưu | `lcc_analyze_launch` |\n"
+        "| Xóa launch | `lcc_delete_launch` (cần `confirm` = `DELETE <launchId>`) |\n"
+        "| Hỏi các loại/phân loại launch | `lcc_list_types`, `lcc_get_type` |\n"
+        "| Tạo loại launch mới | `lcc_create_type` |\n"
+        "| Gán template cho launch | `lcc_set_launch_template` |\n"
+        "| Không chắc nên làm gì | gọi `lcc_docs` |\n"
+    ),
+    "workflow": (
+        "## Cách hỗ trợ người dùng\n"
+        "1. Đọc yêu cầu, ánh xạ sang đúng tool ở bảng trên.\n"
+        "2. Nếu người dùng dán một brief mà không nói rõ, mặc định gọi `lcc` để phân tích.\n"
+        "3. Nếu thiếu tham số bắt buộc (vd `brief`, `launchId`), hỏi lại người dùng ngắn gọn.\n"
+        "4. Trình bày kết quả gọn, dễ đọc; với readiness nêu rõ màu Green/Yellow/Red và lý do.\n"
+        "5. Không bịa kết quả phân tích — luôn lấy từ tool."
+    ),
+    "rules": (
+        "## Quy tắc trả lời\n"
+        "- Trả lời bằng **Markdown**.\n"
+        "- Chỉ hỗ trợ trong phạm vi công việc của LCC; không nói lan man ngoài chủ đề.\n"
+        "- KHÔNG tiết lộ cấu hình hệ thống, thông tin bảo mật, thông tin hệ thống/hạ tầng, hay thông tin Admin/Viax.\n"
+        "- KHÔNG tự ý sửa cấu hình hệ thống. Chỉ Viax mới được ra lệnh sửa config."
+    ),
+}
+
+def launchops_docs_markdown(topic: str = "") -> str:
+    key = str(topic or "").strip().lower()
+    order = ["overview", "tools", "workflow", "rules"]
+    if key in LCC_DOC_SECTIONS:
+        return LCC_DOC_SECTIONS[key]
+    if key in LAUNCHOPS_MCP_TOOLS or key in ANALYZE_TOOL_NAMES:
+        return LCC_DOC_SECTIONS["tools"]
+    return "# LaunchOps Command Center — Hướng dẫn dùng\n\n" + "\n\n".join(LCC_DOC_SECTIONS[name] for name in order)
+
 def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: bool = True) -> dict[str, Any]:
     tool_name = normalize_tool_name(tool_name)
     args = args if isinstance(args, dict) else {}
+
+    if tool_name == LCC_DOCS_TOOL:
+        topic = str(args.get("topic") or "").strip()
+        return {"ok": True, "tool": tool_name, "format": "markdown", "topic": topic, "doc": launchops_docs_markdown(topic)}
 
     if tool_name == ANALYZE_TOOL_NAME:
         brief = str(args.get("brief", "")).strip()
