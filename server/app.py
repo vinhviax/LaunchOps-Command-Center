@@ -2701,7 +2701,7 @@ def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, 
     launch_context = launch_context or {}
     request_id = f"orchestrator-{int(time.time() * 1000)}"
     product_context = build_product_context_for_orchestrator(brief, launch_context, request_id)
-    launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
+    launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context, "lessons": product_context.get("lessons") or []}
     # WS1 RAG: recall once in the orchestrator and ground every remote agent via launch_context["knowledge"]
     # (the payload carries launch_context, so children read the same knowledge). Skip on fast path.
     knowledge: list[dict[str, Any]] = []
@@ -2765,7 +2765,7 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
         return orchestrate_remote_launchops_analysis(brief, launch_context, force_fast=force_fast)
     launch_context = launch_context or {}
     product_context = build_product_context(brief, launch_context)
-    launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context}
+    launch_context = {**launch_context, "brief": brief, "template": product_context.get("typeProfile") or build_default_template(), "productContext": product_context, "lessons": product_context.get("lessons") or []}
     # WS1 RAG: recall curated knowledge once, ground all agents via launch_context["knowledge"]. Skip on fast path.
     knowledge: list[dict[str, Any]] = []
     rag_trace = {"enabled": rag_enabled(), "source": "skipped_fast" if force_fast else "disabled", "recordsRecalled": 0}
@@ -3104,6 +3104,30 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
             knowledge_block += (
                 "\nPlaybook / bài học liên quan (RAG, dùng để phản biện sâu hơn, KHÔNG copy nguyên văn):\n"
                 + "\n".join(lines)
+                + "\n"
+            )
+
+    # Recalled post-launch lessons of this product/launch-type. Unlike RAG playbook, these are
+    # captured from real post-mortems and recalled by build_product_context. Every agent sees them
+    # so the next launch reuses what was learned (no role slicing — lessons apply across the board).
+    lesson_records = launch_context.get("lessons") if isinstance(launch_context.get("lessons"), list) else []
+    if lesson_records:
+        lesson_lines = []
+        for rec in lesson_records:
+            if not isinstance(rec, dict):
+                continue
+            text = str(rec.get("lesson") or rec.get("text") or rec.get("memory") or "").strip()
+            if not text:
+                continue
+            title = str(rec.get("title") or rec.get("severity") or "Bài học").strip()
+            lesson_lines.append(f"- [{title}] {text[:400]}")
+            if len(lesson_lines) >= 5:
+                break
+        if lesson_lines:
+            knowledge_block += (
+                "\nBài học từ launch trước (đã lưu sau post-mortem, recall theo loại/sản phẩm — "
+                "dùng để KHÔNG lặp lại lỗi cũ và gợi ý bổ sung brief/checklist/guardrail):\n"
+                + "\n".join(lesson_lines)
                 + "\n"
             )
 

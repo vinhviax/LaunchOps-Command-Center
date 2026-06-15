@@ -937,5 +937,53 @@ class StorageBackendTests(unittest.TestCase):
             status = db.storage_backend_status()
             self.assertEqual(status, {"backend": "cloud", "dbUrlConfigured": True})
 
+class LessonReuseTests(unittest.TestCase):
+    """Audit fix A: lessons saved after launch must actually feed the next analysis prompt,
+    not just sit in the UI. build_prompt renders them and orchestrate wires them in."""
+
+    LESSON_HEADER = "Bài học từ launch trước"
+
+    def test_build_prompt_injects_saved_lessons(self):
+        ctx = {"name": "Golden Spin", "type": "lucky_spin_event", "lessons": [
+            {"id": "lesson-golden-spin-reset", "title": "Reset ngày", "lesson": "Golden Spin tháng 5 tạo ticket vì reset 05:00 không rõ.", "severity": "High"},
+        ]}
+        p = app.build_prompt("Golden Spin weekend", ctx, "checklist")
+        self.assertIn(self.LESSON_HEADER, p)
+        self.assertIn("reset 05:00", p.lower())
+
+    def test_build_prompt_without_lessons_has_no_lesson_block(self):
+        p = app.build_prompt("Golden Spin weekend", {"name": "x", "type": "y"}, "checklist")
+        self.assertNotIn(self.LESSON_HEADER, p)
+
+    def test_lessons_visible_to_every_agent_step(self):
+        ctx = {"name": "Golden Spin", "type": "lucky_spin_event", "lessons": [
+            {"title": "Chống farm", "lesson": "Tài khoản phụ farm lượt quay nếu thiếu eligibility."},
+        ]}
+        for step in ("readiness", "redteam", "checklist", "postmortem"):
+            self.assertIn("farm lượt quay", app.build_prompt("brief", ctx, step), f"missing in {step}")
+
+    def test_orchestrate_wires_recalled_lessons_into_launch_context(self):
+        product_context = {
+            "typeProfile": app.build_default_template(),
+            "lessons": [{"id": "l1", "title": "Reset", "lesson": "reset 05:00 gây ticket CS"}],
+            "launchType": "lucky_spin_event",
+            "gameId": "demo_game",
+            "memoryTrace": {},
+        }
+        captured = {}
+        real_readiness = app.readiness_agent
+
+        def spy(brief, launch_context=None, force_fast=False):
+            captured["lessons"] = (launch_context or {}).get("lessons")
+            return real_readiness(brief, launch_context, force_fast=force_fast)
+
+        with patch.dict(os.environ, {"LAUNCHOPS_MEMORY_LLM_ENABLED": "false", "LAUNCHOPS_ORCHESTRATOR_LLM_ENABLED": "false"}, clear=False), \
+                patch.object(app, "build_product_context", return_value=product_context), \
+                patch.object(app, "readiness_agent", side_effect=spy):
+            app.orchestrate_launchops_analysis("Golden Spin weekend brief", {}, force_fast=False)
+        self.assertIsNotNone(captured["lessons"])
+        self.assertEqual(captured["lessons"][0]["lesson"], "reset 05:00 gây ticket CS")
+
+
 if __name__ == "__main__":
     unittest.main()
