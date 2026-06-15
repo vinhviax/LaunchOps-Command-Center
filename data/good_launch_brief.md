@@ -1,55 +1,59 @@
 # Good launch brief mẫu
 
-## Ten launch
+## Tên launch
 
-Lucky Wheel Weekend - sự kiện quay thưởng cuối tuần.
+Golden Spin Weekend v2 Ready - sự kiện Lucky Spin cuối tuần đã áp dụng bài học tháng 5.
 
 ## Mục tiêu
 
-- Tăng daily active users trong 3 ngày cuối tuần.
-- Tăng doanh thu gói nạp nhỏ.
-- Giữ trải nghiệm công bằng, không tạo cảm giác pay-to-win quá mức.
+- Tăng login cuối tuần 7%.
+- Tăng doanh thu gói nhỏ 8-10%.
+- Giữ reward cost dưới 150 triệu và không làm lệch economy.
 
 ## Thời gian
 
-- Start: 12/06/2026 20:00
-- End: 15/06/2026 23:59
-- Freeze content: 11/06/2026 18:00
+- Start: 19/06/2026 20:00
+- End: 21/06/2026 23:59
+- War room mở từ 19/06/2026 19:30
 
 ## Owner
 
 - Product owner: PM LiveOps
-- Tech owner: Backend on-call
-- CS owner: CS lead ca tối
-- Marketing owner: Fanpage operator
-- Decision owner: LiveOps lead
+- Tech owner: Tech on-call
+- CS owner: CS Lead ca tối
+- Business owner: Game Economy Owner
+- Decision owner: LiveOps Lead
 
 ## Scope
 
 - Người chơi level 10 trở lên.
-- Mỗi ngày nhận 1 lượt quay miễn phí.
-- Nạp gói bất kỳ nhận thêm 3 lượt quay, tối đa 9 lượt/ngày.
+- Tài khoản tạo trước 01/06/2026, không thuộc nhóm abuse/refund.
+- Mỗi ngày đăng nhập nhận 1 lượt quay miễn phí, reset lúc 05:00.
+- Nạp gói 49k/99k nhận thêm tối đa 3 lượt/ngày.
+- Mỗi account tối đa 9 lượt quay cuối tuần.
 
 ## Guardrail
 
-- Tỷ lệ item hiếm đã được review.
-- Tổng giá trị phần thưởng có ngân sách tối đa.
-- Thông điệp truyền thông không cam kết người chơi chắc chắn nhận item hiếm.
+- Reward cap cuối tuần 150 triệu.
+- Item hiếm giới hạn 600 phần.
+- Tắt item hiếm khi đạt 95% cap.
+- Thiết bị/IP bất thường vào hàng chờ review.
 
-## Test va rollback
+## Test và rollback
 
-- Test tải với mức peak dự kiến x2.
-- Nếu lỗi quay thưởng ảnh hưởng hơn 2% request trong 10 phút, tạm tắt nút quay.
-- Nếu phần thưởng sai, dừng sự kiện và chạy script đối soát.
+- Dashboard realtime theo dõi spin success, reward delivery, ticket CS, abuse flag.
+- Nếu reward delivery lỗi trên 1% trong 10 phút hoặc ticket CS gấp 2 baseline, Tech on-call được quyền pause event.
+- Kill switch và rollback script đã test staging.
 
 ## CS FAQ
 
-- Cách nhận lượt quay.
+- Case mất lượt quay.
+- Case hết quà.
+- Case phát quà chậm.
 - Giờ reset lượt quay.
-- Điều kiện nạp để nhận thêm lượt.
-- Cách xử lý nếu không nhận phần thưởng.
+- Điều kiện nhận lượt nạp thêm.
 
 ## Sau launch
 
-- Báo cáo DAU, revenue, ticket CS, lỗi kỹ thuật, sentiment fanpage.
-- Post-mortem trong vòng 48 giờ sau khi kết thúc.
+- Báo cáo login, revenue, reward cost, ticket CS, abuse flag.
+- Post-mortem T+48h và cập nhật lesson cho Golden Spin tháng 7.

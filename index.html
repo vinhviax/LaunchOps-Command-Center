@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260616b">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260616b">
+  <link rel="stylesheet" href="styles.css?v=fix-20260616c">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260616c">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -363,17 +363,17 @@
                 <button class="help-button" type="button" aria-label="Giải thích thông tin launch" data-tooltip="Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày nào và đang ở trạng thái nào.">?</button>
               </div>
             </div>
-            <button id="loadBadBrief" type="button">Nạp Brief Mẫu</button>
           </div>
 
           <div class="form-grid">
             <label class="field">
-              <span>Tên launch <button class="help-button inline" type="button" aria-label="Giải thích tên launch" data-tooltip="Tên ngắn để phân biệt launch này với các launch khác, ví dụ Lucky Wheel Weekend.">?</button></span>
+              <span>Tên launch <button class="help-button inline" type="button" aria-label="Giải thích tên launch" data-tooltip="Tên ngắn để phân biệt launch này với các launch khác, ví dụ Golden Spin Weekend.">?</button></span>
               <input id="launchName" type="text" autocomplete="off">
             </label>
             <label class="field">
               <span>Phân loại <button class="help-button inline" type="button" aria-label="Giải thích phân loại" data-tooltip="Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, internal tool hoặc hotfix.">?</button></span>
               <select id="launchType">
+                <option value="lucky_spin_event">Sự kiện Lucky Spin</option>
                 <option value="Game event">Sự kiện game</option>
                 <option value="Campaign marketing">Chiến dịch marketing</option>
                 <option value="Feature release">Ra mắt tính năng</option>
@@ -441,6 +441,7 @@
 
           <div class="detail-actions">
             <div class="action-button-row">
+              <button id="loadBadBrief" type="button">Nạp Brief Mẫu</button>
               <button id="demoMode" type="button">Demo mode</button>
               <button id="exportReport" type="button">Export report</button>
               <button id="saveLaunch" type="button">Lưu launch</button>
@@ -834,9 +835,9 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=fix-20260616b"></script>
-  <script src="app.js?v=fix-20260616b"></script>
-  <script src="friendly-ui.js?v=fix-20260616b"></script>
-  <script src="i18n-clean.js?v=fix-20260616b"></script>
+  <script src="config.js?v=fix-20260616c"></script>
+  <script src="app.js?v=fix-20260616c"></script>
+  <script src="friendly-ui.js?v=fix-20260616c"></script>
+  <script src="i18n-clean.js?v=fix-20260616c"></script>
 </body>
 </html>

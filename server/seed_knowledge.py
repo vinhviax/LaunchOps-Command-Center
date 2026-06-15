@@ -27,6 +27,13 @@ import app  # noqa: E402
 # Curated playbook knowledge per launch type. Each entry: a self-contained lesson string.
 # Prefix [role=...] marks which agent the record helps most (readiness|redteam|checklist|postmortem|all).
 CURATED: dict[str, list[str]] = {
+    "lucky_spin_event": [
+        "[role=readiness] Lucky Spin chỉ nên Green khi đã có KPI, segment, reset ngày, giới hạn lượt, reward cap, anti-abuse, CS FAQ, dashboard realtime và kill switch. Thiếu reward cap hoặc kill switch thì giữ Yellow.",
+        "[role=redteam] Golden Spin tháng 5 từng phát sinh ticket vì reset 05:00 không rõ; red team phải hỏi case mất lượt, hết quà, phát quà chậm và người chơi khiếu nại trong giờ đầu.",
+        "[role=redteam] Người săn exploit sẽ farm lượt quay bằng tài khoản phụ nếu thiếu tuổi tài khoản, giới hạn lượt/ngày, log thiết bị/IP và hàng chờ review.",
+        "[role=checklist] Checklist Lucky Spin tối thiểu: reward cap + tỷ lệ trúng (Business, T-2), eligibility + anti-abuse log (Tech, T-1), CS FAQ/macro (CS Lead, T-1), dashboard spin/reward/ticket (Tech, T-1), kill switch + ngưỡng pause (LiveOps, T-1).",
+        "[role=postmortem] Post-mortem Lucky Spin cần ghi login uplift, revenue uplift, reward cost vs cap, spin success, reward delivery, ticket CS theo case và abuse flags để template lần sau tốt hơn.",
+    ],
     "game_event_h5": [
         "[role=readiness] Game event H5 chỉ nên Green khi đã có: owner rõ, ngày bật/tắt, reward cap, rule chống abuse, FAQ cho CS và phương án rollback. Thiếu reward cap hoặc rollback là Red gần như chắc chắn.",
         "[role=redteam] Exploit hunter thường farm vòng quay/quà bằng nhiều tài khoản hoặc lợi dụng điều kiện nạp; nếu brief không nêu eligibility + giới hạn lượt/ngày + log bất thường thì coi như hở.",
@@ -64,6 +71,12 @@ CURATED: dict[str, list[str]] = {
 # /launchops/products/{gameId}/{launchType} so recall_knowledge can prefer product lessons.
 PRODUCT_CURATED: dict[str, dict[str, list[str]]] = {
     "demo_game": {
+        "lucky_spin_event": [
+            "[role=readiness] (demo_game) Golden Spin tháng 5 Yellow vì thiếu reset 05:00, anti-abuse dashboard và ngưỡng pause; Golden Spin v2 chỉ Green khi các mục này nằm trong brief.",
+            "[role=redteam] (demo_game) Có 37 tài khoản phụ từng farm lượt quay ở Golden Spin tháng 5; cần eligibility theo tuổi tài khoản, giới hạn lượt/ngày và log thiết bị/IP.",
+            "[role=checklist] (demo_game) Trước Golden Spin phải tick: reward cap 150 triệu, item hiếm tắt ở 95% cap, CS macro mất lượt/hết quà/phát chậm, kill switch đã test staging.",
+            "[role=postmortem] (demo_game) Sau Golden Spin ghi lại ticket CS theo case, reward delivery p95, abuse flag, chi phí reward và lesson cập nhật cho event tháng sau.",
+        ],
         "game_event_h5": [
             "[role=readiness] (demo_game) Event H5 của demo_game trước đây Red khi thiếu reward cap; team luôn yêu cầu cap ngân sách + owner LiveOps rõ trước khi duyệt.",
             "[role=redteam] (demo_game) Sự cố cũ của demo_game: người chơi farm vòng quay bằng tài khoản phụ vào cuối tuần; cần eligibility theo tuổi tài khoản + giới hạn lượt/ngày.",

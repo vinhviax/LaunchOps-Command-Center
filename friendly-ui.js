@@ -1098,7 +1098,7 @@
     updateGuidance('Gợi ý tiếp theo: ' + fieldHint(field));
     if (field === 'name') {
       addChatMessage('agent', 'Bạn đặt tên launch là gì?');
-      chatInputPlaceholder('Ví dụ: Lucky Wheel Weekend');
+      chatInputPlaceholder('Ví dụ: Golden Spin Weekend');
       setNpcSpeech('Đang chờ tên launch. Tôi sẽ gắn tên này vào chi tiết ngay khi bạn gửi.');
     } else if (field === 'type') {
       chatAwaiting = 'type';

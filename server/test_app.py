@@ -42,13 +42,29 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         damaged = clean.encode("utf-8").decode("latin-1")
         self.assertEqual(app.repair_legacy_text(damaged), clean)
 
-    def test_may_login_sample_resets_lossy_text(self):
+    def test_golden_spin_sample_resets_lossy_text(self):
         damaged_brief = "M" + "?c ti" + "?u, " + "??i t??ng ho?c ph?m vi c?n m? h?."
-        launch = {"id": "may-login-streak", "brief": damaged_brief, "analyses": []}
+        launch = {"id": "golden-spin-may-retro", "brief": damaged_brief, "analyses": []}
         clean = app.sanitize_launch_for_response(launch)
-        self.assertEqual(clean["id"], "may-login-streak")
-        self.assertIn("Mục tiêu ban đầu", clean["brief"])
+        self.assertEqual(clean["id"], "golden-spin-may-retro")
+        self.assertIn("Golden Spin tháng 5", clean["brief"])
         self.assertNotIn("??", clean["brief"])
+
+    def test_default_demo_samples_are_golden_spin_only(self):
+        samples = app.default_sample_launches()
+        ids = {item["id"] for item in samples}
+        self.assertEqual(ids, {"golden-spin-may-retro", "golden-spin-weekend-risk", "golden-spin-weekend-v2-ready"})
+        self.assertTrue(all(item["type"] == "lucky_spin_event" for item in samples))
+        names = " ".join(item["name"] for item in samples)
+        self.assertNotIn("Lucky Wheel", names)
+        self.assertNotIn("May Login", names)
+        self.assertNotIn("Midweek", names)
+
+    def test_lucky_spin_launch_type_inference(self):
+        self.assertEqual(
+            app.infer_launch_type("Golden Spin có lượt quay, reward cap và CS FAQ."),
+            "lucky_spin_event",
+        )
 
 
 class ExtractJsonTests(unittest.TestCase):
@@ -213,24 +229,25 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
 
     def test_create_get_update_and_analyze_launch_via_tool(self):
         created = app.execute_launchops_tool("lcc_create_launch", {
-            "name": "Lucky Wheel Weekend",
-            "type": "Game event",
-            "brief": "Lucky Wheel. No owner, no rollback plan, no CS FAQ.",
+            "name": "Golden Spin Tool Test",
+            "type": "lucky_spin_event",
+            "brief": "Golden Spin. No owner, no rollback plan, no CS FAQ.",
         })
         self.assertTrue(created["ok"])
         launch_id = created["launch"]["id"]
 
-        found = app.execute_launchops_tool("lcc_get_launch", {"name": "Lucky Wheel Weekend v2"})
+        found = app.execute_launchops_tool("lcc_get_launch", {"name": "Golden Spin Tool Test"})
         self.assertTrue(found["ok"])
         self.assertEqual(found["launch"]["id"], launch_id)
 
         updated = app.execute_launchops_tool("lcc_update_launch", {
-            "name": "Lucky Wheel Weekend v2",
+            "name": "Golden Spin Tool Test",
+            "newName": "Golden Spin Tool Test v2",
             "owner": "LiveOps Lead",
             "status": "running",
         })
         self.assertTrue(updated["ok"])
-        self.assertEqual(updated["launch"]["name"], "Lucky Wheel Weekend")
+        self.assertEqual(updated["launch"]["name"], "Golden Spin Tool Test v2")
         self.assertEqual(updated["launch"]["owner"], "LiveOps Lead")
         self.assertEqual(updated["launch"]["status"], "running")
 

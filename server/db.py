@@ -559,7 +559,8 @@ def ensure_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         count = conn.execute("SELECT COUNT(*) AS count FROM launch_types").fetchone()["count"]
-    if count == 0:
+        has_lucky_spin = conn.execute("SELECT 1 FROM launch_types WHERE id = ?", ("lucky_spin_event",)).fetchone() is not None
+    if count == 0 or not has_lucky_spin:
         seed_db.seed(DB_PATH)
 
 

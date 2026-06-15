@@ -1,28 +1,34 @@
-const badBrief = `# Bad launch brief mẫu
+const badBrief = `# Brief mẫu cần phản biện
 
-Tên launch: Lucky Wheel Weekend - sự kiện quay thưởng cuối tuần cho người chơi game.
+Tên launch: Golden Spin Weekend Risk - sự kiện Lucky Spin cuối tuần cho người chơi game.
 
-Mục tiêu: Tăng số lượt đăng nhập và tăng doanh thu gói nạp nhỏ trong 3 ngày cuối tuần.
+Mục tiêu: Kéo người chơi quay lại trong cuối tuần và tăng doanh thu gói nạp nhỏ.
 
-Nội dung: Người chơi đăng nhập mỗi ngày sẽ nhận 1 lượt quay miễn phí. Nếu nạp gói bất kỳ sẽ nhận thêm 3 lượt quay. Phần thưởng có thể là vật phẩm trong game, coupon, và một số item hiếm.
+Cơ chế: Người chơi đăng nhập nhận 1 lượt quay miễn phí mỗi ngày. Nếu nạp gói bất kỳ sẽ nhận thêm 3 lượt quay. Có thể trúng item hiếm, coupon hoặc vật phẩm tiêu hao.
 
-Thời gian: Dự kiến launch vào tối thứ Sáu. Chưa có giờ chính xác.
+Thời gian: Dự kiến mở tối thứ Sáu và kết thúc tối Chủ nhật. Chưa chốt giờ bật/tắt chính xác.
 
-Đối tượng: Tất cả người chơi.
+Đối tượng: Tất cả người chơi level 10 trở lên.
 
-Kênh truyền thông: Thông báo trong game và post fanpage.
+Kênh truyền thông: Banner in-game, inbox và fanpage.
 
-Phần thưởng: Chưa chốt tỷ lệ trúng. Có thể dùng item hiếm để tạo cảm giác hấp dẫn.
+Phần thưởng: Chưa chốt tỷ lệ trúng item hiếm, chưa có reward cap cuối tuần, chưa có rule khi hết quà.
+
+Việc đã có:
+- PM LiveOps phụ trách brief.
+- Tech đã có bản build H5 cơ bản.
+- Tech có log thiết bị/IP cơ bản.
+- Data đã dựng dashboard spin success bản nháp.
+- Business muốn dùng item hiếm để tạo cảm giác hấp dẫn.
 
 Vấn đề còn mở:
-- Chưa có rollback plan nếu hệ thống quay thưởng lỗi.
-- Chưa có FAQ cho CS.
-- Chưa có owner trực cuối tuần.
-- Chưa có ngưỡng dừng sự kiện nếu có bug nghiêm trọng.
-- Chưa có test tải lượng truy cập cao.
-- Chưa rõ điều kiện người chơi mới và người chơi cũ.
-- Chưa rõ thông điệp nếu hết quà hoặc thay đổi tỷ lệ.
-- Chưa có post-mortem template.`;
+- Chưa có rollback plan nếu hệ thống quay thưởng lỗi hoặc phát quà chậm.
+- Chưa có CS FAQ cho case không nhận lượt quay, hết quà, mất kết nối khi quay.
+- Chưa có owner trực cuối tuần theo ca.
+- Chưa có ngưỡng pause nếu lỗi claim reward hoặc ticket CS tăng bất thường.
+- Chưa có rule chống farm lượt quay bằng tài khoản phụ.
+- Chưa có dashboard realtime cho spin success, reward delivery, ticket CS.
+- Chưa có post-mortem template để lưu bài học cho đợt Golden Spin tiếp theo.`;
 
 const rubric = [
   {
@@ -228,8 +234,9 @@ const LAUNCH_TEMPLATES = {
   "Partnership/commercial launch": GENERIC_LAUNCH_TEMPLATE,
   "Emergency hotfix": PRODUCTION_SYSTEM_TEMPLATE
 };
-const PROTECTED_LAUNCH_TYPES = Object.freeze(Object.keys(LAUNCH_TEMPLATES));
+const PROTECTED_LAUNCH_TYPES = Object.freeze([...Object.keys(LAUNCH_TEMPLATES), "lucky_spin_event"]);
 const LAUNCH_TYPE_ORDER = [
+  "lucky_spin_event",
   "Game event",
   "Campaign marketing",
   "Feature release",
@@ -438,6 +445,48 @@ GAME_EVENT_TEMPLATE.riskGroups = GAME_EVENT_TEMPLATE.riskGroups.map((group) => (
   ...group,
   requirements: RISK_REQUIREMENTS[group.key] || []
 }));
+
+const LUCKY_SPIN_EVENT_TEMPLATE = {
+  name: "Lucky Spin Event Playbook",
+  description: "Template riêng cho sự kiện quay thưởng ingame có lượt quay, reward cap, chống farm, CS FAQ và rollback.",
+  briefGuide: [
+    "Mục tiêu/KPI của event, segment người chơi và thời gian bật/tắt.",
+    "Cơ chế nhận lượt quay, điều kiện hợp lệ, reset ngày và giới hạn lượt.",
+    "Reward pool, tỷ lệ trúng, ngân sách tối đa, rule khi hết quà.",
+    "Rule chống farm tài khoản phụ, log bất thường và điều kiện pause.",
+    "CS FAQ, thông điệp in-game, owner trực cuối tuần và escalation.",
+    "Dashboard realtime, rollback/kill switch và post-mortem lesson cho event sau."
+  ],
+  riskGroups: [
+    { key: "scope", label: "Mục tiêu và segment", maxScore: 2, checks: ["muc tieu", "kpi", "segment", "doi tuong", "level"], missing: "Chưa rõ KPI, segment người chơi hoặc phạm vi áp dụng.", requirements: ["KPI đo được", "Segment người chơi", "Phạm vi áp dụng"] },
+    { key: "spin_rule", label: "Cơ chế quay và eligibility", maxScore: 2, checks: ["luot quay", "eligibility", "dieu kien", "reset", "gioi han"], missing: "Chưa rõ cách nhận lượt quay, điều kiện hợp lệ, reset ngày hoặc giới hạn lượt.", requirements: ["Rule nhận lượt quay", "Điều kiện hợp lệ", "Reset/giới hạn lượt"] },
+    { key: "reward", label: "Reward cap và economy", maxScore: 2, checks: ["reward", "phan thuong", "ti le", "ngan sach", "cap"], missing: "Chưa chốt reward cap, tỷ lệ trúng, ngân sách hoặc tác động economy.", requirements: ["Reward cap", "Tỷ lệ trúng", "Ngân sách tối đa"] },
+    { key: "abuse", label: "Anti-abuse và log", maxScore: 2, checks: ["abuse", "farm", "tai khoan phu", "log", "bat thuong"], missing: "Chưa có rule chống farm, log bất thường hoặc cách xử lý exploit.", requirements: ["Rule chống farm", "Log bất thường", "Owner xử lý abuse"] },
+    { key: "cs", label: "CS và thông điệp", maxScore: 2, checks: ["faq", "cs", "macro", "in-game", "ticket"], missing: "Thiếu CS FAQ, macro trả lời, thông điệp người chơi hoặc đường leo thang.", requirements: ["CS FAQ", "Macro trả lời", "Thông điệp in-game"] },
+    { key: "tech", label: "Rollback và monitoring", maxScore: 2, checks: ["rollback", "monitoring", "dashboard", "pause", "kill switch"], missing: "Thiếu dashboard realtime, ngưỡng pause, rollback hoặc kill switch.", requirements: ["Dashboard realtime", "Ngưỡng pause", "Rollback/kill switch"] }
+  ],
+  redTeam: [
+    { persona: "Người chơi bức xúc", worry: "Người chơi quay trúng hoặc mất lượt nhưng không nhận quà sẽ tạo ticket nhanh.", evidence: "Brief cần nói rõ reward delivery, case mất kết nối và rule bồi thường.", fix: "Viết CS FAQ, thông điệp in-game và rule bồi thường trước khi mở event." },
+    { persona: "Người săn exploit", worry: "Người chơi có thể farm lượt quay bằng tài khoản phụ hoặc reset điều kiện.", evidence: "Brief cần eligibility, giới hạn lượt/ngày và log hành vi bất thường.", fix: "Chốt rule chống farm, giới hạn lượt và dashboard abuse trước launch." },
+    { persona: "CS Lead", worry: "Ticket cuối tuần sẽ dồn nếu macro chưa đủ case.", evidence: "Brief cần macro cho hết quà, không nhận reward, mất kết nối và điều kiện tham gia.", fix: "Chuẩn bị FAQ, macro theo case và lịch trực CS theo ca." },
+    { persona: "Tech on-call", worry: "Nếu spin service lỗi, team cần biết khi nào pause và rollback.", evidence: "Brief cần dashboard realtime, ngưỡng pause và kill switch.", fix: "Chốt alert, kill switch, rollback script và người quyết định pause." },
+    { persona: "Business owner", worry: "Item hiếm và coupon có thể vượt cap hoặc làm lệch economy.", evidence: "Brief cần reward cap, tỷ lệ trúng và ngân sách tối đa.", fix: "Chốt reward pool, cap cuối tuần và review tác động economy trước T-1." }
+  ],
+  checklist: [
+    { task: "Chốt KPI, segment người chơi và giờ bật/tắt event", owner: "PM LiveOps", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Chốt reward pool, tỷ lệ trúng và cap ngân sách cuối tuần", owner: "Business Owner", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Hoàn tất rule chống farm tài khoản phụ và log bất thường", owner: "Tech Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Viết CS FAQ cho case mất lượt, hết quà, phát quà chậm", owner: "CS Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Chuẩn bị dashboard realtime, ngưỡng pause và kill switch", owner: "Tech on-call", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Tổng kết ticket, reward cost và lesson cho Golden Spin sau", owner: "PM LiveOps", deadline: "T+48 giờ", status: "Todo", priority: "Medium" }
+  ],
+  postmortem: [
+    { title: "Kết quả Golden Spin", items: ["Tỷ lệ tham gia và lượt quay thực tế?", "Reward cost có vượt cap không?", "Spin success/reward delivery có lỗi không?"] },
+    { title: "Rủi ro và vận hành", items: ["Có farm lượt quay không?", "Ticket CS tăng ở case nào?", "Ngưỡng pause/kill switch có đủ rõ không?"] },
+    { title: "Bài học cho event sau", items: ["Rule nào phải thêm vào template?", "Thông điệp/FAQ nào cần chuẩn hóa?", "Checklist nào cần tick sớm hơn?"] }
+  ]
+};
+LAUNCH_TEMPLATES.lucky_spin_event = LUCKY_SPIN_EVENT_TEMPLATE;
 const OWNER_LABELS = {
   "Business owner": "Phụ trách kinh doanh",
   "Business Owner": "Phụ trách kinh doanh",
@@ -450,6 +499,7 @@ const OWNER_LABELS = {
   "LiveOps Lead": "Lead LiveOps"
 };
 const TYPE_LABELS = {
+  "lucky_spin_event": "Sự kiện Lucky Spin",
   "Game event": "Sự kiện game",
   "Campaign marketing": "Chiến dịch marketing",
   "Feature release": "Ra mắt tính năng",
@@ -461,169 +511,249 @@ const TYPE_LABELS = {
 };
 
 const TEMPLATE_NAME_LABELS = {
+  "Lucky Spin Event Playbook": "Template sự kiện Lucky Spin",
   "Game Event Launch": "Template sự kiện game",
   "Production System Release": "Template release hệ thống",
   "Generic Launch": "Template launch chung"
 };
 const BASE_TEMPLATE_OPTIONS = [
+  { id: "luckySpin", template: LUCKY_SPIN_EVENT_TEMPLATE },
   { id: "gameEvent", template: GAME_EVENT_TEMPLATE },
   { id: "production", template: PRODUCTION_SYSTEM_TEMPLATE },
   { id: "generic", template: GENERIC_LAUNCH_TEMPLATE }
 ];
 const PROTECTED_BASE_TEMPLATE_IDS = Object.freeze(BASE_TEMPLATE_OPTIONS.map((item) => item.id));
 
-const marketingCampaignBrief = `Tên launch: Midweek Top-up Campaign - chiến dịch nạp giữa tuần cho nhóm người chơi trả phí thấp và trung bình.
+const DEMO_CREATED_AT = new Date("2026-06-16T08:00:00+07:00").toISOString();
+const LUCKY_SPIN_TYPE = "lucky_spin_event";
 
-Mục tiêu: Tăng doanh thu gói nạp nhỏ trong 4 ngày, kích hoạt lại người chơi có lịch sử nạp nhưng 14 ngày gần nhất chưa nạp.
+const luckySpinRetroBrief = `Tên launch: Golden Spin tháng 5 Retro - sự kiện Lucky Spin đã chạy cuối tháng 5.
 
-Thời gian: Dự kiến chạy từ 15/06/2026 đến 18/06/2026.
-
-Đối tượng: Người chơi level 20 trở lên, từng nạp trong 90 ngày gần nhất, không thuộc nhóm refund/abuse.
-
-Offer: Nạp gói 99k hoặc 199k nhận thêm coupon và vật phẩm tiêu hao. Có giới hạn 1 lần/ngày/người chơi.
-
-Kênh truyền thông: In-game popup, inbox, fanpage post và push notification.
-
-Việc đã có:
-- Growth phụ trách target segment và tracking.
-- Business phụ trách ngân sách ưu đãi.
-- LiveOps phụ trách lịch chạy trong game.
-
-Vấn đề còn mở:
-- Chưa chốt ngân sách coupon tối đa.
-- Chưa có guardrail nếu doanh thu tăng nhưng refund cũng tăng.
-- Chưa có CS FAQ về điều kiện nhận coupon.
-- Chưa chốt dashboard theo dõi conversion, refund, coupon claim.
-- Chưa có ngưỡng dừng nếu coupon bị nhận sai hoặc claim trùng.
-- Chưa chốt post-campaign report sau 48 giờ.`;
-
-const mayLoginStreakBrief = `Tên launch: May Login Streak - sự kiện đăng nhập 7 ngày liên tiếp trong tháng 5.
-
-Trạng thái: Đã chạy xong từ 28/05/2026 đến 31/05/2026.
+Trạng thái: Đã chạy từ 29/05/2026 đến 31/05/2026.
 
 Mục tiêu ban đầu:
-- Tăng tỷ lệ quay lại game trong nhóm người chơi casual.
-- Khuyến khích người chơi đăng nhập đủ 7 ngày để nhận reward cuối.
-- Giữ chi phí reward thấp, không ảnh hưởng economy.
+- Kéo người chơi casual quay lại game vào cuối tuần.
+- Tăng thử nghiệm gói nạp nhỏ 49k và 99k.
+- Giữ reward cost trong cap 120 triệu.
 
-Đối tượng: Người chơi level 10 trở lên, không yêu cầu nạp.
-
-Cơ chế: Mỗi ngày đăng nhập nhận một phần quà nhỏ. Nếu đủ chuỗi 7 ngày, người chơi nhận thêm rương tổng kết.
+Cơ chế đã chạy: Người chơi đăng nhập nhận 1 lượt quay miễn phí mỗi ngày, nạp gói nhỏ nhận thêm 2 lượt quay. Item hiếm giới hạn 500 phần.
 
 Kết quả thực tế:
-- Login rate tăng nhẹ trong 2 ngày đầu.
-- Ticket CS tăng trong 6 giờ đầu vì một số người chơi hiểu nhầm điều kiện reset ngày.
-- Reward không vượt ngân sách.
-- Không có lỗi nghiêm trọng về hệ thống.
+- Login rate tăng 6,4% trong 2 ngày đầu.
+- Doanh thu gói nhỏ tăng 9,1%, reward cost trong cap.
+- Ticket CS tăng mạnh trong 8 giờ đầu vì người chơi không hiểu reset ngày và case mất kết nối khi quay.
+- Có 37 tài khoản phụ farm lượt quay trước khi rule bị siết thủ công.
 
 Điểm thiếu khi chuẩn bị:
-- FAQ cho CS có nhưng chưa giải thích rõ mốc reset ngày.
-- In-game message chưa nói rõ đăng nhập phải liên tục, không được bỏ ngày.
-- Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai.
-- Post-mortem ban đầu chưa có câu hỏi về hiểu nhầm điều kiện event.`;
+- In-game message chưa nói rõ mốc reset 05:00.
+- CS FAQ thiếu macro cho mất lượt, hết quà, phát quà chậm.
+- Chưa có dashboard spin success/reward delivery realtime.
+- Chưa có ngưỡng pause nếu ticket CS hoặc lỗi claim reward tăng bất thường.`;
+
+const luckySpinReadyBrief = `Tên launch: Golden Spin Weekend v2 Ready - sự kiện Lucky Spin cuối tuần đã áp dụng bài học tháng 5.
+
+Mục tiêu:
+- Tăng login cuối tuần 7%.
+- Tăng doanh thu gói nhỏ 8-10%.
+- Giữ reward cost dưới 150 triệu và không làm lệch economy.
+
+Thời gian: Bật 20:00 19/06/2026, tắt 23:59 21/06/2026. War room mở từ 19:30 ngày launch.
+
+Đối tượng: Người chơi level 10+, tài khoản tạo trước 01/06/2026, không thuộc danh sách abuse/refund.
+
+Cơ chế:
+- Mỗi ngày đăng nhập nhận 1 lượt quay miễn phí, reset lúc 05:00.
+- Nạp gói 49k/99k nhận thêm tối đa 3 lượt/ngày.
+- Mỗi account tối đa 9 lượt cuối tuần; thiết bị/IP bất thường sẽ vào hàng chờ review.
+
+Reward và guardrail:
+- Reward cap cuối tuần 150 triệu.
+- Item hiếm giới hạn 600 phần, tắt item hiếm khi đạt 95% cap.
+- Nếu reward delivery lỗi trên 1% trong 10 phút hoặc ticket CS tăng gấp 2 baseline, Tech on-call được quyền pause event.
+
+Vận hành:
+- PM LiveOps owner, CS Lead trực 2 ca, Tech on-call trực 20:00-24:00 mỗi ngày.
+- CS FAQ đã có macro cho mất lượt, hết quà, phát quà chậm, reset ngày.
+- Dashboard realtime có spin success, reward delivery, ticket CS, abuse flag.
+- Kill switch và rollback script đã test ở staging.
+- Post-mortem T+48h ghi lại ticket, reward cost, abuse case và lesson cho Golden Spin tháng 7.`;
+
+const luckySpinYellowResult = {
+  source: "memory_sample",
+  decision: {
+    color: "Yellow",
+    score: 7,
+    maxScore: 12,
+    title: "Cần chốt guardrail trước khi mở Golden Spin",
+    reason: "Brief đã có mục tiêu và cơ chế cơ bản, nhưng còn thiếu reward cap, anti-abuse, CS FAQ, dashboard realtime và ngưỡng pause."
+  },
+  riskBreakdown: [
+    { label: "Mục tiêu và segment", score: 2, maxScore: 2, missing: "Mục tiêu và segment đã đủ rõ." },
+    { label: "Cơ chế quay và eligibility", score: 1, maxScore: 2, missing: "Chưa rõ reset ngày, giới hạn lượt và điều kiện tài khoản hợp lệ." },
+    { label: "Reward cap và economy", score: 1, maxScore: 2, missing: "Chưa có reward cap, tỷ lệ trúng và rule khi hết quà." },
+    { label: "Anti-abuse và log", score: 1, maxScore: 2, missing: "Chưa có rule chống farm tài khoản phụ hoặc log bất thường." },
+    { label: "CS và thông điệp", score: 1, maxScore: 2, missing: "Thiếu CS FAQ cho mất lượt, hết quà và phát quà chậm." },
+    { label: "Rollback và monitoring", score: 1, maxScore: 2, missing: "Thiếu dashboard realtime, ngưỡng pause và kill switch." }
+  ],
+  topRisks: [
+    "Người chơi có thể farm lượt quay bằng tài khoản phụ.",
+    "Ticket CS sẽ tăng nếu mất lượt hoặc phát quà chậm mà chưa có macro.",
+    "Không có reward cap/ngưỡng pause khiến team khó dừng event đúng lúc."
+  ],
+  redTeam: [
+    { persona: "Người chơi bức xúc", worry: "Người chơi mất lượt quay hoặc không nhận quà sẽ khiếu nại ngay trong giờ đầu.", evidence: "Brief chưa có FAQ cho mất lượt, hết quà, phát quà chậm.", fix: "Viết macro CS và thông điệp in-game cho từng case trước T-1." },
+    { persona: "Người săn exploit", worry: "Tài khoản phụ có thể farm lượt quay vì eligibility chưa siết.", evidence: "Brief chưa có tuổi tài khoản, giới hạn lượt và log bất thường.", fix: "Thêm điều kiện tài khoản, giới hạn lượt/ngày và abuse dashboard." },
+    { persona: "CS Lead", worry: "Cuối tuần CS không đủ kịch bản trả lời nếu ticket tăng đột biến.", evidence: "Chưa có lịch trực, macro và escalation khi ticket gấp 2 baseline.", fix: "Chốt lịch trực CS, macro theo case và ngưỡng chuyển Tech on-call." },
+    { persona: "Tech on-call", worry: "Spin service lỗi nhưng chưa có kill switch hoặc ngưỡng pause.", evidence: "Brief chưa có dashboard spin success/reward delivery realtime.", fix: "Chuẩn bị alert, kill switch, rollback script và người quyết định pause." },
+    { persona: "Business owner", worry: "Item hiếm có thể vượt cap hoặc ảnh hưởng economy.", evidence: "Brief chưa chốt tỷ lệ trúng, số lượng item hiếm và reward cap.", fix: "Chốt reward pool, cap ngân sách và rule tắt item hiếm khi chạm 95% cap." }
+  ],
+  checklist: [
+    { task: "Chốt reward cap, tỷ lệ trúng và rule khi hết quà", owner: "Business Owner", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Siết eligibility, giới hạn lượt và log chống farm tài khoản phụ", owner: "Tech Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Viết CS FAQ cho mất lượt, hết quà, phát quà chậm", owner: "CS Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Chuẩn bị dashboard realtime và ngưỡng pause", owner: "Tech on-call", deadline: "T-1 ngày", status: "Todo", priority: "High" }
+  ],
+  postmortem: [
+    { title: "Bài học cần dùng lại", items: ["Brief Golden Spin phải có reward cap và rule chống farm trước T-2.", "CS FAQ phải cover mất lượt, hết quà, phát quà chậm trước khi mở event."] },
+    { title: "Template cần siết", items: ["Thêm câu hỏi reset ngày/eligibility.", "Thêm checklist dashboard spin success và reward delivery realtime."] }
+  ],
+  productContext: {
+    launchType: LUCKY_SPIN_TYPE,
+    gameId: "demo_game",
+    lessons: [
+      { id: "lesson-golden-spin-reset", title: "Reset ngày cần ghi rõ", lesson: "Golden Spin tháng 5 tạo ticket vì không nói rõ reset 05:00.", severity: "High" },
+      { id: "lesson-golden-spin-abuse", title: "Cần chống farm lượt quay", lesson: "Tài khoản phụ farm lượt quay nếu thiếu eligibility và giới hạn lượt/ngày.", severity: "High" }
+    ],
+    productHealth: { status: "watch", findings: ["Ticket reward delivery từng tăng trong event spin.", "Abuse account farm lượt quay là rủi ro lặp lại."] }
+  }
+};
+
+const luckySpinGreenResult = {
+  ...luckySpinYellowResult,
+  decision: {
+    color: "Green",
+    score: 12,
+    maxScore: 12,
+    title: "Golden Spin v2 đã đủ điều kiện chạy",
+    reason: "Launch đã áp dụng bài học cũ: có reward cap, eligibility, anti-abuse, CS FAQ, dashboard realtime, ngưỡng pause và rollback."
+  },
+  riskBreakdown: [
+    { label: "Mục tiêu và segment", score: 2, maxScore: 2, missing: "KPI, segment và thời gian đã rõ." },
+    { label: "Cơ chế quay và eligibility", score: 2, maxScore: 2, missing: "Reset 05:00, giới hạn lượt và điều kiện tài khoản đã rõ." },
+    { label: "Reward cap và economy", score: 2, maxScore: 2, missing: "Reward cap, item hiếm và rule 95% cap đã rõ." },
+    { label: "Anti-abuse và log", score: 2, maxScore: 2, missing: "Đã có rule abuse, log bất thường và hàng chờ review." },
+    { label: "CS và thông điệp", score: 2, maxScore: 2, missing: "CS FAQ, macro và lịch trực đã sẵn sàng." },
+    { label: "Rollback và monitoring", score: 2, maxScore: 2, missing: "Dashboard, kill switch và rollback đã test staging." }
+  ],
+  topRisks: [
+    "Theo dõi reward delivery trong 30 phút đầu.",
+    "Theo dõi abuse flag theo thiết bị/IP.",
+    "CS cần cập nhật macro nếu phát sinh case mới."
+  ],
+  checklist: [
+    { task: "Kiểm tra dashboard spin success/reward delivery trước giờ mở", owner: "Tech on-call", deadline: "19/06/2026 19:30", status: "Done", priority: "High" },
+    { task: "Duyệt reward cap và rule tắt item hiếm ở 95% cap", owner: "Business Owner", deadline: "T-1 ngày", status: "Done", priority: "High" },
+    { task: "Brief CS 2 ca trực với macro mất lượt/hết quà/phát chậm", owner: "CS Lead", deadline: "T-1 ngày", status: "Done", priority: "High" },
+    { task: "Tổng kết Golden Spin v2 và cập nhật template tháng 7", owner: "PM LiveOps", deadline: "T+48 giờ", status: "Todo", priority: "Medium" }
+  ]
+};
 
 const fallbackLaunches = [
   {
-    id: "lucky-wheel-weekend",
-    name: "Lucky Wheel Weekend",
-    type: "Game event",
-    status: "running",
-    owner: "PM LiveOps",
-    targetDate: "2026-06-12",
-    endDate: "2026-06-14",
-    brief: badBrief,
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: []
-  },
-  {
-    id: "midweek-topup-campaign",
-    name: "Midweek Top-up Campaign",
-    type: "Campaign marketing",
-    status: "upcoming",
-    owner: "Growth + Business",
-    targetDate: "2026-06-15",
-    endDate: "2026-06-18",
-    brief: marketingCampaignBrief,
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: []
-  },
-  {
-    id: "may-login-streak",
-    name: "May Login Streak",
-    type: "Game event",
+    id: "golden-spin-may-retro",
+    name: "Golden Spin tháng 5 Retro",
+    type: LUCKY_SPIN_TYPE,
     status: "completed",
     owner: "LiveOps Lead",
-    targetDate: "2026-05-28",
+    targetDate: "2026-05-29",
     endDate: "2026-05-31",
-    brief: mayLoginStreakBrief,
+    brief: luckySpinRetroBrief,
+    template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
     analyses: [
       {
-        id: "analysis-local-may-login-streak",
+        id: "analysis-golden-spin-may-retro",
         createdAt: new Date("2026-06-01T09:00:00+07:00").toISOString(),
-        briefSnapshot: mayLoginStreakBrief.slice(0, 2000),
-        result: {
-          source: "memory_sample",
-          decision: {
-            color: "Yellow",
-            score: 8,
-            maxScore: 12,
-            title: "Launch đã chạy được nhưng cần cải thiện chuẩn bị",
-            reason: "Sự kiện đạt mục tiêu giữ chân nhẹ và không vượt ngân sách, nhưng thông điệp reset ngày, FAQ CS và ngưỡng pause chưa đủ rõ."
-          },
-          riskBreakdown: [
-            { label: "Mục tiêu và scope", score: 2, maxScore: 2, missing: "Mục tiêu và đối tượng đã đủ rõ." },
-            { label: "Người phụ trách và hạn xử lý", score: 1, maxScore: 2, missing: "Chưa ghi rõ owner trực trong 6 giờ đầu launch." },
-            { label: "Sẵn sàng kỹ thuật", score: 1, maxScore: 2, missing: "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai." },
-            { label: "User impact", score: 1, maxScore: 2, missing: "Thông điệp reset ngày và điều kiện chuỗi liên tục chưa đủ rõ." },
-            { label: "Business và reward", score: 2, maxScore: 2, missing: "Reward không vượt ngân sách." },
-            { label: "Bài học sau launch", score: 1, maxScore: 2, missing: "Post-mortem chưa có câu hỏi về hiểu nhầm điều kiện event." }
-          ],
-          topRisks: [
-            "Người chơi hiểu nhầm mốc reset ngày và điều kiện đăng nhập liên tục.",
-            "CS FAQ chưa đủ rõ cho các trường hợp mất chuỗi.",
-            "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai."
-          ],
-          redTeam: [
-            {
-              persona: "Người chơi bức xúc",
-              worry: "Người chơi bỏ một ngày nhưng vẫn nghĩ mình đủ điều kiện nhận rương tổng kết.",
-              evidence: "Ticket CS tăng trong 6 giờ đầu vì hiểu nhầm điều kiện reset ngày.",
-              fix: "Ghi rõ mốc reset ngày, điều kiện liên tục và ví dụ minh họa trong in-game message."
-            },
-            {
-              persona: "Trưởng nhóm CS",
-              worry: "CS mất thời gian giải thích lặp lại cùng một lỗi hiểu nhầm.",
-              evidence: "FAQ có nhưng chưa đủ case về mất chuỗi và reset ngày.",
-              fix: "Bổ sung macro trả lời theo từng trường hợp: bỏ ngày, reset ngày, claim rương tổng kết."
-            }
-          ],
-          checklist: [
-            { task: "Viết lại in-game message về mốc reset ngày và điều kiện đăng nhập liên tục", owner: "PM LiveOps", deadline: "Trước event tiếp theo", status: "Todo", priority: "High" },
-            { task: "Bổ sung CS FAQ cho case mất chuỗi, reset ngày và claim rương tổng kết", owner: "CS Lead", deadline: "Trước event tiếp theo", status: "Todo", priority: "High" },
-            { task: "Thêm alert nếu tỷ lệ claim reward thấp bất thường", owner: "Tech Owner", deadline: "Trước event tiếp theo", status: "Todo", priority: "Medium" }
-          ],
-          postmortem: [
-            { title: "Bài học chính", items: ["Thông điệp điều kiện event phải có ví dụ cụ thể.", "CS FAQ cần cover các hiểu nhầm phổ biến trước launch."] },
-            { title: "Cần sửa template", items: ["Thêm câu hỏi kiểm tra mốc reset ngày.", "Thêm checklist CS macro cho điều kiện nhận reward."] }
-          ]
-        }
+        briefSnapshot: luckySpinRetroBrief.slice(0, 2000),
+        result: { ...luckySpinYellowResult, decision: { ...luckySpinYellowResult.decision, score: 8, title: "Launch tháng 5 chạy được nhưng để lại rủi ro lặp lại" } }
       }
     ],
-    postLaunchResult: "Hoàn thành launch. Login rate tăng nhẹ trong 2 ngày đầu, reward không vượt ngân sách, nhưng ticket CS tăng trong 6 giờ đầu vì người chơi hỏi mốc reset ngày và điều kiện giữ chuỗi.",
+    postLaunchResult: "Golden Spin tháng 5 đạt mục tiêu login và doanh thu nhẹ, reward cost trong cap, nhưng ticket CS tăng trong 8 giờ đầu vì reset ngày, phát quà chậm và case mất lượt. Có 37 tài khoản phụ farm lượt quay trước khi team siết thủ công.",
     lessonsLearned: [
+      { id: "lesson-golden-spin-reset", createdAt: new Date("2026-06-01T10:00:00+07:00").toISOString(), text: "Golden Spin phải ghi rõ reset ngày 05:00, điều kiện nhận lượt và ví dụ mất lượt ngay trong in-game message." },
+      { id: "lesson-golden-spin-cs", createdAt: new Date("2026-06-01T10:05:00+07:00").toISOString(), text: "CS FAQ phải có macro cho mất lượt, hết quà, phát quà chậm và escalation khi ticket gấp 2 baseline." },
+      { id: "lesson-golden-spin-abuse", createdAt: new Date("2026-06-01T10:10:00+07:00").toISOString(), text: "Event quay thưởng phải có eligibility, giới hạn lượt/ngày và dashboard abuse trước khi mở." }
+    ],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "golden-spin-weekend-risk",
+    name: "Golden Spin Weekend Risk",
+    type: LUCKY_SPIN_TYPE,
+    status: "running",
+    owner: "PM LiveOps",
+    targetDate: "2026-06-19",
+    endDate: "2026-06-21",
+    brief: badBrief,
+    template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [
+      { title: "Áp dụng lesson reset ngày", suggestion: "Thêm reset 05:00 và ví dụ mất lượt vào in-game message.", severity: "High" },
+      { title: "Áp dụng lesson chống farm", suggestion: "Thêm tuổi tài khoản, giới hạn lượt/ngày và abuse dashboard.", severity: "High" }
+    ],
+    analyses: [
       {
-        id: "lesson-local-1",
-        createdAt: new Date("2026-06-01T10:00:00+07:00").toISOString(),
-        text: "Luôn viết rõ mốc reset ngày, điều kiện giữ chuỗi liên tục và ví dụ minh họa trong in-game message."
-      },
-      {
-        id: "lesson-local-2",
-        createdAt: new Date("2026-06-01T10:05:00+07:00").toISOString(),
-        text: "CS FAQ phải có macro riêng cho case mất chuỗi, claim rương tổng kết và khiếu nại thiếu reward."
+        id: "analysis-golden-spin-weekend-risk",
+        createdAt: new Date("2026-06-16T08:30:00+07:00").toISOString(),
+        briefSnapshot: badBrief.slice(0, 2000),
+        result: luckySpinYellowResult
       }
-    ]
+    ],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "golden-spin-weekend-v2-ready",
+    name: "Golden Spin Weekend v2 Ready",
+    type: LUCKY_SPIN_TYPE,
+    status: "upcoming",
+    owner: "PM LiveOps + Tech on-call",
+    targetDate: "2026-06-19",
+    endDate: "2026-06-21",
+    brief: luckySpinReadyBrief,
+    template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [
+      { version: 1, createdAt: new Date("2026-06-16T07:30:00+07:00").toISOString(), template: LUCKY_SPIN_EVENT_TEMPLATE }
+    ],
+    lessonSuggestions: [],
+    analyses: [
+      {
+        id: "analysis-golden-spin-weekend-v2-ready",
+        createdAt: new Date("2026-06-16T09:00:00+07:00").toISOString(),
+        briefSnapshot: luckySpinReadyBrief.slice(0, 2000),
+        result: luckySpinGreenResult
+      }
+    ],
+    postLaunchResult: "",
+    lessonsLearned: [
+      { id: "lesson-applied-golden-spin-reset", createdAt: new Date("2026-06-16T09:05:00+07:00").toISOString(), text: "Đã áp dụng lesson tháng 5: reset 05:00, CS FAQ, reward cap, anti-abuse và dashboard realtime đều nằm trong brief trước khi chạy." }
+    ],
+    checklistProgress: {
+      "kiem tra dashboard spin success/reward delivery truoc gio mo|tech on-call|19/06/2026 19:30": true,
+      "duyet reward cap va rule tat item hiem o 95% cap|business owner|t-1 ngay": true,
+      "brief cs 2 ca truc voi macro mat luot/het qua/phat cham|cs lead|t-1 ngay": true
+    },
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
   }
 ];
 
@@ -702,8 +832,8 @@ function containsEncodingDamage(value) {
   return false;
 }
 
-function cleanMayLoginSample(launch) {
-  const clean = cloneData(fallbackLaunches.find((item) => item.id === "may-login-streak") || launch);
+function cleanDemoSample(launch) {
+  const clean = cloneData(fallbackLaunches.find((item) => item.id === launch?.id) || launch);
   return {
     ...clean,
     createdAt: launch?.createdAt || clean.createdAt,
@@ -717,8 +847,8 @@ function sanitizeAnalysisResult(result) {
 
 function sanitizeLaunchData(launch) {
   if (!launch || typeof launch !== "object") return launch;
-  if (launch.id === "may-login-streak" && containsEncodingDamage(launch)) {
-    return cleanMayLoginSample(launch);
+  if (fallbackLaunches.some((item) => item.id === launch.id) && containsEncodingDamage(launch)) {
+    return cleanDemoSample(launch);
   }
   return sanitizeLegacyEncoding(launch);
 }
@@ -3720,15 +3850,15 @@ async function runDemoMode() {
   try {
     draftMode = true;
     currentLaunch = {
-      id: "demo-lucky-wheel-weekend",
-      name: "Demo - Lucky Wheel Weekend",
-      type: "Game event",
+      id: "demo-golden-spin-weekend",
+      name: "Demo - Golden Spin Weekend",
+      type: LUCKY_SPIN_TYPE,
       status: "running",
       owner: "PM LiveOps",
-      targetDate: "2026-06-12",
-      endDate: "2026-06-14",
+      targetDate: "2026-06-19",
+      endDate: "2026-06-21",
       brief: badBrief,
-      template: defaultTemplateForType("Game event"),
+      template: defaultTemplateForType(LUCKY_SPIN_TYPE),
       templateVersions: [],
       lessonSuggestions: [],
       analyses: [],
@@ -3751,7 +3881,7 @@ async function runDemoMode() {
     currentLaunch.lessonsLearned.push({
       id: `lesson-demo-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      text: "Demo lesson: cần chốt CS FAQ, rollback plan và guardrail phần thưởng trước T-1."
+      text: "Demo lesson: Golden Spin cần reward cap, CS FAQ, anti-abuse dashboard và kill switch trước T-1."
     });
     upsertLaunchSummary(currentLaunch);
     ensureLessonSuggestions();
@@ -5143,7 +5273,11 @@ appendAssistantMessage(
 );
 
 document.getElementById("loadBadBrief").addEventListener("click", () => {
-  briefInput.value = badBrief;
+  const sample = cloneData(fallbackLaunches.find((launch) => launch.id === "golden-spin-weekend-risk") || fallbackLaunches[0]);
+  currentLaunch = sample;
+  draftMode = true;
+  setFormFromLaunch(currentLaunch);
+  renderLaunchWorkspace();
   renderLocalAnalysis("Xem thử local: brief mẫu");
 });
 

@@ -233,7 +233,7 @@ const TOOLTIP_I18N = {
   "Sau khi launch xong, dùng phần này để ghi kết quả thật và bài học. Lần sau Agent có thể dùng lại bài học này.": "After the launch, use this to record real results and lessons. The Agent can reuse these lessons next time.",
   "Sắp chạy: còn chuẩn bị. Đang chạy: đang active hoặc sát giờ. Đã chạy: dùng để lưu kết quả và bài học.": "Upcoming: still preparing. Running: active or near go-time. Completed: used to save results and lessons.",
   "Số lần đã phân tích launch này và số bài học đã lưu sau launch. Dùng để xem lại quyết định cũ.": "How many times this launch was analyzed and how many lessons were saved. Use it to review past decisions.",
-  "Tên ngắn để phân biệt launch này với các launch khác, ví dụ Lucky Wheel Weekend.": "A short name to tell this launch apart from others, e.g. Lucky Wheel Weekend.",
+  "Tên ngắn để phân biệt launch này với các launch khác, ví dụ Golden Spin Weekend.": "A short name to tell this launch apart from others, e.g. Golden Spin Weekend.",
   "Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.": "The total score computed from the current classification config. A low score means the brief lacks data for a safe launch.",
   "Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày nào và đang ở trạng thái nào.": "Fill in short metadata so the Agent knows what this launch is, who owns it, its start/end dates, and its current status."
 };

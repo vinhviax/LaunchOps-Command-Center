@@ -42,7 +42,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260616b"
+UI_CACHE_VERSION = "fix-20260616c"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -274,7 +274,7 @@ def mcp_tool_definitions() -> list[dict[str, Any]]:
             LCC_GET_LAUNCH_TOOL,
             "Get a saved launch by id or display name, including brief, template, latest analysis and metadata.",
             {
-                "launchId": {"type": "string", "description": "Launch id, for example lucky-wheel-weekend."},
+                "launchId": {"type": "string", "description": "Launch id, for example golden-spin-weekend-risk."},
                 "name": {"type": "string", "description": "Launch display name when id is unknown."},
             },
         ),
@@ -790,54 +790,54 @@ def sample_decision(color: str, score: int, reason: str) -> dict[str, Any]:
     return result
 
 
-def may_login_sample_result() -> dict[str, Any]:
-    result = sample_decision(
-        "Yellow",
-        8,
-        "Sự kiện đạt mục tiêu giữ chân nhẹ và không vượt ngân sách, nhưng thông điệp reset ngày, FAQ CS và ngưỡng pause chưa đủ rõ.",
-    )
+def lucky_spin_sample_result(color: str = "Yellow", score: int = 7) -> dict[str, Any]:
+    if color == "Green":
+        reason = "Launch đã áp dụng bài học cũ: có reward cap, eligibility, anti-abuse, CS FAQ, dashboard realtime, ngưỡng pause và rollback."
+        title = "Golden Spin v2 đã đủ điều kiện chạy"
+    else:
+        reason = "Brief đã có mục tiêu và cơ chế cơ bản, nhưng còn thiếu reward cap, anti-abuse, CS FAQ, dashboard realtime và ngưỡng pause."
+        title = "Cần chốt guardrail trước khi mở Golden Spin"
+    result = sample_decision(color, score, reason)
+    result["decision"]["title"] = title
     result["riskBreakdown"] = [
-        {"label": "Mục tiêu và scope", "score": 2, "maxScore": 2, "missing": "Mục tiêu và đối tượng đã đủ rõ."},
-        {"label": "Người phụ trách và hạn xử lý", "score": 1, "maxScore": 2, "missing": "Chưa ghi rõ owner trực trong 6 giờ đầu launch."},
-        {"label": "Sẵn sàng kỹ thuật", "score": 1, "maxScore": 2, "missing": "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai."},
-        {"label": "User impact", "score": 1, "maxScore": 2, "missing": "Thông điệp reset ngày và điều kiện chuỗi liên tục chưa đủ rõ."},
-        {"label": "Business và reward", "score": 2, "maxScore": 2, "missing": "Reward không vượt ngân sách."},
-        {"label": "Bài học sau launch", "score": 1, "maxScore": 2, "missing": "Post-mortem chưa có câu hỏi về hiểu nhầm điều kiện event."},
+        {"label": "Mục tiêu và segment", "score": 2, "maxScore": 2, "missing": "KPI và segment đã rõ." if color == "Green" else "Mục tiêu và segment đã đủ rõ."},
+        {"label": "Cơ chế quay và eligibility", "score": 2 if color == "Green" else 1, "maxScore": 2, "missing": "Reset 05:00, giới hạn lượt và điều kiện tài khoản đã rõ." if color == "Green" else "Chưa rõ reset ngày, giới hạn lượt và điều kiện tài khoản hợp lệ."},
+        {"label": "Reward cap và economy", "score": 2 if color == "Green" else 1, "maxScore": 2, "missing": "Reward cap, item hiếm và rule 95% cap đã rõ." if color == "Green" else "Chưa có reward cap, tỷ lệ trúng và rule khi hết quà."},
+        {"label": "Anti-abuse và log", "score": 2 if color == "Green" else 1, "maxScore": 2, "missing": "Đã có rule abuse, log bất thường và hàng chờ review." if color == "Green" else "Chưa có rule chống farm tài khoản phụ hoặc log bất thường."},
+        {"label": "CS và thông điệp", "score": 2 if color == "Green" else 1, "maxScore": 2, "missing": "CS FAQ, macro và lịch trực đã sẵn sàng." if color == "Green" else "Thiếu CS FAQ cho mất lượt, hết quà và phát quà chậm."},
+        {"label": "Rollback và monitoring", "score": 2 if color == "Green" else 1, "maxScore": 2, "missing": "Dashboard, kill switch và rollback đã test staging." if color == "Green" else "Thiếu dashboard realtime, ngưỡng pause và kill switch."},
     ]
     result["topRisks"] = [
-        "Người chơi hiểu nhầm mốc reset ngày và điều kiện đăng nhập liên tục.",
-        "CS FAQ chưa đủ rõ cho các trường hợp mất chuỗi.",
-        "Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai.",
+        "Người chơi có thể farm lượt quay bằng tài khoản phụ." if color != "Green" else "Theo dõi reward delivery trong 30 phút đầu.",
+        "Ticket CS sẽ tăng nếu mất lượt hoặc phát quà chậm mà chưa có macro." if color != "Green" else "Theo dõi abuse flag theo thiết bị/IP.",
+        "Không có reward cap/ngưỡng pause khiến team khó dừng event đúng lúc." if color != "Green" else "CS cần cập nhật macro nếu phát sinh case mới.",
     ]
     result["redTeam"] = [
-        {
-            "persona": "Người chơi bức xúc",
-            "worry": "Người chơi bỏ một ngày nhưng vẫn nghĩ mình đủ điều kiện nhận rương tổng kết.",
-            "evidence": "Ticket CS tăng trong 6 giờ đầu vì hiểu nhầm điều kiện reset ngày.",
-            "fix": "Ghi rõ mốc reset ngày, điều kiện liên tục và ví dụ minh họa trong in-game message.",
-        },
-        {
-            "persona": "Trưởng nhóm CS",
-            "worry": "CS mất thời gian giải thích lặp lại cùng một lỗi hiểu nhầm.",
-            "evidence": "FAQ có nhưng chưa đủ case về mất chuỗi và reset ngày.",
-            "fix": "Bổ sung macro trả lời theo từng trường hợp: bỏ ngày, reset ngày, claim rương tổng kết.",
-        },
-        {
-            "persona": "Kỹ thuật trực sự cố",
-            "worry": "Nếu hệ thống ghi nhận login sai thì team chưa có ngưỡng pause rõ.",
-            "evidence": "Brief ghi không có lỗi nghiêm trọng nhưng chưa nêu alert/pause rule.",
-            "fix": "Thêm alert và ngưỡng pause nếu login streak hoặc claim reward bất thường.",
-        },
+        {"persona": "Người chơi bức xúc", "worry": "Người chơi mất lượt quay hoặc không nhận quà sẽ khiếu nại ngay trong giờ đầu.", "evidence": "Brief cần có FAQ cho mất lượt, hết quà, phát quà chậm.", "fix": "Viết macro CS và thông điệp in-game cho từng case trước T-1."},
+        {"persona": "Người săn exploit", "worry": "Tài khoản phụ có thể farm lượt quay nếu eligibility chưa siết.", "evidence": "Brief cần tuổi tài khoản, giới hạn lượt và log bất thường.", "fix": "Thêm điều kiện tài khoản, giới hạn lượt/ngày và abuse dashboard."},
+        {"persona": "CS Lead", "worry": "Cuối tuần CS không đủ kịch bản trả lời nếu ticket tăng đột biến.", "evidence": "Brief cần lịch trực, macro và escalation khi ticket gấp 2 baseline.", "fix": "Chốt lịch trực CS, macro theo case và ngưỡng chuyển Tech on-call."},
+        {"persona": "Tech on-call", "worry": "Spin service lỗi nhưng chưa có kill switch hoặc ngưỡng pause.", "evidence": "Brief cần dashboard spin success/reward delivery realtime.", "fix": "Chuẩn bị alert, kill switch, rollback script và người quyết định pause."},
+        {"persona": "Business owner", "worry": "Item hiếm có thể vượt cap hoặc ảnh hưởng economy.", "evidence": "Brief cần tỷ lệ trúng, số lượng item hiếm và reward cap.", "fix": "Chốt reward pool, cap ngân sách và rule tắt item hiếm khi chạm 95% cap."},
     ]
     result["checklist"] = [
-        {"task": "Viết lại in-game message về mốc reset ngày và điều kiện đăng nhập liên tục", "owner": "PM LiveOps", "deadline": "Trước event tiếp theo", "status": "Todo", "priority": "High"},
-        {"task": "Bổ sung CS FAQ cho case mất chuỗi, reset ngày và claim rương tổng kết", "owner": "CS Lead", "deadline": "Trước event tiếp theo", "status": "Todo", "priority": "High"},
-        {"task": "Thêm alert nếu tỷ lệ claim reward thấp bất thường", "owner": "Tech Owner", "deadline": "Trước event tiếp theo", "status": "Todo", "priority": "Medium"},
+        {"task": "Chốt reward cap, tỷ lệ trúng và rule khi hết quà", "owner": "Business Owner", "deadline": "T-2 ngày", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+        {"task": "Siết eligibility, giới hạn lượt và log chống farm tài khoản phụ", "owner": "Tech Owner", "deadline": "T-1 ngày", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+        {"task": "Viết CS FAQ cho mất lượt, hết quà, phát quà chậm", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+        {"task": "Chuẩn bị dashboard realtime và ngưỡng pause", "owner": "Tech on-call", "deadline": "T-1 ngày", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
     ]
     result["postmortem"] = [
-        {"title": "Bài học chính", "items": ["Thông điệp điều kiện event phải có ví dụ cụ thể.", "CS FAQ cần cover các hiểu nhầm phổ biến trước launch."]},
-        {"title": "Cần sửa template", "items": ["Thêm câu hỏi kiểm tra mốc reset ngày.", "Thêm checklist CS macro cho điều kiện nhận reward."]},
+        {"title": "Bài học cần dùng lại", "items": ["Brief Golden Spin phải có reward cap và rule chống farm trước T-2.", "CS FAQ phải cover mất lượt, hết quà, phát quà chậm trước khi mở event."]},
+        {"title": "Template cần siết", "items": ["Thêm câu hỏi reset ngày/eligibility.", "Thêm checklist dashboard spin success và reward delivery realtime."]},
     ]
+    result["productContext"] = {
+        "launchType": "lucky_spin_event",
+        "gameId": "demo_game",
+        "lessons": [
+            {"id": "lesson-golden-spin-reset", "title": "Reset ngày cần ghi rõ", "lesson": "Golden Spin tháng 5 tạo ticket vì không nói rõ reset 05:00.", "severity": "High"},
+            {"id": "lesson-golden-spin-abuse", "title": "Cần chống farm lượt quay", "lesson": "Tài khoản phụ farm lượt quay nếu thiếu eligibility và giới hạn lượt/ngày.", "severity": "High"},
+        ],
+        "productHealth": {"status": "watch", "findings": ["Ticket reward delivery từng tăng trong event spin.", "Abuse account farm lượt quay là rủi ro lặp lại."]},
+    }
     return result
 
 
@@ -890,8 +890,12 @@ def contains_encoding_damage(value: Any) -> bool:
     return False
 
 
-def clean_may_login_sample(existing: dict[str, Any]) -> dict[str, Any]:
-    clean = next((item for item in default_sample_launches() if item.get("id") == "may-login-streak"), dict(existing))
+DEMO_SAMPLE_IDS = {"golden-spin-may-retro", "golden-spin-weekend-risk", "golden-spin-weekend-v2-ready"}
+LEGACY_SAMPLE_IDS = {"lucky-wheel-weekend", "midweek-topup-campaign", "may-login-streak", "lucky-wheel-weekend-test"}
+
+
+def clean_demo_sample(existing: dict[str, Any]) -> dict[str, Any]:
+    clean = next((item for item in default_sample_launches() if item.get("id") == existing.get("id")), dict(existing))
     merged = json.loads(json.dumps(clean, ensure_ascii=False))
     if existing.get("createdAt"):
         merged["createdAt"] = existing.get("createdAt")
@@ -903,123 +907,173 @@ def clean_may_login_sample(existing: dict[str, Any]) -> dict[str, Any]:
 def sanitize_launch_for_response(launch: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(launch, dict):
         return launch
-    if launch.get("id") == "may-login-streak" and contains_encoding_damage(launch):
-        return clean_may_login_sample(launch)
+    if launch.get("id") in DEMO_SAMPLE_IDS and contains_encoding_damage(launch):
+        return clean_demo_sample(launch)
     return sanitize_legacy_encoding(launch)
 
 
 def default_sample_launches() -> list[dict[str, Any]]:
     created = now_iso()
     sample_brief = read_sample_brief()
-    marketing_brief = """Tên launch: Midweek Top-up Campaign - chiến dịch nạp giữa tuần cho nhóm người chơi trả phí thấp và trung bình.
+    retro_brief = """Tên launch: Golden Spin tháng 5 Retro - sự kiện Lucky Spin đã chạy cuối tháng 5.
 
-Mục tiêu: Tăng doanh thu gói nạp nhỏ trong 4 ngày, kích hoạt lại người chơi có lịch sử nạp nhưng 14 ngày gần nhất chưa nạp.
-
-Thời gian: Dự kiến chạy từ 15/06/2026 đến 18/06/2026.
-
-Đối tượng: Người chơi level 20 trở lên, từng nạp trong 90 ngày gần nhất, không thuộc nhóm refund/abuse.
-
-Offer: Nạp gói 99k hoặc 199k nhận thêm coupon và vật phẩm tiêu hao. Có giới hạn 1 lần/ngày/người chơi.
-
-Kênh truyền thông: In-game popup, inbox, fanpage post và push notification.
-
-Việc đã có:
-- Growth phụ trách target segment và tracking.
-- Business phụ trách ngân sách ưu đãi.
-- LiveOps phụ trách lịch chạy trong game.
-
-Vấn đề còn mở:
-- Chưa chốt ngân sách coupon tối đa.
-- Chưa có guardrail nếu doanh thu tăng nhưng refund cũng tăng.
-- Chưa có CS FAQ về điều kiện nhận coupon.
-- Chưa chốt dashboard theo dõi conversion, refund, coupon claim.
-- Chưa có ngưỡng dừng nếu coupon bị nhận sai hoặc claim trùng.
-- Chưa chốt post-campaign report sau 48 giờ."""
-    may_brief = """Tên launch: May Login Streak - sự kiện đăng nhập 7 ngày liên tiếp trong tháng 5.
-
-Trạng thái: Đã chạy xong từ 28/05/2026 đến 31/05/2026.
+Trạng thái: Đã chạy từ 29/05/2026 đến 31/05/2026.
 
 Mục tiêu ban đầu:
-- Tăng tỷ lệ quay lại game trong nhóm người chơi casual.
-- Khuyến khích người chơi đăng nhập đủ 7 ngày để nhận reward cuối.
-- Giữ chi phí reward thấp, không ảnh hưởng economy.
+- Kéo người chơi casual quay lại game vào cuối tuần.
+- Tăng thử nghiệm gói nạp nhỏ 49k và 99k.
+- Giữ reward cost trong cap 120 triệu.
 
-Đối tượng: Người chơi level 10 trở lên, không yêu cầu nạp.
-
-Cơ chế: Mỗi ngày đăng nhập nhận một phần quà nhỏ. Nếu đủ chuỗi 7 ngày, người chơi nhận thêm rương tổng kết.
+Cơ chế đã chạy: Người chơi đăng nhập nhận 1 lượt quay miễn phí mỗi ngày, nạp gói nhỏ nhận thêm 2 lượt quay. Item hiếm giới hạn 500 phần.
 
 Kết quả thực tế:
-- Login rate tăng nhẹ trong 2 ngày đầu.
-- Ticket CS tăng trong 6 giờ đầu vì một số người chơi hiểu nhầm điều kiện reset ngày.
-- Reward không vượt ngân sách.
-- Không có lỗi nghiêm trọng về hệ thống.
+- Login rate tăng 6,4% trong 2 ngày đầu.
+- Doanh thu gói nhỏ tăng 9,1%, reward cost trong cap.
+- Ticket CS tăng mạnh trong 8 giờ đầu vì người chơi không hiểu reset ngày và case mất kết nối khi quay.
+- Có 37 tài khoản phụ farm lượt quay trước khi rule bị siết thủ công.
 
 Điểm thiếu khi chuẩn bị:
-- FAQ cho CS có nhưng chưa giải thích rõ mốc reset ngày.
-- In-game message chưa nói rõ đăng nhập phải liên tục, không được bỏ ngày.
-- Chưa có ngưỡng pause nếu hệ thống ghi nhận login sai.
-- Post-mortem ban đầu chưa có câu hỏi về hiểu nhầm điều kiện event."""
+- In-game message chưa nói rõ mốc reset 05:00.
+- CS FAQ thiếu macro cho mất lượt, hết quà, phát quà chậm.
+- Chưa có dashboard spin success/reward delivery realtime.
+- Chưa có ngưỡng pause nếu ticket CS hoặc lỗi claim reward tăng bất thường."""
+    ready_brief = """Tên launch: Golden Spin Weekend v2 Ready - sự kiện Lucky Spin cuối tuần đã áp dụng bài học tháng 5.
+
+Mục tiêu:
+- Tăng login cuối tuần 7%.
+- Tăng doanh thu gói nhỏ 8-10%.
+- Giữ reward cost dưới 150 triệu và không làm lệch economy.
+
+Thời gian: Bật 20:00 19/06/2026, tắt 23:59 21/06/2026. War room mở từ 19:30 ngày launch.
+
+Đối tượng: Người chơi level 10+, tài khoản tạo trước 01/06/2026, không thuộc danh sách abuse/refund.
+
+Cơ chế:
+- Mỗi ngày đăng nhập nhận 1 lượt quay miễn phí, reset lúc 05:00.
+- Nạp gói 49k/99k nhận thêm tối đa 3 lượt/ngày.
+- Mỗi account tối đa 9 lượt cuối tuần; thiết bị/IP bất thường sẽ vào hàng chờ review.
+
+Reward và guardrail:
+- Reward cap cuối tuần 150 triệu.
+- Item hiếm giới hạn 600 phần, tắt item hiếm khi đạt 95% cap.
+- Nếu reward delivery lỗi trên 1% trong 10 phút hoặc ticket CS tăng gấp 2 baseline, Tech on-call được quyền pause event.
+
+Vận hành:
+- PM LiveOps owner, CS Lead trực 2 ca, Tech on-call trực 20:00-24:00 mỗi ngày.
+- CS FAQ đã có macro cho mất lượt, hết quà, phát quà chậm, reset ngày.
+- Dashboard realtime có spin success, reward delivery, ticket CS, abuse flag.
+- Kill switch và rollback script đã test ở staging.
+- Post-mortem T+48h ghi lại ticket, reward cost, abuse case và lesson cho Golden Spin tháng 7."""
+    template = get_type_profile("lucky_spin_event") or build_default_template()
     samples = [
         {
-            "id": "lucky-wheel-weekend",
-            "name": "Lucky Wheel Weekend",
-            "type": "Game event",
-            "status": "running",
-            "owner": "PM LiveOps",
-            "targetDate": "2026-06-12",
-            "endDate": "2026-06-14",
-            "brief": sample_brief,
-            "analyses": [],
-            "postLaunchResult": "",
-            "lessonsLearned": [],
-            "createdAt": created,
-            "updatedAt": created,
-        },
-        {
-            "id": "midweek-topup-campaign",
-            "name": "Midweek Top-up Campaign",
-            "type": "Campaign marketing",
-            "status": "upcoming",
-            "owner": "Growth + Business",
-            "targetDate": "2026-06-15",
-            "endDate": "2026-06-18",
-            "brief": marketing_brief,
-            "analyses": [],
-            "postLaunchResult": "",
-            "lessonsLearned": [],
-            "createdAt": created,
-            "updatedAt": created,
-        },
-        {
-            "id": "may-login-streak",
-            "name": "May Login Streak",
-            "type": "Game event",
+            "id": "golden-spin-may-retro",
+            "name": "Golden Spin tháng 5 Retro",
+            "type": "lucky_spin_event",
             "status": "completed",
             "owner": "LiveOps Lead",
-            "targetDate": "2026-05-28",
+            "targetDate": "2026-05-29",
             "endDate": "2026-05-31",
-            "brief": may_brief,
+            "brief": retro_brief,
+            "template": template,
+            "templateVersions": [],
+            "lessonSuggestions": [],
             "analyses": [
                 {
-                    "id": "analysis-sample-1",
+                    "id": "analysis-golden-spin-may-retro",
                     "createdAt": created,
-                    "briefSnapshot": may_brief[:2000],
-                    "result": may_login_sample_result(),
+                    "briefSnapshot": retro_brief[:2000],
+                    "result": lucky_spin_sample_result("Yellow", 8),
                 }
             ],
-            "postLaunchResult": "Hoàn thành launch. Login rate tăng nhẹ trong 2 ngày đầu, reward không vượt ngân sách, nhưng ticket CS tăng trong 6 giờ đầu vì người chơi hỏi mốc reset ngày và điều kiện giữ chuỗi.",
+            "postLaunchResult": "Golden Spin tháng 5 đạt mục tiêu login và doanh thu nhẹ, reward cost trong cap, nhưng ticket CS tăng trong 8 giờ đầu vì reset ngày, phát quà chậm và case mất lượt. Có 37 tài khoản phụ farm lượt quay trước khi team siết thủ công.",
             "lessonsLearned": [
                 {
-                    "id": "lesson-sample-1",
+                    "id": "lesson-golden-spin-reset",
                     "createdAt": created,
-                    "text": "Luôn viết rõ mốc reset ngày, điều kiện giữ chuỗi liên tục và ví dụ minh họa trong in-game message.",
+                    "text": "Golden Spin phải ghi rõ reset ngày 05:00, điều kiện nhận lượt và ví dụ mất lượt ngay trong in-game message.",
                 },
                 {
-                    "id": "lesson-sample-2",
+                    "id": "lesson-golden-spin-cs",
                     "createdAt": created,
-                    "text": "CS FAQ phải có macro riêng cho case mất chuỗi, claim rương tổng kết và khiếu nại thiếu reward.",
+                    "text": "CS FAQ phải có macro cho mất lượt, hết quà, phát quà chậm và escalation khi ticket gấp 2 baseline.",
+                },
+                {
+                    "id": "lesson-golden-spin-abuse",
+                    "createdAt": created,
+                    "text": "Event quay thưởng phải có eligibility, giới hạn lượt/ngày và dashboard abuse trước khi mở.",
+                },
+            ],
+            "checklistProgress": {},
+            "redTeamBriefSupplements": {},
+            "createdAt": created,
+            "updatedAt": created,
+        },
+        {
+            "id": "golden-spin-weekend-risk",
+            "name": "Golden Spin Weekend Risk",
+            "type": "lucky_spin_event",
+            "status": "running",
+            "owner": "PM LiveOps",
+            "targetDate": "2026-06-19",
+            "endDate": "2026-06-21",
+            "brief": sample_brief,
+            "template": template,
+            "templateVersions": [],
+            "lessonSuggestions": [
+                {"title": "Áp dụng lesson reset ngày", "suggestion": "Thêm reset 05:00 và ví dụ mất lượt vào in-game message.", "severity": "High"},
+                {"title": "Áp dụng lesson chống farm", "suggestion": "Thêm tuổi tài khoản, giới hạn lượt/ngày và abuse dashboard.", "severity": "High"},
+            ],
+            "analyses": [
+                {
+                    "id": "analysis-golden-spin-weekend-risk",
+                    "createdAt": created,
+                    "briefSnapshot": sample_brief[:2000],
+                    "result": lucky_spin_sample_result("Yellow", 7),
                 }
             ],
+            "postLaunchResult": "",
+            "lessonsLearned": [],
+            "checklistProgress": {},
+            "redTeamBriefSupplements": {},
+            "createdAt": created,
+            "updatedAt": created,
+        },
+        {
+            "id": "golden-spin-weekend-v2-ready",
+            "name": "Golden Spin Weekend v2 Ready",
+            "type": "lucky_spin_event",
+            "status": "upcoming",
+            "owner": "PM LiveOps + Tech on-call",
+            "targetDate": "2026-06-19",
+            "endDate": "2026-06-21",
+            "brief": ready_brief,
+            "template": template,
+            "templateVersions": [{"version": 1, "createdAt": created, "template": template}],
+            "lessonSuggestions": [],
+            "analyses": [
+                {
+                    "id": "analysis-golden-spin-weekend-v2-ready",
+                    "createdAt": created,
+                    "briefSnapshot": ready_brief[:2000],
+                    "result": lucky_spin_sample_result("Green", 12),
+                }
+            ],
+            "postLaunchResult": "",
+            "lessonsLearned": [
+                {
+                    "id": "lesson-applied-golden-spin-reset",
+                    "createdAt": created,
+                    "text": "Đã áp dụng lesson tháng 5: reset 05:00, CS FAQ, reward cap, anti-abuse và dashboard realtime đều nằm trong brief trước khi chạy.",
+                },
+            ],
+            "checklistProgress": {
+                "chot reward cap, ty le trung va rule khi het qua|business owner|t-2 ngay": True,
+                "siet eligibility, gioi han luot va log chong farm tai khoan phu|tech owner|t-1 ngay": True,
+                "viet cs faq cho mat luot, het qua, phat qua cham|cs lead|t-1 ngay": True,
+                "chuan bi dashboard realtime va nguong pause|tech on-call|t-1 ngay": True,
+            },
+            "redTeamBriefSupplements": {},
             "createdAt": created,
             "updatedAt": created,
         },
@@ -1030,11 +1084,16 @@ Kết quả thực tế:
 
 def seed_launches_if_empty() -> None:
     LAUNCHES_DIR.mkdir(parents=True, exist_ok=True)
-    if any(LAUNCHES_DIR.glob("*.json")):
-        return
+    for legacy_id in LEGACY_SAMPLE_IDS:
+        try:
+            launch_file(legacy_id).unlink(missing_ok=True)
+        except OSError:
+            write_backend_log(f"Could not remove legacy demo launch: {legacy_id}")
 
     for launch in default_sample_launches():
-        write_json(launch_file(launch["id"]), launch)
+        path = launch_file(launch["id"])
+        if not path.exists():
+            write_json(path, launch)
 
 
 def list_launches() -> list[dict[str, Any]]:
@@ -2072,10 +2131,12 @@ def normalize_template(launch_context: dict[str, Any] | None = None) -> dict[str
 def infer_launch_type(brief: str, launch_context: dict[str, Any] | None = None) -> str:
     launch_context = launch_context or {}
     explicit_type = str(launch_context.get("type") or "").strip().lower()
-    known_types = {"game_event_h5", "marketing", "webshop_promotion"}
+    known_types = {"game_event_h5", "lucky_spin_event", "marketing", "webshop_promotion"}
     if explicit_type in known_types:
         return explicit_type
     brief_text = f"{launch_context.get('brief', '')}\n{brief}".lower()
+    if any(keyword in brief_text for keyword in ['golden spin', 'lucky spin', 'spin weekend', 'luot quay', 'lượt quay', 'quay thuong', 'quay thưởng']):
+        return 'lucky_spin_event'
     if any(keyword in brief_text for keyword in ['webshop', 'nap goi', 'nạp', 'promotion web', 'shop', 'top-up']):
         return 'webshop_promotion'
     if any(keyword in brief_text for keyword in ['marketing', 'campaign', 'ads', 'utm', 'acquisition']):
@@ -2109,7 +2170,7 @@ def build_product_context(brief: str, launch_context: dict[str, Any] | None = No
         'lessons': lessons,
         'memoryTrace': memory_trace,
         'productHealth': {
-            'status': 'watch' if launch_type == 'game_event_h5' else 'info',
+            'status': 'watch' if launch_type in {'game_event_h5', 'lucky_spin_event'} else 'info',
             'findings': (snapshot or {}).get('hotFindings', [])[:3] if snapshot else [],
         },
     }
