@@ -744,6 +744,25 @@ class RemoteOrchestrationFeatureParityTests(unittest.TestCase):
         self.assertIn("orchestrator", agents)
 
 
+class IndependentAgentMemoryTests(unittest.TestCase):
+    def test_analysis_child_self_recalls_from_own_store(self):
+        env = {
+            "LAUNCHOPS_LLM_ENABLED": "false",
+            "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+            "LAUNCHOPS_STORAGE_BACKEND": "local",
+            "LAUNCHOPS_RAG_ENABLED": "true",
+            "LAUNCHOPS_KNOWLEDGE_MEMORY_ID": "",
+        }
+        # RAG on but no store id -> the child still performs its OWN recall (not the orchestrator's),
+        # surfaced as result.ragSources. Proves recall happens inside the agent runtime.
+        with patch.dict(os.environ, env, clear=False):
+            resp = app.invoke_agent_role("readiness", {"requestId": "t", "brief": "Ra mat su kien, chua co rollback.", "launch": {}})
+        self.assertTrue(resp["ok"])
+        rag = resp.get("result", {}).get("ragSources")
+        self.assertIsNotNone(rag)
+        self.assertEqual(rag.get("source"), "missing_knowledge_id")
+
+
 class GuardrailTests(unittest.TestCase):
     """WS3: enforce guardrail — reject hard secrets, mask soft PII."""
 

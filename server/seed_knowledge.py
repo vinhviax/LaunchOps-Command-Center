@@ -135,17 +135,25 @@ def main() -> int:
     parser.add_argument("--memory-id", default=os.getenv("LAUNCHOPS_KNOWLEDGE_MEMORY_ID", "").strip())
     parser.add_argument("--include-local", action="store_true", help="Also seed from saved local lessons")
     parser.add_argument("--product-only", action="store_true", help="Seed only the per-product records (skip launch-type)")
+    parser.add_argument("--role", default="", help="Per-agent stores: seed only records for this role (readiness|redteam|checklist|postmortem); 'memory'/'all'/empty keep everything.")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be inserted, no API calls")
     args = parser.parse_args()
+
+    def _keep(text: str) -> bool:
+        role = (args.role or "").strip().lower()
+        if not role or role in ("memory", "all"):
+            return True
+        rec_role, _ = app.parse_record_role(text)
+        return rec_role in (role, "all")
 
     if not args.memory_id and not args.dry_run:
         print("ERROR: provide --memory-id or set LAUNCHOPS_KNOWLEDGE_MEMORY_ID (or use --dry-run).")
         return 1
 
-    plan = {} if args.product_only else {lt: list(recs) for lt, recs in CURATED.items()}
+    plan = {} if args.product_only else {lt: [r for r in recs if _keep(r)] for lt, recs in CURATED.items()}
     if args.include_local and not args.product_only:
         for lt, recs in collect_local_lessons().items():
-            plan.setdefault(lt, []).extend(recs)
+            plan.setdefault(lt, []).extend([r for r in recs if _keep(r)])
 
     product_total = sum(len(recs) for bytype in PRODUCT_CURATED.values() for recs in bytype.values())
     total = sum(len(r) for r in plan.values())
@@ -163,7 +171,9 @@ def main() -> int:
         inserted += insert_records(args.memory_id, lt, recs)
     for gid, bytype in PRODUCT_CURATED.items():
         for lt, recs in bytype.items():
-            inserted += insert_product_records(args.memory_id, gid, lt, recs)
+            kept = [r for r in recs if _keep(r)]
+            if kept:
+                inserted += insert_product_records(args.memory_id, gid, lt, kept)
     print(f"Done. Inserted {inserted}/{total + product_total} records.")
     return 0
 

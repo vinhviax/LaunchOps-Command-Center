@@ -2463,7 +2463,9 @@ def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, 
     rag_trace = {"enabled": rag_enabled(), "source": "skipped_fast" if force_fast else "disabled", "recordsRecalled": 0}
     if not force_fast and rag_enabled():
         knowledge, rag_trace = recall_knowledge(brief, product_context.get("launchType", ""), product_context.get("gameId", ""))
-    launch_context["knowledge"] = knowledge
+    # NOTE: do NOT inject orchestrator knowledge into launch_context here — each remote agent
+    # recalls from ITS OWN knowledge store (independent per-agent memory). The orchestrator keeps
+    # `knowledge` only for its own memory-agent distillation + ragSources reporting below.
     # WS5 Memory agent: distill recalled knowledge into an insight the remote agents also receive.
     memory_agent_trace = None
     if not force_fast:
@@ -2645,6 +2647,13 @@ def invoke_agent_role(role: str, payload: dict[str, Any], headers: Any | None = 
         }
 
     force_fast = bool(payload.get("forceFast")) or truthy_env("LAUNCHOPS_AGENT_FORCE_FAST")
+    # Independent per-agent memory: an analysis-role child recalls knowledge from ITS OWN store
+    # (LAUNCHOPS_KNOWLEDGE_MEMORY_ID is set per runtime) when the orchestrator did not inject any.
+    child_rag_trace = None
+    if not force_fast and role in ("readiness", "redteam", "checklist", "postmortem") and rag_enabled() and not launch_context.get("knowledge"):
+        pc = launch_context.get("productContext") if isinstance(launch_context.get("productContext"), dict) else {}
+        recalled, child_rag_trace = recall_knowledge(brief, pc.get("launchType", ""), pc.get("gameId", ""))
+        launch_context["knowledge"] = recalled
     try:
         if role == "orchestrator":
             result = orchestrate_launchops_analysis(brief, launch_context, force_fast=force_fast)
@@ -2669,6 +2678,8 @@ def invoke_agent_role(role: str, payload: dict[str, Any], headers: Any | None = 
                 remembered = record_analysis_memory(brief, launch_context, dict(payload["result"]))
                 result["memoryTrace"] = remembered.get("memoryTrace", result.get("memoryTrace", {}))
         result = finalize_invocation_result(role, request_id, result)
+        if child_rag_trace is not None and isinstance(result, dict):
+            result["ragSources"] = child_rag_trace
         return invocation_response(role, request_id, result, fallback=result.get("source") == "fallback")
     except Exception as exc:
         write_backend_log(f"Invocation role {role} crashed: {type(exc).__name__}")
