@@ -729,11 +729,8 @@ const luckySpinGreenResult = {
     { label: "CS và thông điệp", score: 2, maxScore: 2, missing: "CS FAQ, macro và lịch trực đã sẵn sàng." },
     { label: "Rollback và monitoring", score: 2, maxScore: 2, missing: "Dashboard, kill switch và rollback đã test staging." }
   ],
-  topRisks: [
-    "Theo dõi reward delivery trong 30 phút đầu.",
-    "Theo dõi abuse flag theo thiết bị/IP.",
-    "CS cần cập nhật macro nếu phát sinh case mới."
-  ],
+  topRisks: [],
+  redTeam: [],
   checklist: [
     { task: "Kiểm tra dashboard spin success/reward delivery trước giờ mở", owner: "Tech on-call", deadline: "19/06/2026 19:30", status: "Done", priority: "High" },
     { task: "Duyệt reward cap và rule tắt item hiếm ở 95% cap", owner: "Business Owner", deadline: "T-1 ngày", status: "Done", priority: "High" },
@@ -985,8 +982,24 @@ function cleanDemoSample(launch) {
   };
 }
 
+function isFullGreenAnalysis(result) {
+  const decision = result?.decision || {};
+  const score = Number(decision.score) || 0;
+  const maxScore = Number(decision.maxScore) || 0;
+  return String(decision.color || "").toLowerCase() === "green" && maxScore > 0 && score >= maxScore;
+}
+
+function clearOpenPrelaunchRisksIfReady(result) {
+  if (!isFullGreenAnalysis(result)) return result;
+  return {
+    ...result,
+    topRisks: [],
+    redTeam: []
+  };
+}
+
 function sanitizeAnalysisResult(result) {
-  return sanitizeLegacyEncoding(result || {});
+  return clearOpenPrelaunchRisksIfReady(sanitizeLegacyEncoding(result || {}));
 }
 
 function sanitizeLaunchData(launch) {
@@ -1023,6 +1036,7 @@ const scoreValue = document.getElementById("scoreValue");
 const scoreReason = document.getElementById("scoreReason");
 const riskBreakdown = document.getElementById("riskBreakdown");
 const topRisks = document.getElementById("topRisks");
+const topRisksTitle = document.getElementById("topRisksTitle");
 const redTeamCards = document.getElementById("redTeamCards");
 const checklistRows = document.getElementById("checklistRows");
 const postmortemDraft = document.getElementById("postmortemDraft");
@@ -1987,9 +2001,16 @@ function renderRiskBreakdown(items) {
   }).join("");
 }
 
-function renderTopRisks(items) {
+function renderTopRisks(items, noOpenRisks = false) {
+  if (topRisksTitle) {
+    topRisksTitle.textContent = noOpenRisks
+      ? tr("Không còn rủi ro mở", "No open risks")
+      : tr(`${Math.max(1, Math.min(items?.length || 3, 3))} việc cần xử lý trước`, `${Math.max(1, Math.min(items?.length || 3, 3))} pre-launch actions`);
+  }
   if (!items?.length) {
-    topRisks.innerHTML = `<li>Chưa có rủi ro. Bấm Chạy phân tích để tạo.</li>`;
+    topRisks.innerHTML = noOpenRisks
+      ? `<li>Không còn rủi ro mở trước launch. Nếu sau launch phát sinh vấn đề, ghi ở Kết quả sau launch để lưu bài học cho lần sau.</li>`
+      : `<li>Chưa có rủi ro. Bấm Chạy phân tích để tạo.</li>`;
     return;
   }
   topRisks.innerHTML = items.map((item) => `<li>${escapeHTML(friendlyText(item))}</li>`).join("");
@@ -2014,7 +2035,7 @@ function renderScore(results, sourceLabel = "Rule-based local preview") {
     .sort((a, b) => a.score - b.score)
     .slice(0, 3);
 
-  renderTopRisks(missing.map((item) => item.missing));
+  renderTopRisks(missing.map((item) => item.missing), color === "Green" && !missing.length);
 }
 
 function buildLocalAnalysisResult(text = briefInput.value.trim(), source = "local_fallback") {
@@ -2041,7 +2062,7 @@ function buildLocalAnalysisResult(text = briefInput.value.trim(), source = "loca
     },
     riskBreakdown: results,
     topRisks: missing.map((item) => item.missing),
-    redTeam: template.redTeam || [],
+    redTeam: color === "Green" && !missing.length ? [] : template.redTeam || [],
     checklist: template.checklist || [],
     postmortem: template.postmortem || []
   };
@@ -2150,8 +2171,12 @@ async function saveLaunchWithRedTeamSupplements() {
   ));
 }
 
-function renderRedTeam(cards = activeTemplate().redTeam) {
+function renderRedTeam(cards = activeTemplate().redTeam, options = {}) {
   collectRedTeamSupplements();
+  if (options.noOpenRisks) {
+    redTeamCards.innerHTML = `<div class="empty-state">Không còn rủi ro mở trước launch. Sau khi launch chạy xong, nếu có vấn đề mới thì ghi vào Kết quả sau launch để lưu thành bài học cho lần sau.</div>`;
+    return;
+  }
   if (!cards?.length) {
     redTeamCards.innerHTML = `<div class="empty-state">Chưa có góc nhìn phản biện.</div>`;
     return;
@@ -2605,6 +2630,7 @@ function renderApiAnalysis(result, sourceOverride) {
   const color = decision.color || "Yellow";
   const score = Number(decision.score) || 0;
   const maxScore = Number(decision.maxScore) || 12;
+  const noOpenRisks = isFullGreenAnalysis(result);
 
   renderDecision({
     color,
@@ -2615,8 +2641,8 @@ function renderApiAnalysis(result, sourceOverride) {
     sourceLabel: sourceLabelFor(result, sourceOverride)
   });
   renderRiskBreakdown(result.riskBreakdown || []);
-  renderTopRisks(result.topRisks || []);
-  renderRedTeam(result.redTeam || []);
+  renderTopRisks(result.topRisks || [], noOpenRisks);
+  renderRedTeam(result.redTeam || [], { noOpenRisks });
   renderChecklist(result.checklist || []);
   renderPostmortem(result.postmortem || []);
   renderRagInsights(result);

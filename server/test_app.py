@@ -70,6 +70,13 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertNotIn("May Login", names)
         self.assertNotIn("Midweek", names)
 
+    def test_green_demo_sample_has_no_open_risks(self):
+        result = app.lucky_spin_sample_result("Green", 12)
+        self.assertEqual(result["decision"]["score"], 12)
+        self.assertEqual(result["decision"]["maxScore"], 12)
+        self.assertEqual(result["topRisks"], [])
+        self.assertEqual(result["redTeam"], [])
+
     def test_lucky_spin_launch_type_inference(self):
         self.assertEqual(
             app.infer_launch_type("Golden Spin có lượt quay, reward cap và CS FAQ."),
@@ -502,6 +509,23 @@ class AgentLlmObservabilityTests(unittest.TestCase):
         self.assertEqual(last["latencyMs"], 123)
         self.assertNotIn("fallbackReason", last)
         self.assertNotIn("_llmMeta", result)
+
+    def test_redteam_skips_full_green_readiness(self):
+        result = {
+            "decision": {"color": "Green", "score": 12, "maxScore": 12},
+            "riskBreakdown": [
+                {"label": "Mục tiêu", "score": 2, "maxScore": 2, "missing": "Đủ rõ."}
+            ],
+            "topRisks": ["old risk"],
+            "trace": [],
+        }
+        with patch.dict(os.environ, {"LAUNCHOPS_MULTI_MODEL_ENABLED": "true"}, clear=False), \
+                patch.object(app, "call_llm") as call_llm:
+            analyzed = app.red_team_agent(result, {"brief": "Ready brief"}, force_fast=False)
+        call_llm.assert_not_called()
+        self.assertEqual(analyzed["topRisks"], [])
+        self.assertEqual(analyzed["redTeam"], [])
+        self.assertEqual(analyzed["trace"][-1]["cards"], 0)
 
     def test_postmortem_uses_mocked_llm_output_when_accepted(self):
         blocks = [{"title": f"T{i}", "items": ["a", "b"]} for i in range(3)]

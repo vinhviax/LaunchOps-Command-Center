@@ -42,7 +42,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260616d"
+UI_CACHE_VERSION = "fix-20260616e"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -790,6 +790,26 @@ def sample_decision(color: str, score: int, reason: str) -> dict[str, Any]:
     return result
 
 
+def is_full_green_result(result: dict[str, Any] | None) -> bool:
+    if not isinstance(result, dict):
+        return False
+    decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
+    try:
+        score = float(decision.get("score") or 0)
+        max_score = float(decision.get("maxScore") or 0)
+    except (TypeError, ValueError):
+        return False
+    return str(decision.get("color") or "").lower() == "green" and max_score > 0 and score >= max_score
+
+
+def clear_prelaunch_open_risks_if_ready(result: dict[str, Any]) -> bool:
+    if not is_full_green_result(result):
+        return False
+    result["topRisks"] = []
+    result["redTeam"] = []
+    return True
+
+
 def lucky_spin_sample_result(color: str = "Yellow", score: int = 7) -> dict[str, Any]:
     if color == "Green":
         reason = "Launch đã áp dụng bài học cũ: có reward cap, eligibility, anti-abuse, CS FAQ, dashboard realtime, ngưỡng pause và rollback."
@@ -838,6 +858,7 @@ def lucky_spin_sample_result(color: str = "Yellow", score: int = 7) -> dict[str,
         ],
         "productHealth": {"status": "watch", "findings": ["Ticket reward delivery từng tăng trong event spin.", "Abuse account farm lượt quay là rủi ro lặp lại."]},
     }
+    clear_prelaunch_open_risks_if_ready(result)
     return result
 
 
@@ -2377,6 +2398,12 @@ def red_team_agent(result: dict[str, Any], launch_context: dict[str, Any] | None
     brief = str((launch_context or {}).get("brief") or "")
     meta: dict[str, Any] | None = None
     fallback_reason = ""
+    if clear_prelaunch_open_risks_if_ready(result):
+        result.setdefault("trace", []).append(_agent_trace(
+            "redteam", "red_team", "rule", None,
+            cards=0, status="no_open_prelaunch_risks",
+        ))
+        return result
     if not force_fast and truthy_env("LAUNCHOPS_MULTI_MODEL_ENABLED"):
         llm_result = call_llm(brief, launch_context, "redteam")
         meta = llm_result.pop("_llmMeta", None) or {}
@@ -3442,8 +3469,8 @@ def apply_deterministic_readiness(result: dict[str, Any], brief: str, launch_con
         for item in breakdown
         if int(item.get("score") or 0) < int(item.get("maxScore") or 0)
     ][:3]
-    if deterministic_risks:
-        result["topRisks"] = deterministic_risks
+    result["topRisks"] = deterministic_risks
+    clear_prelaunch_open_risks_if_ready(result)
     result["scoreSource"] = "deterministic_rule"
     return result
 
