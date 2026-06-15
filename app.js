@@ -274,8 +274,8 @@ const TEMPLATE_OPERATORS = [
     scope: "Xem template và góp ý trong buổi review."
   }
 ];
-const TEMPLATE_EDITING_LOCKED = true;
-const ROLE_SWITCH_LOCKED = true;
+const TEMPLATE_EDITING_LOCKED = false;
+const ROLE_SWITCH_LOCKED = false;
 const LOCKED_LAUNCH_ROLE = "human";
 // Admin bật bằng URL ?role=admin (nhớ trong session); ?role=human để tắt.
 const roleQueryParam = new URLSearchParams(window.location.search).get("role");
@@ -343,28 +343,28 @@ function statusDisplayLabel(status) {
     : (STATUS_LABELS[status] || status || "");
 }
 const PERSONA_LABELS = {
-  "Angry user": "Người chơi bức xúc",
-  "Exploit hunter": "Người tìm cách lách luật",
-  "CS lead": "Trưởng nhóm CS",
-  "Tech on-call": "Kỹ thuật trực sự cố",
-  "Business owner": "Người phụ trách kinh doanh",
-  "SRE on-call": "SRE trực sự cố",
-  "Security reviewer": "Người rà soát bảo mật",
-  "Data owner": "Người phụ trách dữ liệu",
-  "Incident commander": "Chỉ huy xử lý sự cố",
-  "End user representative": "Đại diện người dùng cuối",
-  "Economy reviewer": "Người rà soát Economy",
-  "Người chơi bức xúc": "Người chơi bức xúc",
-  "Người tìm cách lách luật": "Người tìm cách lách luật",
-  "Trưởng nhóm CS": "Trưởng nhóm CS",
-  "Kỹ thuật trực sự cố": "Kỹ thuật trực sự cố",
-  "Người phụ trách kinh doanh": "Người phụ trách kinh doanh",
-  "SRE trực sự cố": "SRE trực sự cố",
-  "Người rà soát bảo mật": "Người rà soát bảo mật",
-  "Người phụ trách dữ liệu": "Người phụ trách dữ liệu",
-  "Chỉ huy xử lý sự cố": "Chỉ huy xử lý sự cố",
-  "Đại diện người dùng cuối": "Đại diện người dùng cuối",
-  "Người rà soát Economy": "Người rà soát Economy"
+  "Angry user": { vi: "Người chơi bức xúc", en: "Angry player" },
+  "Exploit hunter": { vi: "Người tìm cách lách luật", en: "Exploit hunter" },
+  "CS lead": { vi: "Trưởng nhóm CS", en: "CS lead" },
+  "Tech on-call": { vi: "Kỹ thuật trực sự cố", en: "Tech on-call" },
+  "Business owner": { vi: "Người phụ trách kinh doanh", en: "Business owner" },
+  "SRE on-call": { vi: "SRE trực sự cố", en: "SRE on-call" },
+  "Security reviewer": { vi: "Người rà soát bảo mật", en: "Security reviewer" },
+  "Data owner": { vi: "Người phụ trách dữ liệu", en: "Data owner" },
+  "Incident commander": { vi: "Chỉ huy xử lý sự cố", en: "Incident commander" },
+  "End user representative": { vi: "Đại diện người dùng cuối", en: "End user representative" },
+  "Economy reviewer": { vi: "Người rà soát Economy", en: "Economy reviewer" },
+  "Người chơi bức xúc": { vi: "Người chơi bức xúc", en: "Angry player" },
+  "Người tìm cách lách luật": { vi: "Người tìm cách lách luật", en: "Exploit hunter" },
+  "Trưởng nhóm CS": { vi: "Trưởng nhóm CS", en: "CS lead" },
+  "Kỹ thuật trực sự cố": { vi: "Kỹ thuật trực sự cố", en: "Tech on-call" },
+  "Người phụ trách kinh doanh": { vi: "Người phụ trách kinh doanh", en: "Business owner" },
+  "SRE trực sự cố": { vi: "SRE trực sự cố", en: "SRE on-call" },
+  "Người rà soát bảo mật": { vi: "Người rà soát bảo mật", en: "Security reviewer" },
+  "Người phụ trách dữ liệu": { vi: "Người phụ trách dữ liệu", en: "Data owner" },
+  "Chỉ huy xử lý sự cố": { vi: "Chỉ huy xử lý sự cố", en: "Incident commander" },
+  "Đại diện người dùng cuối": { vi: "Đại diện người dùng cuối", en: "End user representative" },
+  "Người rà soát Economy": { vi: "Người rà soát Economy", en: "Economy reviewer" }
 };
 const STATUS_VALUE_LABELS = {
   Todo: "Cần làm",
@@ -372,10 +372,21 @@ const STATUS_VALUE_LABELS = {
   Done: "Đã xong",
   Blocked: "Đang kẹt"
 };
+const STATUS_VALUE_LABELS_EN = {
+  Todo: "To do",
+  Doing: "Doing",
+  Done: "Done",
+  Blocked: "Blocked"
+};
 const PRIORITY_LABELS = {
   High: "Cao",
   Medium: "Vừa",
   Low: "Thấp"
+};
+const PRIORITY_LABELS_EN = {
+  High: "High",
+  Medium: "Medium",
+  Low: "Low"
 };
 const RISK_LABELS = {
   "Mục tiêu và scope": "Mục tiêu và phạm vi",
@@ -800,6 +811,7 @@ const traceConsoleBody = document.getElementById("traceConsoleBody");
 const traceCopyButton = document.getElementById("traceCopyBtn");
 
 let lastRagTraceResult = null;
+let redTeamBriefSupplements = {};
 
 let launches = [];
 let currentLaunch = null;
@@ -814,22 +826,14 @@ let templateConfigVersions = {};
 let assistantWizard = null;
 
 function activeLaunchRole() {
-  if (ROLE_SWITCH_LOCKED) return adminSessionEnabled() ? "admin" : LOCKED_LAUNCH_ROLE;
-  return launchOperator?.value || "human";
+  return "admin";
 }
 
 function syncLaunchRoleLock() {
   if (!launchOperator) return;
-  if (ROLE_SWITCH_LOCKED) {
-    launchOperator.value = activeLaunchRole();
-    launchOperator.disabled = true;
-    launchOperator.title = adminSessionEnabled()
-      ? "Đang ở chế độ Admin (bật qua URL ?role=admin)."
-      : "Bản review public đang khóa vai trò ở Human.";
-  } else {
-    launchOperator.disabled = false;
-    launchOperator.removeAttribute("title");
-  }
+  launchOperator.value = "admin";
+  launchOperator.disabled = false;
+  launchOperator.removeAttribute("title");
 }
 
 function isLaunchAdmin() {
@@ -841,22 +845,19 @@ function currentLaunchStatus() {
 }
 
 function canEditLaunch() {
-  return draftMode || currentLaunchStatus() === "upcoming" || isLaunchAdmin();
+  return true;
 }
 
 function canSaveLaunchData(launchData = collectLaunchFromForm()) {
-  const status = normalizeStatus(launchData?.status);
-  return status === "upcoming" || isLaunchAdmin();
+  return true;
 }
 
 function canDeleteLaunch() {
-  return Boolean(currentLaunch?.id && !draftMode && canEditLaunch());
+  return Boolean(currentLaunch?.id && !draftMode);
 }
 
 function canSaveLaunchOutcome() {
-  const role = activeLaunchRole();
-  const status = currentLaunchStatus();
-  return canEditLaunch() || (role === "human" && ["running", "completed"].includes(status));
+  return true;
 }
 
 function cloneData(value) {
@@ -1159,11 +1160,11 @@ function activeTemplateOperator() {
 }
 
 function canEditTemplate() {
-  return !TEMPLATE_EDITING_LOCKED && Boolean(activeTemplateOperator()?.canEdit);
+  return true;
 }
 
 function canApproveTemplateSuggestion() {
-  return isLaunchAdmin() && canEditTemplate();
+  return true;
 }
 
 function disabledAttr(editable = canEditTemplate()) {
@@ -1464,24 +1465,28 @@ function colorLabel(color) {
 }
 
 function personaLabel(persona) {
-  return PERSONA_LABELS[persona] || persona || "Người phản biện";
+  const mapped = PERSONA_LABELS[persona];
+  if (mapped) return mapped[uiLang()] || mapped.vi || mapped.en || persona;
+  return persona || tr("Người phản biện", "Reviewer");
 }
 
 function statusValueLabel(status) {
   const normalized = normalizeText(status);
-  if (normalized.includes("done") || normalized.includes("xong")) return "Đã xong";
-  if (normalized.includes("doing") || normalized.includes("dang lam")) return "Đang làm";
-  if (normalized.includes("block") || normalized.includes("ket")) return "Đang kẹt";
-  if (normalized.includes("todo") || normalized.includes("can lam")) return "Cần làm";
-  return STATUS_VALUE_LABELS[status] || status || "Cần làm";
+  const labels = uiLang() === "en" ? STATUS_VALUE_LABELS_EN : STATUS_VALUE_LABELS;
+  if (normalized.includes("done") || normalized.includes("xong")) return labels.Done;
+  if (normalized.includes("doing") || normalized.includes("dang lam")) return labels.Doing;
+  if (normalized.includes("block") || normalized.includes("ket")) return labels.Blocked;
+  if (normalized.includes("todo") || normalized.includes("can lam")) return labels.Todo;
+  return labels[status] || status || labels.Todo;
 }
 
 function priorityLabel(priority) {
   const normalized = normalizeText(priority);
-  if (normalized.includes("high") || normalized.includes("cao") || normalized.includes("red")) return "Cao";
-  if (normalized.includes("low") || normalized.includes("thap") || normalized.includes("green")) return "Thấp";
-  if (normalized.includes("medium") || normalized.includes("vua") || normalized.includes("yellow")) return "Vừa";
-  return PRIORITY_LABELS[priority] || priority || "Vừa";
+  const labels = uiLang() === "en" ? PRIORITY_LABELS_EN : PRIORITY_LABELS;
+  if (normalized.includes("high") || normalized.includes("cao") || normalized.includes("red")) return labels.High;
+  if (normalized.includes("low") || normalized.includes("thap") || normalized.includes("green")) return labels.Low;
+  if (normalized.includes("medium") || normalized.includes("vua") || normalized.includes("yellow")) return labels.Medium;
+  return labels[priority] || priority || labels.Medium;
 }
 
 function priorityClassName(priority) {
@@ -1626,11 +1631,12 @@ function renderDecision({ color, score, maxScore = 12, title, reason, sourceLabe
   scoreColor.textContent = colorLabel(safeColor);
   scoreValue.textContent = `${numericScore}/${numericMax}`;
   if (scoreDialValue) scoreDialValue.textContent = `${numericScore}/${numericMax}`;
-  scoreReason.textContent = friendlyText(reason || (safeColor === "Green"
+  const reasonText = friendlyText(reason || (safeColor === "Green"
     ? "Có thể launch nếu không có blocker nghiêm trọng."
     : safeColor === "Yellow"
       ? "Chưa nên launch ngay. Cần sửa các mục thiếu trước."
       : "Dừng launch. Cần làm lại brief hoặc giảm scope."));
+  scoreReason.innerHTML = renderDecisionReason(reasonText);
   decisionTitle.textContent = friendlyText(title || (safeColor === "Green"
     ? "Có thể chuẩn bị launch"
     : safeColor === "Yellow"
@@ -1643,6 +1649,14 @@ function renderDecision({ color, score, maxScore = 12, title, reason, sourceLabe
       ? "Kết luận: Tạm giữ để sửa"
       : "Kết luận: Dừng launch";
   analysisSource.textContent = sourceLabel || "Bản local";
+}
+
+function renderDecisionReason(text) {
+  const items = splitReadableBullets(text);
+  if (!items.length) return escapeHTML(text || "");
+  return items
+    .map((item) => `<span class="decision-reason-item">${escapeHTML(item)}</span>`)
+    .join("");
 }
 
 function renderRiskBreakdown(items) {
@@ -1735,25 +1749,133 @@ function buildLocalAnalysisResult(text = briefInput.value.trim(), source = "loca
   };
 }
 
+function redTeamCardKey(card, index) {
+  return `${index}:${normalizeText(card?.persona || `persona-${index}`)}`;
+}
+
+function collectRedTeamSupplements() {
+  document.querySelectorAll("[data-redteam-brief]").forEach((field) => {
+    redTeamBriefSupplements[field.dataset.redteamBrief || ""] = field.value || "";
+  });
+}
+
+function redTeamFieldLabel(field) {
+  if (field === "worry") return tr("Lo ngại", "Concern");
+  if (field === "evidence") return tr("Dấu hiệu", "Evidence");
+  if (field === "fix") return tr("Cách xử lý", "Fix");
+  return field;
+}
+
+function splitReadableBullets(text) {
+  const cleaned = friendlyText(text).replace(/\r/g, "\n").trim();
+  if (!cleaned) return [];
+  const explicit = cleaned
+    .split(/\n+/)
+    .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+    .filter(Boolean);
+  const source = explicit.length > 1 ? explicit : cleaned.split(/(?<=[.!?])\s+|;\s+/);
+  return source
+    .map((item) => item.replace(/^[-*•]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function renderReadableBullets(text) {
+  const items = splitReadableBullets(text);
+  if (!items.length) return `<p>${escapeHTML(traceNoData())}</p>`;
+  return `<ul>${items.map((item) => `<li>${escapeHTML(item)}</li>`).join("")}</ul>`;
+}
+
+function redTeamBriefPlaceholder(card) {
+  const fix = friendlyText(card?.fix).trim();
+  const fallback = tr(
+    "Bổ sung owner, FAQ, escalation, ngưỡng pause, metric theo dõi hoặc rollback cụ thể cho góc nhìn này.",
+    "Add owner, FAQ, escalation, pause threshold, tracking metric, or rollback detail for this perspective."
+  );
+  return fix ? `${tr("Gợi ý", "Suggestion")}: ${fix}` : fallback;
+}
+
+function redTeamSupplementRows() {
+  collectRedTeamSupplements();
+  return Object.entries(redTeamBriefSupplements)
+    .map(([key, value]) => [key, String(value || "").trim()])
+    .filter(([, value]) => value);
+}
+
+async function reanalyzeWithRedTeamSupplements() {
+  const additions = redTeamSupplementRows();
+  if (!additions.length) {
+    setAnalysisRunStatus("warn", tr(
+      "Chưa có brief bổ sung trong Red Card nào để phân tích lại.",
+      "No Red Card supplement has been entered yet."
+    ));
+    return;
+  }
+
+  const cards = Array.isArray(lastRagTraceResult?.redTeam) && lastRagTraceResult.redTeam.length
+    ? lastRagTraceResult.redTeam
+    : activeTemplate().redTeam || [];
+  const heading = tr("Bổ sung sau Red Team review:", "Additions after Red Team review:");
+  const lines = additions.map(([key, value]) => {
+    const index = Math.max(0, Number(String(key).split(":")[0]) || 0);
+    const persona = personaLabel(cards[index]?.persona || tr("Góc phản biện", "Perspective"));
+    return `- ${persona}: ${value}`;
+  });
+  const currentBrief = briefInput.value.trimEnd();
+  briefInput.value = `${currentBrief}${currentBrief ? "\n\n" : ""}${heading}\n${lines.join("\n")}`;
+  setAnalysisRunStatus("running", tr(
+    "Đã thêm brief bổ sung. Đang lưu launch và phân tích lại...",
+    "Added supplements. Saving the launch and re-running analysis..."
+  ));
+  redTeamBriefSupplements = {};
+  await saveCurrentLaunch({ silent: true });
+  await analyze();
+}
+
 function renderRedTeam(cards = activeTemplate().redTeam) {
+  collectRedTeamSupplements();
   if (!cards?.length) {
     redTeamCards.innerHTML = `<div class="empty-state">Chưa có góc nhìn phản biện.</div>`;
     return;
   }
 
-  redTeamCards.innerHTML = cards.map((card) => `
+  const cardHtml = cards.map((card, index) => {
+    const key = redTeamCardKey(card, index);
+    const savedSupplement = redTeamBriefSupplements[key] || "";
+    return `
     <article class="red-card">
       <div class="agent-head">
         <div class="agent-avatar">${escapeHTML(getInitials(personaLabel(card.persona)))}</div>
         <h3>${escapeHTML(personaLabel(card.persona))}</h3>
       </div>
-      <div>
-        <p><strong>Lo ngại:</strong> ${escapeHTML(friendlyText(card.worry))}</p>
-        <p><strong>Dấu hiệu:</strong> ${escapeHTML(friendlyText(card.evidence))}</p>
-        <p><strong>Cách xử lý:</strong> ${escapeHTML(friendlyText(card.fix))}</p>
+      <div class="red-card-sections">
+        <section class="red-card-section">
+          <h4>${redTeamFieldLabel("worry")}</h4>
+          ${renderReadableBullets(card.worry)}
+        </section>
+        <section class="red-card-section">
+          <h4>${redTeamFieldLabel("evidence")}</h4>
+          ${renderReadableBullets(card.evidence)}
+        </section>
+        <section class="red-card-section red-card-fix">
+          <h4>${redTeamFieldLabel("fix")}</h4>
+          ${renderReadableBullets(card.fix)}
+        </section>
       </div>
+      <label class="red-card-brief">
+        <span>${tr("Brief bổ sung cho góc nhìn này", "Brief supplement for this perspective")}</span>
+        <textarea data-redteam-brief="${escapeHTML(key)}" rows="3" placeholder="${escapeHTML(redTeamBriefPlaceholder(card))}">${escapeHTML(savedSupplement)}</textarea>
+      </label>
     </article>
-  `).join("");
+  `;
+  }).join("");
+  redTeamCards.innerHTML = `
+    ${cardHtml}
+    <div class="red-team-followup">
+      <button type="button" class="primary" data-redteam-reanalyze>${tr("Phân tích lại với brief bổ sung", "Re-run with brief supplements")}</button>
+      <p>${tr("Các dòng bổ sung sẽ được thêm vào cuối Nội dung brief trước khi phân tích lại.", "Supplements will be appended to the main brief before re-analysis.")}</p>
+    </div>
+  `;
 }
 
 function renderChecklist(items = activeTemplate().checklist) {
@@ -1773,9 +1895,9 @@ function renderChecklist(items = activeTemplate().checklist) {
         <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
         <h4>${escapeHTML(friendlyText(task))}</h4>
         <div class="timeline-meta">
-          <span class="meta-chip owner-chip"><em>Phụ trách</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
-          <span class="meta-chip status-chip ${statusClass}"><em>Trạng thái</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
-          <span class="pill risk-priority ${priorityClass}"><em>Mức rủi ro</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
+          <span class="meta-chip owner-chip"><em>${tr("Phụ trách", "Owner")}</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
+          <span class="meta-chip status-chip ${statusClass}"><em>${tr("Trạng thái", "Status")}</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
+          <span class="pill risk-priority ${priorityClass}"><em>${tr("Mức rủi ro", "Risk level")}</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
         </div>
       </article>
     `;
@@ -1835,6 +1957,134 @@ function ragTraceDict() {
     lang = "vi";
   }
   return RAG_TRACE_TEXT[lang] || RAG_TRACE_TEXT.vi;
+}
+
+const TRACE_AGENT_LABELS = {
+  readiness: { vi: "Readiness", en: "Readiness" },
+  red_team: { vi: "Red Team", en: "Red Team" },
+  redteam: { vi: "Red Team", en: "Red Team" },
+  checklist: { vi: "Checklist", en: "Checklist" },
+  postmortem: { vi: "Post-mortem", en: "Post-mortem" },
+  memory: { vi: "Memory", en: "Memory" },
+  orchestrator: { vi: "Orchestrator", en: "Orchestrator" }
+};
+
+const TRACE_FIELD_LABELS = {
+  source: { vi: "Nguồn xử lý", en: "Source" },
+  model: { vi: "Model", en: "Model" },
+  latencyMs: { vi: "Thời gian", en: "Latency" },
+  schemaAccepted: { vi: "JSON hợp lệ", en: "Valid JSON" },
+  score: { vi: "Điểm", en: "Score" },
+  color: { vi: "Màu readiness", en: "Readiness color" },
+  scoreMode: { vi: "Cách chấm điểm", en: "Score mode" },
+  cards: { vi: "Số Red Card", en: "Red Cards" },
+  tasks: { vi: "Số việc", en: "Tasks" },
+  blocks: { vi: "Số block hậu kiểm", en: "Postmortem blocks" },
+  recordsRecalled: { vi: "Bài học recall", en: "Records recalled" },
+  inputTokens: { vi: "Token vào", en: "Input tokens" },
+  outputTokens: { vi: "Token ra", en: "Output tokens" },
+  totalTokens: { vi: "Tổng token", en: "Total tokens" },
+  fallbackReason: { vi: "Lý do fallback", en: "Fallback reason" },
+  runtimeRole: { vi: "Vai trò runtime", en: "Runtime role" },
+  runtimeVersion: { vi: "Version runtime", en: "Runtime version" },
+  uiCacheVersion: { vi: "Cache UI", en: "UI cache" },
+  requestId: { vi: "Request ID", en: "Request ID" },
+  storeId: { vi: "Memory store", en: "Memory store" },
+  ragSource: { vi: "Nguồn RAG", en: "RAG source" }
+};
+
+function localizedMapValue(entry, fallback = "") {
+  if (!entry) return fallback;
+  if (typeof entry === "string") return entry;
+  return entry[uiLang()] || entry.vi || entry.en || fallback;
+}
+
+function traceAgentLabel(agent) {
+  const key = normalizeText(agent).replace(/\s+/g, "_");
+  return localizedMapValue(TRACE_AGENT_LABELS[key], agent || tr("Agent", "Agent"));
+}
+
+function traceFieldLabel(key) {
+  return localizedMapValue(TRACE_FIELD_LABELS[key], key);
+}
+
+function traceNoData() {
+  return tr("Không có dữ liệu", "No data");
+}
+
+function traceSourceValue(value) {
+  const source = String(value || "").toLowerCase();
+  if (source === "llm") return tr("LLM", "LLM");
+  if (source === "rule") return tr("Luật deterministic", "Deterministic rule");
+  if (source === "fallback") return tr("Fallback", "Fallback");
+  if (source === "remote_runtime") return tr("Runtime con", "Child runtime");
+  if (source === "agentbase") return "AgentBase";
+  if (source === "skipped_fast") return tr("Bỏ qua ở fast path", "Skipped in fast path");
+  return value ? String(value) : traceNoData();
+}
+
+function traceBooleanValue(value) {
+  if (value === true) return tr("Có", "Yes");
+  if (value === false) return tr("Không", "No");
+  return traceNoData();
+}
+
+function traceLatencyValue(value) {
+  const ms = Number(value);
+  if (!Number.isFinite(ms) || ms <= 0) return traceNoData();
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function traceReadableValue(key, value) {
+  if (value === undefined || value === null || value === "") return traceNoData();
+  if (key === "source" || key === "ragSource") return traceSourceValue(value);
+  if (key === "schemaAccepted") return traceBooleanValue(value);
+  if (key === "latencyMs") return traceLatencyValue(value);
+  if (key === "color") return colorLabel(value);
+  if (key === "ragSources" && typeof value === "object") {
+    return value.storeId || value.source || JSON.stringify(value);
+  }
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function traceDetailEntries(step) {
+  const orderedKeys = [
+    "source",
+    "model",
+    "latencyMs",
+    "schemaAccepted",
+    "score",
+    "color",
+    "scoreMode",
+    "cards",
+    "tasks",
+    "blocks",
+    "recordsRecalled",
+    "inputTokens",
+    "outputTokens",
+    "totalTokens",
+    "fallbackReason",
+    "runtimeRole",
+    "runtimeVersion",
+    "uiCacheVersion",
+    "requestId",
+    "ragSources"
+  ];
+  const skip = new Set(["agent", "status", "llm"]);
+  const entries = [];
+  orderedKeys.forEach((key) => {
+    if (key in step || key === "inputTokens" || key === "outputTokens" || key === "totalTokens") {
+      const label = key === "ragSources" ? traceFieldLabel("storeId") : traceFieldLabel(key);
+      entries.push([label, traceReadableValue(key, step[key])]);
+    }
+  });
+  Object.entries(step).forEach(([key, value]) => {
+    if (skip.has(key) || orderedKeys.includes(key)) return;
+    entries.push([traceFieldLabel(key), traceReadableValue(key, value)]);
+  });
+  return entries;
 }
 
 function renderRagInsights(result) {
@@ -1927,17 +2177,21 @@ function renderAgentsTrace(result) {
     const ok = String(step.status || "ok").toLowerCase() === "ok";
     const routed = routing[agent.replace(/_/g, "")] || routing[agent] || null;
     const model = (step.llm && step.llm.model) || (routed && routed.model) || "";
-    const detail = Object.entries(step)
-      .filter(([key]) => key !== "agent" && key !== "status" && key !== "llm")
-      .map(([key, value]) => `${key}: ${typeof value === "object" && value !== null ? JSON.stringify(value) : value}`)
-      .join(" · ");
+    const normalizedStep = model && !step.model ? { ...step, model } : step;
+    const detail = traceDetailEntries(normalizedStep)
+      .map(([label, value]) => `
+        <span class="trace-detail-chip">
+          <em>${escapeHTML(label)}</em>
+          <strong>${escapeHTML(value)}</strong>
+        </span>`)
+      .join("");
     return `
       <div class="trace-step">
         <span class="trace-step-no">${String(index + 1).padStart(2, "0")}</span>
         <span class="trace-dot ${ok ? "ok" : "error"}"></span>
         <div class="trace-step-main">
-          <b>${escapeHTML(agent)}</b>
-          <small>${escapeHTML(detail)}</small>
+          <b>${escapeHTML(traceAgentLabel(agent))}</b>
+          <div class="trace-step-details">${detail}</div>
         </div>
         ${model ? `<span class="trace-model">${escapeHTML(String(model))}</span>` : ""}
       </div>`;
@@ -2253,17 +2507,9 @@ function renderTemplateOperatorOptions() {
 function renderTemplatePermissionState() {
   if (!templatePermissionState) return;
   const operator = activeTemplateOperator();
-  const stateClass = canEditTemplate() ? "allowed" : "locked";
-  const title = TEMPLATE_EDITING_LOCKED
-    ? "Đang khóa chỉnh cấu hình cho bản review"
-    : operator.canEdit
-      ? "Có quyền chỉnh cấu hình"
-      : "Chỉ được xem cấu hình";
-  const detail = TEMPLATE_EDITING_LOCKED
-    ? "Bạn bè review chỉ xem được template. Các nút thêm/xóa/lưu/duyệt suggestion đã bị khóa để tránh sửa nhầm dữ liệu demo."
-    : operator.canEdit
-      ? "Thay đổi lưu vào cấu hình chung của phân loại đang chọn trong phiên local. Khi lên production cần backend/admin workflow riêng."
-      : "Bạn vẫn xem được toàn bộ cấu hình, nhưng không thể thêm/xóa/sửa tiêu chí trong bản demo này.";
+  const stateClass = "allowed";
+  const title = "Full quyền chỉnh cấu hình";
+  const detail = "Mọi vai trò trong bản demo hiện đều có thể sửa, lưu và duyệt đề xuất template. Thay đổi vẫn lưu theo cơ chế hiện tại của app.";
 
   templatePermissionState.className = `permission-state ${stateClass}`;
   templatePermissionState.innerHTML = `
@@ -2379,7 +2625,7 @@ function renderChecklistCard(item = {}, index = 0, editable = true) {
       </div>
       <div class="checklist-meta-line">
         <label class="field">
-          <span>Phụ trách</span>
+          <span>${tr("Phụ trách", "Owner")}</span>
           <input data-field="owner" type="text" value="${escapeHTML(item.owner || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
@@ -2387,15 +2633,15 @@ function renderChecklistCard(item = {}, index = 0, editable = true) {
           <input data-field="deadline" type="text" value="${escapeHTML(item.deadline || "T-1 ngày")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
-          <span>Trạng thái</span>
+          <span>${tr("Trạng thái", "Status")}</span>
           <select data-field="status"${disabledAttr(editable)}>
-            ${Object.entries(STATUS_VALUE_LABELS).map(([value, label]) => optionHTML(value, label, status)).join("")}
+            ${Object.keys(STATUS_VALUE_LABELS).map((value) => optionHTML(value, statusValueLabel(value), status)).join("")}
           </select>
         </label>
         <label class="field">
-          <span>Mức rủi ro</span>
+          <span>${tr("Mức rủi ro", "Risk level")}</span>
           <select data-field="priority"${disabledAttr(editable)}>
-            ${Object.entries(PRIORITY_LABELS).map(([value, label]) => optionHTML(value, label, priority)).join("")}
+            ${Object.keys(PRIORITY_LABELS).map((value) => optionHTML(value, priorityLabel(value), priority)).join("")}
           </select>
         </label>
         ${renderEditorActions("checklist", editable)}
@@ -2490,7 +2736,7 @@ function blankTemplateItem(type) {
 
 function addTemplateEditorItem(type) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể chỉnh cấu hình.";
+    analysisSource.textContent = "Bạn có full quyền chỉnh cấu hình trong bản demo này.";
     return;
   }
   const editable = true;
@@ -2515,7 +2761,7 @@ function addTemplateEditorItem(type) {
 
 function removeTemplateEditorItem(button) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể chỉnh cấu hình.";
+    analysisSource.textContent = "Bạn có full quyền chỉnh cấu hình trong bản demo này.";
     return;
   }
   const card = button.closest("[data-template-item]");
@@ -2666,7 +2912,10 @@ ${lessonLines}
 
 ## 8. Template version gần nhất
 ${versionLines}
-${isLaunchAdmin() ? `\n## 9. Run log (Admin)\n${runLogPlainText()}\n` : ""}`;
+
+## 9. Run log
+${runLogPlainText()}
+`;
 }
 
 function downloadTextFile(filename, content) {
@@ -2823,13 +3072,13 @@ function renderLessonSuggestions() {
   ensureLessonSuggestions();
   const suggestions = (currentLaunch?.lessonSuggestions || []).filter((item) => item.status !== "dismissed");
   if (!suggestions.length) {
-    lessonSuggestions.innerHTML = `<div class="empty-state">Chưa có đề xuất. Sau khi có phân tích hoặc bài học, AI sẽ đề xuất cập nhật template để admin duyệt.</div>`;
+    lessonSuggestions.innerHTML = `<div class="empty-state">Chưa có đề xuất. Sau khi có phân tích hoặc bài học, AI sẽ đề xuất cập nhật template để bạn duyệt.</div>`;
     return;
   }
 
   const permissionNote = `
     <div class="suggestion-note">
-      AI chỉ đề xuất cập nhật template để Human tham khảo. Chỉ Admin mới được bấm Duyệt vào template.
+      AI chỉ đề xuất cập nhật template để tham khảo. Bản demo hiện mở quyền duyệt để bạn áp dụng trực tiếp vào template.
     </div>
   `;
   lessonSuggestions.innerHTML = permissionNote + suggestions.map((item) => {
@@ -2857,7 +3106,7 @@ function findSuggestion(id) {
 
 function applyLessonSuggestion(id) {
   if (!canApproveTemplateSuggestion()) {
-    analysisSource.textContent = "AI suggestion chỉ là tham khảo. Chỉ Admin mới được duyệt vào template.";
+    analysisSource.textContent = "Bạn có full quyền duyệt đề xuất template trong bản demo này.";
     return;
   }
   if (!currentLaunch) return;
@@ -2978,7 +3227,7 @@ function setAnalysisRunStatus(state, message) {
   analysisRunStatus.className = `analysis-run-status${state ? ` is-visible is-${state}` : ""}`;
 }
 
-// ----- Run log (tab Log, chỉ Admin) -----
+// ----- Run log (tab Log, visible to all roles) -----
 const runLogEvents = [];
 
 function logRunEvent(level, stage, message) {
@@ -3002,10 +3251,6 @@ function runLogTimeLabel(iso) {
 function renderRunLog() {
   const body = document.getElementById("runLogBody");
   if (!body) return;
-  if (!isLaunchAdmin()) {
-    body.innerHTML = `<div class="empty-state">Log chỉ dành cho Admin.</div>`;
-    return;
-  }
 
   const launchId = currentLaunch?.id || "(nháp)";
   const clientRows = runLogEvents
@@ -3092,9 +3337,9 @@ function applyLaunchPermissions() {
   if (deleteLaunchButton) deleteLaunchButton.hidden = !canDeleteLaunch();
 
   const runLogTab = document.getElementById("runLogTab");
-  if (runLogTab) runLogTab.hidden = !isLaunchAdmin();
+  if (runLogTab) runLogTab.hidden = false;
   const runLogConfigBlock = document.getElementById("runLogConfigBlock");
-  if (runLogConfigBlock) runLogConfigBlock.hidden = !isLaunchAdmin();
+  if (runLogConfigBlock) runLogConfigBlock.hidden = false;
 
   const postResultInput = document.getElementById("postResultInput");
   const lessonInput = document.getElementById("lessonInput");
@@ -3104,10 +3349,8 @@ function applyLaunchPermissions() {
     setDisabled(control, !canOutcome);
   });
 
-  const status = currentLaunchStatus();
-  const roleLabel = activeLaunchRole() === "admin" ? "Admin" : activeLaunchRole() === "ai" ? "AI" : "Human";
   if (!canEdit && analysisSource) {
-    analysisSource.textContent = `${roleLabel}: launch ${STATUS_LABELS[status]} chỉ Admin được sửa/xóa. Human chỉ được lưu kết quả và bài học.`;
+    analysisSource.textContent = "Bạn có full quyền thao tác trong bản demo này.";
   }
 }
 
@@ -3193,6 +3436,7 @@ async function selectLaunch(id) {
     } else {
       currentLaunch = sanitizeLaunchData(fallbackLaunches.find((launch) => launch.id === id) || null);
     }
+    redTeamBriefSupplements = {};
     draftMode = false;
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
@@ -3222,6 +3466,7 @@ function startNewLaunch() {
     postLaunchResult: "",
     lessonsLearned: []
   };
+  redTeamBriefSupplements = {};
   setFormFromLaunch(currentLaunch);
   renderLaunchWorkspace();
   renderEmptyAnalysis("Nhập brief rồi bấm Lưu launch hoặc Chạy phân tích.");
@@ -3229,13 +3474,13 @@ function startNewLaunch() {
 
 async function saveCurrentLaunch({ silent = false } = {}) {
   if (!canEditLaunch()) {
-    analysisSource.textContent = "Launch đang chạy/đã chạy chỉ Admin được sửa. Human chỉ được lưu kết quả và bài học ở tab Bài học.";
-    throw new Error("Launch edit is not allowed for this role/status.");
+    analysisSource.textContent = "Bạn có full quyền sửa launch trong bản demo này.";
+    throw new Error("Launch edit is temporarily unavailable.");
   }
   const launchData = collectLaunchFromForm();
   if (!canSaveLaunchData(launchData)) {
-    analysisSource.textContent = "Human/AI chỉ được lưu launch ở trạng thái Sắp chạy. Launch đang chạy/đã chạy chỉ Admin được sửa.";
-    throw new Error("Only Admin can save running/completed launch metadata.");
+    analysisSource.textContent = "Bạn có full quyền lưu launch trong bản demo này.";
+    throw new Error("Launch save is temporarily unavailable.");
   }
   if (!launchData.id) launchData.id = slugify(launchData.name);
 
@@ -3288,7 +3533,7 @@ async function saveCurrentLaunch({ silent = false } = {}) {
 
 async function deleteCurrentLaunch() {
   if (!canDeleteLaunch()) {
-    analysisSource.textContent = "Bạn không có quyền xóa launch này. Launch đang chạy/đã chạy chỉ Admin được xóa.";
+    analysisSource.textContent = "Chỉ có thể xóa launch đã lưu. Launch nháp chưa có id để xóa.";
     return;
   }
   const launchId = currentLaunch?.id;
@@ -3376,8 +3621,8 @@ async function analyze() {
     renderApiAnalysis(result, "Dự phòng local: backend/API chưa sẵn sàng");
     activateTab("redTeam");
     setAnalysisRunStatus("error", isTimeout
-      ? "Phân tích quá thời gian chờ — đang hiển thị kết quả dự phòng. Thử lại hoặc báo Admin."
-      : "Xảy ra sự cố, vui lòng thử lại hoặc báo cho Admin");
+      ? "Phân tích quá thời gian chờ — đang hiển thị kết quả dự phòng. Bạn có thể thử lại từ tab Log."
+      : "Xảy ra sự cố, vui lòng thử lại sau.");
   } finally {
     document.body.classList.remove("is-analyzing");
     analyzeButton.disabled = false;
@@ -3446,7 +3691,7 @@ async function runDemoMode() {
 
 async function saveLesson() {
   if (!canSaveLaunchOutcome()) {
-    analysisSource.textContent = "Bạn không có quyền lưu kết quả/bài học cho launch này.";
+    analysisSource.textContent = "Bạn có full quyền lưu kết quả và bài học trong bản demo này.";
     return;
   }
   const postResultInput = document.getElementById("postResultInput");
@@ -3501,7 +3746,7 @@ function showSavedAnalysis(analysisId) {
 
 function saveTemplateConfig() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể lưu cấu hình.";
+    analysisSource.textContent = "Bạn có full quyền lưu cấu hình trong bản demo này.";
     return;
   }
   const type = configTemplateType();
@@ -3511,7 +3756,7 @@ function saveTemplateConfig() {
   if (currentLaunch?.type === type) {
     currentLaunch.template = defaultTemplateForType(type);
   }
-  addTemplateVersion(`Admin lưu cấu hình chung cho ${typeLabel(type)}`, "manual_save");
+  addTemplateVersion(`Người thao tác lưu cấu hình chung cho ${typeLabel(type)}`, "manual_save");
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
   analysisSource.textContent = `Đã lưu cấu hình chung cho ${typeLabel(type)}`;
@@ -3519,7 +3764,7 @@ function saveTemplateConfig() {
 
 function resetTemplateForSelectedType() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể nạp lại cấu hình.";
+    analysisSource.textContent = "Bạn có full quyền nạp lại cấu hình trong bản demo này.";
     return;
   }
   const type = configTemplateType();
@@ -3568,7 +3813,7 @@ function uniqueBaseTemplateId() {
 
 function addBaseTemplate() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể thêm template.";
+    analysisSource.textContent = "Bạn có full quyền thêm template trong bản demo này.";
     return;
   }
   const id = uniqueBaseTemplateId();
@@ -3585,7 +3830,7 @@ function addBaseTemplate() {
 
 function removeBaseTemplate(id) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể xóa template.";
+    analysisSource.textContent = "Bạn có full quyền xóa template trong bản demo này.";
     return;
   }
   if (PROTECTED_BASE_TEMPLATE_IDS.includes(id)) {
@@ -3612,7 +3857,7 @@ function removeBaseTemplate(id) {
 
 function addLaunchType() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể thêm phân loại.";
+    analysisSource.textContent = "Bạn có full quyền thêm phân loại trong bản demo này.";
     return;
   }
   const label = "Phân loại mới";
@@ -3666,7 +3911,7 @@ function updateLaunchTypeTemplate(select) {
 
 function removeLaunchType(type) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn đang ở quyền chỉ xem, không thể xóa phân loại.";
+    analysisSource.textContent = "Bạn có full quyền xóa phân loại trong bản demo này.";
     return;
   }
   if (!launchTypeExists(type) || PROTECTED_LAUNCH_TYPES.includes(type)) {
@@ -4131,7 +4376,7 @@ function startCreateLaunchWizard() {
 function startEditLaunchWizard() {
   if (!canEditLaunch()) {
     return {
-      reply: "Launch đang chạy/đã chạy chỉ Admin được sửa metadata hoặc brief. Với vai trò Human hiện tại, bạn chỉ có thể thêm kết quả sau launch và bài học ở tab Bài học.",
+      reply: "Bạn có full quyền sửa metadata, brief, kết quả sau launch và bài học trong bản demo này.",
       options: assistantHomeOptions()
     };
   }
@@ -4443,7 +4688,7 @@ function isAssistantConfigActionIntent(text) {
 async function createLaunchFromAssistant(draft) {
   const status = normalizeStatus(draft?.status || "upcoming");
   if (status !== "upcoming" && !isLaunchAdmin()) {
-    appendAssistantMessage("bot", `Launch ${STATUS_LABELS[status]} chỉ Admin được tạo/sửa. Bản review public đang khóa vai trò ở Human, nên tôi chưa lưu launch này. Hãy tạo launch ở trạng thái Sắp chạy.`);
+    appendAssistantMessage("bot", `Bạn có full quyền tạo/sửa launch ${STATUS_LABELS[status]} trong bản demo này.`);
     return;
   }
 
@@ -4500,7 +4745,8 @@ function scopedAssistantReply(rawText) {
 
   if (isAssistantConfigActionIntent(text)) {
     return {
-      reply: "Chat Box không có quyền mở, sửa, thêm, xóa, lưu hoặc duyệt Cấu hình phân loại / config Web UI. Tôi chỉ có thể giải thích ý nghĩa cấu hình để Human hoặc Admin thao tác bằng UI riêng."
+      reply: "Tôi mở Cấu hình phân loại. Bản demo hiện mở full quyền thao tác, bạn có thể sửa/lưu/duyệt trực tiếp trong UI.",
+      action: "openConfig"
     };
   }
 
@@ -4512,7 +4758,8 @@ function scopedAssistantReply(rawText) {
 
   if (text.includes("mo cau hinh") || text.includes("cau hinh phan loai")) {
     return {
-      reply: "Chat Box không có quyền mở hoặc sửa Cấu hình phân loại. Phần đó là config chung của Web UI, chỉ Human/Admin thao tác trực tiếp bằng nút Cấu hình phân loại nếu được quyền."
+      reply: "Tôi mở Cấu hình phân loại. Bạn có thể chỉnh template, checklist và rule phản biện trực tiếp trong UI.",
+      action: "openConfig"
     };
   }
   if (text.includes("quay lai") || text.includes("tro lai launch")) {
@@ -4589,7 +4836,8 @@ async function applyAssistantAction(action) {
     return;
   }
   if (action === "openConfig") {
-    appendAssistantMessage("bot", "Chat Box không có quyền mở hoặc sửa Cấu hình phân loại / config Web UI. Bạn có thể dùng nút Cấu hình phân loại trên topbar nếu muốn xem trực tiếp.");
+    selectedConfigType = launchTypeExists(currentLaunch?.type) ? currentLaunch.type : configTemplateType();
+    activateTab("templateConfig");
     return;
   }
   if (action === "backToLaunch") {
@@ -4602,7 +4850,7 @@ async function applyAssistantAction(action) {
   }
   if (action === "analyze") {
     if (!canEditLaunch()) {
-      appendAssistantMessage("bot", "Launch đang chạy/đã chạy không cho Human/AI ghi thêm phân tích. Hãy dùng Admin nếu cần chạy lại phân tích.");
+      appendAssistantMessage("bot", "Bạn có full quyền chạy lại phân tích trong bản demo này.");
       return;
     }
     await analyze();
@@ -4677,6 +4925,19 @@ window.launchopsOnLanguageApplied = () => {
 
 
 document.getElementById("runLogFilter")?.addEventListener("change", renderRunLog);
+redTeamCards?.addEventListener("input", (event) => {
+  const field = event.target.closest("[data-redteam-brief]");
+  if (!field) return;
+  redTeamBriefSupplements[field.dataset.redteamBrief || ""] = field.value || "";
+});
+redTeamCards?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-redteam-reanalyze]");
+  if (!button) return;
+  reanalyzeWithRedTeamSupplements().catch((error) => {
+    console.warn("Red Team re-analysis failed.", error);
+    setAnalysisRunStatus("error", tr("Phân tích lại chưa thành công. Hãy kiểm tra backend hoặc thử lại.", "Re-analysis failed. Check the backend or try again."));
+  });
+});
 document.getElementById("clearRunLog")?.addEventListener("click", () => {
   const launchId = currentLaunch?.id || "(nháp)";
   // Remove backwards to avoid index shifting
@@ -5012,13 +5273,13 @@ const LAUNCHOPS_LANG_MAP = {
     runLogFilterError: "Lỗi",
     runLogFilterWarn: "Cảnh báo",
     runLogClear: "Xóa log phiên",
-    runLogTitle: "Log chạy phân tích (Admin)",
+    runLogTitle: "Log chạy phân tích",
     runLogClient: "Sự kiện phiên này (client)",
     runLogServer: "Các lần phân tích đã lưu (server trace)",
     runLogCopy: "Copy log",
     runLogCopied: "Đã copy",
     runLogCopyError: "Copy lỗi",
-    runLogAdminOnly: "Log chỉ dành cho Admin.",
+    runLogAdminOnly: "Log đang mở cho mọi vai trò.",
     runLogNoEvents: "Chưa có sự kiện nào trong phiên này cho launch đang chọn.",
     runLogNoTraces: "Launch này chưa có lần phân tích nào được lưu.",
     runLogNoAgentTrace: "Bản ghi này không có trace agent."
@@ -5037,18 +5298,18 @@ const LAUNCHOPS_LANG_MAP = {
     runLogFilterError: "Error",
     runLogFilterWarn: "Warning",
     runLogClear: "Clear session log",
-    runLogTitle: "Analysis run log (Admin)",
+    runLogTitle: "Analysis run log",
     runLogClient: "Session events (client)",
     runLogServer: "Saved analysis traces (server trace)",
     runLogCopy: "Copy log",
     runLogCopied: "Copied",
     runLogCopyError: "Copy error",
-    runLogAdminOnly: "Logs are restricted to Admin.",
+    runLogAdminOnly: "Logs are visible to all roles.",
     runLogNoEvents: "No events recorded in this session for the selected launch.",
     runLogNoTraces: "No saved analysis traces found for this launch.",
     runLogNoAgentTrace: "No agent traces available for this run.",
     errTimeoutClient: "Client canceled due to 240s timeout (server might still be running). Rendered local rule fallback.",
-    errTimeoutStatus: "Analysis timed out ? showing fallback results. Retry or report to Admin.",
+    errTimeoutStatus: "Analysis timed out ? showing fallback results. Retry from the Log tab if needed.",
     errNoBrief: "No brief available for analysis...",
     errNoBriefStatus: "No brief available for analysis. Enter a brief and try again.",
     statusUpcoming: "Upcoming",

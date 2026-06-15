@@ -42,7 +42,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260615a"
+UI_CACHE_VERSION = "fix-20260616a"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -2134,6 +2134,9 @@ def _agent_trace(agent_step: str, agent_name: str, source: str, meta: dict[str, 
     reason = meta.get("fallbackReason")
     if reason:
         entry["fallbackReason"] = reason
+    for key in ("inputTokens", "outputTokens", "totalTokens"):
+        if key in meta:
+            entry[key] = meta[key]
     entry.update(extra)
     return entry
 
@@ -2895,6 +2898,8 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
         rules_extra = (
             f"- redTeam PHẢI có ĐÚNG 5 object, mỗi persona một thẻ theo đúng thứ tự: {json.dumps(personas, ensure_ascii=False)}.\n"
             "- Mỗi thẻ cần persona, worry, evidence, fix — tất cả KHÔNG được rỗng và phải bám nội dung brief.\n"
+            "- worry/evidence/fix phải ngắn, cụ thể, dễ tách thành bullet: 1-3 câu ngắn mỗi field, không viết thành một đoạn dài.\n"
+            "- fix phải là action cho human làm được: nêu owner, FAQ, escalation, ngưỡng pause, metric, rollback hoặc dữ liệu cần bổ sung vào brief nếu phù hợp.\n"
             "- Không tự thêm persona ngoài danh sách trên."
         )
         rt_schema = [{"persona": p, "worry": "string", "evidence": "string", "fix": "string"} for p in personas]
@@ -3293,6 +3298,33 @@ def public_llm_config(agent_step: str | None = None) -> dict[str, Any]:
         "timeoutSeconds": int(config["timeoutSeconds"]),
     }
 
+def llm_usage_meta(payload: dict[str, Any] | None) -> dict[str, int]:
+    usage = payload.get("usage") if isinstance(payload, dict) else None
+    if not isinstance(usage, dict):
+        return {}
+
+    def usage_int(key: str) -> int | None:
+        value = usage.get(key)
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value if value >= 0 else None
+        if isinstance(value, float) and value >= 0 and value.is_integer():
+            return int(value)
+        return None
+
+    result: dict[str, int] = {}
+    mapping = (
+        ("prompt_tokens", "inputTokens"),
+        ("completion_tokens", "outputTokens"),
+        ("total_tokens", "totalTokens"),
+    )
+    for source_key, target_key in mapping:
+        value = usage_int(source_key)
+        if value is not None:
+            result[target_key] = value
+    return result
+
 def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_step: str | None = None) -> dict[str, Any]:
     config = llm_config_for_step(agent_step)
     api_key = config["apiKey"]
@@ -3302,7 +3334,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     step_name = str(agent_step or "default")
     public_cfg = public_llm_config(agent_step)
 
-    def _meta(source: str, schema_accepted: bool, latency_ms: float, fallback_reason: str = "") -> dict[str, Any]:
+    def _meta(source: str, schema_accepted: bool, latency_ms: float, fallback_reason: str = "", usage: dict[str, int] | None = None) -> dict[str, Any]:
         m: dict[str, Any] = {
             "source": source,
             "model": model or "not_configured",
@@ -3311,6 +3343,9 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
         }
         if fallback_reason:
             m["fallbackReason"] = fallback_reason
+        for key in ("inputTokens", "outputTokens", "totalTokens"):
+            if usage and key in usage:
+                m[key] = usage[key]
         return m
 
     if not api_key or not base_url or not model:
@@ -3346,22 +3381,23 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
         method="POST",
     )
 
-    def perform_request() -> dict[str, Any]:
+    def perform_request() -> tuple[dict[str, Any], dict[str, int]]:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8")
         data = json.loads(raw)
+        usage = llm_usage_meta(data)
         content = data["choices"][0]["message"]["content"]
         parsed = extract_json(content)
         parsed["source"] = "llm"
         parsed.setdefault("trace", []).append({"agent": step_name, "status": "ok", "source": "llm", "llm": public_cfg})
-        return apply_deterministic_readiness(parsed, brief, launch_context)
+        return apply_deterministic_readiness(parsed, brief, launch_context), usage
 
     start = time.time()
     executor = ThreadPoolExecutor(max_workers=1)
     future = executor.submit(perform_request)
     try:
-        result = future.result(timeout=timeout + 5)
-        result["_llmMeta"] = _meta("llm", True, (time.time() - start) * 1000)
+        result, usage = future.result(timeout=timeout + 5)
+        result["_llmMeta"] = _meta("llm", True, (time.time() - start) * 1000, usage=usage)
         return result
     except FutureTimeoutError:
         latency = (time.time() - start) * 1000
@@ -3410,10 +3446,13 @@ def call_llm_raw(prompt: str, agent_step: str | None = None) -> tuple[dict[str, 
     model = config["model"]
     timeout = int(config["timeoutSeconds"])
 
-    def _meta(source: str, schema_accepted: bool, latency_ms: float, fallback_reason: str = "") -> dict[str, Any]:
+    def _meta(source: str, schema_accepted: bool, latency_ms: float, fallback_reason: str = "", usage: dict[str, int] | None = None) -> dict[str, Any]:
         m: dict[str, Any] = {"source": source, "model": model or "not_configured", "latencyMs": int(latency_ms), "schemaAccepted": bool(schema_accepted)}
         if fallback_reason:
             m["fallbackReason"] = fallback_reason
+        for key in ("inputTokens", "outputTokens", "totalTokens"):
+            if usage and key in usage:
+                m[key] = usage[key]
         return m
 
     if not api_key or not base_url or not model:
@@ -3439,18 +3478,19 @@ def call_llm_raw(prompt: str, agent_step: str | None = None) -> tuple[dict[str, 
         method="POST",
     )
 
-    def perform() -> dict[str, Any]:
+    def perform() -> tuple[dict[str, Any], dict[str, int]]:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8")
-        content = json.loads(raw)["choices"][0]["message"]["content"]
-        return extract_json(content)
+        data = json.loads(raw)
+        content = data["choices"][0]["message"]["content"]
+        return extract_json(content), llm_usage_meta(data)
 
     start = time.time()
     executor = ThreadPoolExecutor(max_workers=1)
     future = executor.submit(perform)
     try:
-        data = future.result(timeout=timeout + 5)
-        return data, _meta("llm", True, (time.time() - start) * 1000)
+        data, usage = future.result(timeout=timeout + 5)
+        return data, _meta("llm", True, (time.time() - start) * 1000, usage=usage)
     except FutureTimeoutError:
         write_backend_log(f"LLM raw call timeout for {agent_step}")
         return None, _meta("fallback", False, (time.time() - start) * 1000, "timeout")

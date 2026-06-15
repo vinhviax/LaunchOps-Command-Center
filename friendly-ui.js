@@ -1052,7 +1052,7 @@
     var real = byId(realId);
     if (!real) return false;
     if (real.disabled) {
-      addChatMessage('agent', 'Mục này đang bị khóa theo quyền/trạng thái launch. Nếu cần sửa launch đang chạy hoặc đã chạy, hãy chuyển sang Admin trong bản Pro.');
+      addChatMessage('agent', 'Bản demo hiện mở full quyền thao tác. Nếu nút chưa dùng được, hãy kiểm tra launch đã có dữ liệu hợp lệ hoặc mở Pro để xem chi tiết.');
       return false;
     }
     setControlValue(real, value);
@@ -1067,7 +1067,7 @@
   function clickRealButton(realId) {
     var real = byId(realId);
     if (!real || real.disabled) {
-      addChatMessage('agent', 'Nút này hiện chưa dùng được với quyền hoặc trạng thái launch hiện tại.');
+      addChatMessage('agent', 'Nút này hiện chưa dùng được với dữ liệu launch hiện tại. Hãy kiểm tra brief hoặc trạng thái launch rồi thử lại.');
       return false;
     }
     real.click();
@@ -1835,7 +1835,7 @@
         return;
       }
       if (deleteBtn.disabled) {
-        addChatMessage('agent', 'Launch này hiện không được phép xóa (có thể do quyền role hoặc trạng thái launch). Kiểm tra lại role thao tác hoặc đổi sang Pro mode để xem chi tiết.');
+        addChatMessage('agent', 'Launch này hiện chưa xóa được, thường vì launch nháp chưa có id hoặc dữ liệu chưa lưu. Hãy lưu launch rồi thử lại trong Pro mode nếu cần.');
         setNpcSpeech('Quyền xóa bị khóa.');
         return;
       }

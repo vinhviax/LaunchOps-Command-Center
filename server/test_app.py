@@ -546,6 +546,30 @@ class AgentLlmObservabilityTests(unittest.TestCase):
         self.assertEqual(meta["fallbackReason"], "missing_config")
         self.assertFalse(meta["schemaAccepted"])
 
+    def test_llm_usage_meta_maps_provider_usage(self):
+        usage = app.llm_usage_meta({
+            "usage": {
+                "prompt_tokens": 12,
+                "completion_tokens": 8,
+                "total_tokens": 20,
+            }
+        })
+        self.assertEqual(usage, {"inputTokens": 12, "outputTokens": 8, "totalTokens": 20})
+
+    def test_agent_trace_carries_token_usage_when_available(self):
+        trace = app._agent_trace("readiness", "readiness", "llm", {
+            "source": "llm",
+            "model": "m",
+            "latencyMs": 10,
+            "schemaAccepted": True,
+            "inputTokens": 12,
+            "outputTokens": 8,
+            "totalTokens": 20,
+        })
+        self.assertEqual(trace["inputTokens"], 12)
+        self.assertEqual(trace["outputTokens"], 8)
+        self.assertEqual(trace["totalTokens"], 20)
+
 
 class BuildPromptTests(unittest.TestCase):
     """Phase 4.3 follow-up: per-agent focused prompts so each model produces only its own section."""

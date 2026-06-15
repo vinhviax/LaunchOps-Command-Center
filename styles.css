@@ -1308,20 +1308,26 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   font-weight: 800;
 }
 
-/* Hàng nút thao tác — nằm cùng hàng với hero metrics để tiết kiệm chiều dọc */
+/* Hàng nút thao tác — nằm sát nội dung brief để người dùng chạy/lưu sau khi đọc guideline */
 .detail-actions {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: stretch;
+  gap: 6px;
+  margin: 14px 0 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
 }
 
 .action-button-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 9px;
+  width: 100%;
 }
 
 .action-button-row button {
@@ -1397,6 +1403,12 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   border-color: var(--red-line);
   background: var(--red-soft);
   color: var(--red);
+}
+
+.analysis-run-status.is-warn {
+  border-color: rgba(210, 160, 0, 0.32);
+  background: var(--yellow-soft);
+  color: var(--yellow);
 }
 
 .analysis-run-status.is-success {
@@ -1821,6 +1833,11 @@ textarea {
   gap: 13px;
 }
 
+#redTeamCards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
 .red-card {
   display: grid;
   gap: 11px;
@@ -1878,6 +1895,95 @@ textarea {
 .red-card strong {
   color: var(--ink);
   font-weight: 700;
+}
+
+.red-card-sections {
+  display: grid;
+  gap: 10px;
+}
+
+.red-card-section {
+  display: grid;
+  gap: 5px;
+}
+
+.red-card-section h4 {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.red-card-section ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.red-card-section li::marker {
+  color: var(--accent);
+}
+
+.red-card-fix {
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(240, 90, 34, 0.06);
+}
+
+.red-card-brief {
+  display: grid;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.red-card-brief span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.red-card-brief textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.red-team-followup {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.red-team-followup p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.decision-reason-item {
+  display: block;
+  position: relative;
+  margin-top: 4px;
+  padding-left: 15px;
+}
+
+.decision-reason-item::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 900;
 }
 
 /* ========== 16. RISK BREAKDOWN ========== */
@@ -2227,7 +2333,7 @@ textarea {
 
 .trace-step {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 10px 13px;
   border: 1px solid var(--deep-line);
@@ -2272,11 +2378,44 @@ textarea {
   color: var(--deep-text);
 }
 
-.trace-step-main small {
+.trace-step-main small,
+.trace-step-details {
   color: var(--deep-muted);
   font-size: 11px;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.trace-step-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.trace-detail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid rgba(245, 239, 233, 0.1);
+  border-radius: 999px;
+  background: rgba(245, 239, 233, 0.045);
+}
+
+.trace-detail-chip em {
+  color: rgba(245, 239, 233, 0.58);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.trace-detail-chip strong {
+  min-width: 0;
+  color: var(--deep-text);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trace-model {
@@ -3498,6 +3637,20 @@ body.is-analyzing #traceConsoleBody::after {
   }
 }
 
+@media (max-width: 900px) {
+  #redTeamCards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .red-team-followup {
+    align-items: stretch;
+  }
+
+  .red-team-followup button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 760px) {
   body {
     font-size: 13.5px;
@@ -3542,7 +3695,7 @@ body.is-analyzing #traceConsoleBody::after {
   }
 
   .detail-actions {
-    justify-items: stretch;
+    align-items: stretch;
   }
 
   .action-button-row {
