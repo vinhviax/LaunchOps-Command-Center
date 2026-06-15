@@ -1312,13 +1312,11 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 .detail-actions {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 6px;
-  margin: 14px 0 12px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-soft);
+  width: fit-content;
+  max-width: 100%;
+  margin: 12px 0 10px;
 }
 
 .action-button-row {
@@ -1327,7 +1325,12 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   align-items: center;
   justify-content: flex-start;
   gap: 9px;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
 }
 
 .action-button-row button {
@@ -1899,25 +1902,33 @@ textarea {
 
 .red-card-sections {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .red-card-section {
   display: grid;
   gap: 5px;
+  align-content: start;
+  padding: 8px 10px;
+  border: 1px solid rgba(240, 90, 34, 0.08);
+  border-radius: var(--radius-sm);
+  background: rgba(240, 90, 34, 0.035);
 }
 
 .red-card-section h4 {
   color: var(--ink);
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
 }
 
 .red-card-section ul {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   margin: 0;
-  padding-left: 18px;
+  padding-left: 15px;
   color: var(--muted);
   font-size: 12.5px;
   line-height: 1.5;
@@ -1928,9 +1939,7 @@ textarea {
 }
 
 .red-card-fix {
-  padding: 9px 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(240, 90, 34, 0.06);
+  background: rgba(240, 90, 34, 0.035);
 }
 
 .red-card-brief {
@@ -1963,6 +1972,12 @@ textarea {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-soft);
+}
+
+.red-team-followup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
 }
 
 .red-team-followup p {
@@ -2495,8 +2510,9 @@ textarea {
 .timeline-card {
   --tl-color: var(--muted-2);
   position: relative;
-  display: grid;
-  gap: 7px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   padding: 13px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -3637,6 +3653,45 @@ body.is-analyzing #traceConsoleBody::after {
   }
 }
 
+.timeline-content {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.checklist-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checklist-done input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.timeline-card.is-done h4 {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.timeline-card.is-done .timeline-date,
+.timeline-card.is-done .timeline-meta {
+  opacity: 0.74;
+}
+
 @media (max-width: 900px) {
   #redTeamCards {
     grid-template-columns: minmax(0, 1fr);
@@ -3646,6 +3701,7 @@ body.is-analyzing #traceConsoleBody::after {
     align-items: stretch;
   }
 
+  .red-team-followup-actions,
   .red-team-followup button {
     width: 100%;
   }

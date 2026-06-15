@@ -263,6 +263,21 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         self.assertEqual(result["launch"]["template"]["name"], "Strict Webshop Template")
         self.assertEqual(len(result["launch"]["templateVersions"]), 1)
 
+    def test_save_launch_payload_preserves_ui_progress_metadata(self):
+        saved = app.save_launch_payload({
+            "name": "Progress Test Launch",
+            "brief": "Checklist progress and red team draft should persist.",
+            "redTeamBriefSupplements": {"0:angry-user": "Add CS FAQ before launch."},
+            "checklistProgress": {"write-faq|cs|t-1": True},
+        })
+        reloaded = app.get_launch(saved["id"])
+        self.assertEqual(reloaded["redTeamBriefSupplements"], {"0:angry-user": "Add CS FAQ before launch."})
+        self.assertEqual(reloaded["checklistProgress"], {"write-faq|cs|t-1": True})
+
+        updated = app.save_launch_payload({"name": "Progress Test Launch", "brief": "Updated brief."}, existing_id=saved["id"])
+        self.assertEqual(updated["redTeamBriefSupplements"], {"0:angry-user": "Add CS FAQ before launch."})
+        self.assertEqual(updated["checklistProgress"], {"write-faq|cs|t-1": True})
+
     def test_delete_launch_requires_explicit_confirmation(self):
         created = app.execute_launchops_tool("lcc_create_launch", {"name": "Delete Me"})
         launch_id = created["launch"]["id"]

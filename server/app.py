@@ -42,7 +42,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260616a"
+UI_CACHE_VERSION = "fix-20260616b"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -1124,6 +1124,8 @@ def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None)
         "template": incoming.get("template") if isinstance(incoming.get("template"), dict) else existing.get("template"),
         "templateVersions": incoming.get("templateVersions") if isinstance(incoming.get("templateVersions"), list) else existing.get("templateVersions") or [],
         "lessonSuggestions": incoming.get("lessonSuggestions") if isinstance(incoming.get("lessonSuggestions"), list) else existing.get("lessonSuggestions") or [],
+        "redTeamBriefSupplements": incoming.get("redTeamBriefSupplements") if isinstance(incoming.get("redTeamBriefSupplements"), dict) else existing.get("redTeamBriefSupplements") or {},
+        "checklistProgress": incoming.get("checklistProgress") if isinstance(incoming.get("checklistProgress"), dict) else existing.get("checklistProgress") or {},
         "analyses": existing.get("analyses") or [],
         "postLaunchResult": str(incoming.get("postLaunchResult") or existing.get("postLaunchResult") or "").strip(),
         "lessonsLearned": existing.get("lessonsLearned") or [],
@@ -2899,7 +2901,10 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
             f"- redTeam PHẢI có ĐÚNG 5 object, mỗi persona một thẻ theo đúng thứ tự: {json.dumps(personas, ensure_ascii=False)}.\n"
             "- Mỗi thẻ cần persona, worry, evidence, fix — tất cả KHÔNG được rỗng và phải bám nội dung brief.\n"
             "- worry/evidence/fix phải ngắn, cụ thể, dễ tách thành bullet: 1-3 câu ngắn mỗi field, không viết thành một đoạn dài.\n"
+            "- worry phải nêu đúng rủi ro mà persona đó lo, không dùng câu chung chung như 'có thể có rủi ro'.\n"
+            "- evidence phải trích từ điều brief đã thiếu, mơ hồ, có deadline/owner/KPI chưa rõ, hoặc điều kiện vận hành chưa chốt.\n"
             "- fix phải là action cho human làm được: nêu owner, FAQ, escalation, ngưỡng pause, metric, rollback hoặc dữ liệu cần bổ sung vào brief nếu phù hợp.\n"
+            "- Viết hoa đầu câu tự nhiên; không mở đầu bullet bằng chữ thường nếu đó là câu hoàn chỉnh.\n"
             "- Không tự thêm persona ngoài danh sách trên."
         )
         rt_schema = [{"persona": p, "worry": "string", "evidence": "string", "fix": "string"} for p in personas]
@@ -4063,7 +4068,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 return
             brief = gcheck["brief"]
 
-            for key in ("name", "type", "status", "owner", "targetDate", "endDate", "template", "templateVersions", "lessonSuggestions"):
+            for key in ("name", "type", "status", "owner", "targetDate", "endDate", "template", "templateVersions", "lessonSuggestions", "redTeamBriefSupplements", "checklistProgress"):
                 if key in payload:
                     launch[key] = payload[key]
             launch["status"] = normalize_status(launch.get("status"))

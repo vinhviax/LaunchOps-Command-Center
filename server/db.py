@@ -384,6 +384,8 @@ class LaunchRepository:
             "template": metadata.get("template") if isinstance(metadata, dict) else None,
             "templateVersions": metadata.get("templateVersions") if isinstance(metadata, dict) and isinstance(metadata.get("templateVersions"), list) else [],
             "lessonSuggestions": metadata.get("lessonSuggestions") if isinstance(metadata, dict) and isinstance(metadata.get("lessonSuggestions"), list) else [],
+            "redTeamBriefSupplements": metadata.get("redTeamBriefSupplements") if isinstance(metadata, dict) and isinstance(metadata.get("redTeamBriefSupplements"), dict) else {},
+            "checklistProgress": metadata.get("checklistProgress") if isinstance(metadata, dict) and isinstance(metadata.get("checklistProgress"), dict) else {},
             "analyses": self.analyses.list_for_launch(cur, str(row.get("id") or "")),
             "postLaunchResult": post_launch_result,
             "lessonsLearned": metadata.get("lessonsLearned") if isinstance(metadata, dict) and isinstance(metadata.get("lessonsLearned"), list) else [],
@@ -418,6 +420,8 @@ class LaunchRepository:
                     "template": launch.get("template") if isinstance(launch.get("template"), dict) else None,
                     "templateVersions": launch.get("templateVersions") if isinstance(launch.get("templateVersions"), list) else [],
                     "lessonSuggestions": launch.get("lessonSuggestions") if isinstance(launch.get("lessonSuggestions"), list) else [],
+                    "redTeamBriefSupplements": launch.get("redTeamBriefSupplements") if isinstance(launch.get("redTeamBriefSupplements"), dict) else {},
+                    "checklistProgress": launch.get("checklistProgress") if isinstance(launch.get("checklistProgress"), dict) else {},
                     "lessonsLearned": launch.get("lessonsLearned") if isinstance(launch.get("lessonsLearned"), list) else [],
                     "postLaunchResult": str(launch.get("postLaunchResult") or ""),
                 }
@@ -467,6 +471,8 @@ class LaunchRepository:
                     "template": launch.get("template") if isinstance(launch.get("template"), dict) else None,
                     "templateVersions": launch.get("templateVersions") if isinstance(launch.get("templateVersions"), list) else [],
                     "lessonSuggestions": launch.get("lessonSuggestions") if isinstance(launch.get("lessonSuggestions"), list) else [],
+                    "redTeamBriefSupplements": launch.get("redTeamBriefSupplements") if isinstance(launch.get("redTeamBriefSupplements"), dict) else {},
+                    "checklistProgress": launch.get("checklistProgress") if isinstance(launch.get("checklistProgress"), dict) else {},
                     "lessonsLearned": launch.get("lessonsLearned") if isinstance(launch.get("lessonsLearned"), list) else [],
                     "postLaunchResult": str(launch.get("postLaunchResult") or ""),
                 }

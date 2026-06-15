@@ -812,6 +812,7 @@ const traceCopyButton = document.getElementById("traceCopyBtn");
 
 let lastRagTraceResult = null;
 let redTeamBriefSupplements = {};
+let checklistProgress = {};
 
 let launches = [];
 let currentLaunch = null;
@@ -862,6 +863,29 @@ function canSaveLaunchOutcome() {
 
 function cloneData(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function stringMap(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, item]) => [String(key), String(item || "")])
+      .filter(([key]) => key)
+  );
+}
+
+function booleanMap(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key)
+      .map(([key, item]) => [String(key), Boolean(item)])
+  );
+}
+
+function loadLaunchUiState(launch) {
+  redTeamBriefSupplements = stringMap(launch?.redTeamBriefSupplements);
+  checklistProgress = booleanMap(launch?.checklistProgress);
 }
 
 function escapeHTML(value) {
@@ -1760,9 +1784,9 @@ function collectRedTeamSupplements() {
 }
 
 function redTeamFieldLabel(field) {
-  if (field === "worry") return tr("Lo ngại", "Concern");
-  if (field === "evidence") return tr("Dấu hiệu", "Evidence");
-  if (field === "fix") return tr("Cách xử lý", "Fix");
+  if (field === "worry") return tr("LO NGẠI", "CONCERN");
+  if (field === "evidence") return tr("DẤU HIỆU", "EVIDENCE");
+  if (field === "fix") return tr("CÁCH XỬ LÝ", "FIX");
   return field;
 }
 
@@ -1780,10 +1804,21 @@ function splitReadableBullets(text) {
     .slice(0, 6);
 }
 
+function sentenceCaseBullet(text) {
+  const value = String(text || "").trim();
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char.toLocaleLowerCase("vi-VN") !== char.toLocaleUpperCase("vi-VN")) {
+      return `${value.slice(0, index)}${char.toLocaleUpperCase("vi-VN")}${value.slice(index + 1)}`;
+    }
+  }
+  return value;
+}
+
 function renderReadableBullets(text) {
   const items = splitReadableBullets(text);
   if (!items.length) return `<p>${escapeHTML(traceNoData())}</p>`;
-  return `<ul>${items.map((item) => `<li>${escapeHTML(item)}</li>`).join("")}</ul>`;
+  return `<ul>${items.map((item) => `<li>${escapeHTML(sentenceCaseBullet(item))}</li>`).join("")}</ul>`;
 }
 
 function redTeamBriefPlaceholder(card) {
@@ -1832,6 +1867,15 @@ async function reanalyzeWithRedTeamSupplements() {
   await analyze();
 }
 
+async function saveLaunchWithRedTeamSupplements() {
+  collectRedTeamSupplements();
+  await saveCurrentLaunch({ silent: true });
+  setAnalysisRunStatus("success", tr(
+    "Đã lưu brief bổ sung. Bạn có thể quay lại điền tiếp sau.",
+    "Saved the supplements. You can come back and continue later."
+  ));
+}
+
 function renderRedTeam(cards = activeTemplate().redTeam) {
   collectRedTeamSupplements();
   if (!cards?.length) {
@@ -1872,32 +1916,58 @@ function renderRedTeam(cards = activeTemplate().redTeam) {
   redTeamCards.innerHTML = `
     ${cardHtml}
     <div class="red-team-followup">
-      <button type="button" class="primary" data-redteam-reanalyze>${tr("Phân tích lại với brief bổ sung", "Re-run with brief supplements")}</button>
+      <div class="red-team-followup-actions">
+        <button type="button" class="primary" data-redteam-reanalyze>${tr("Phân tích lại với brief bổ sung", "Re-run with brief supplements")}</button>
+        <button type="button" data-redteam-save>${tr("Lưu launch", "Save launch")}</button>
+      </div>
       <p>${tr("Các dòng bổ sung sẽ được thêm vào cuối Nội dung brief trước khi phân tích lại.", "Supplements will be appended to the main brief before re-analysis.")}</p>
     </div>
   `;
 }
 
+function checklistItemKey(item, index) {
+  const [task, owner, deadline] = Array.isArray(item)
+    ? [item[0], item[1], item[2]]
+    : [item?.task, item?.owner, item?.deadline];
+  const stable = [task, owner, deadline].map((value) => normalizeText(value || "").trim()).join("|");
+  return stable || `checklist-${index}`;
+}
+
+function collectChecklistProgress() {
+  document.querySelectorAll("[data-checklist-done]").forEach((field) => {
+    checklistProgress[field.dataset.checklistDone || ""] = Boolean(field.checked);
+  });
+}
+
 function renderChecklist(items = activeTemplate().checklist) {
+  collectChecklistProgress();
   if (!items?.length) {
     checklistRows.innerHTML = `<div class="empty-state">Chưa có danh sách việc cần làm.</div>`;
     return;
   }
 
-  checklistRows.innerHTML = items.map((item) => {
+  checklistRows.innerHTML = items.map((item, index) => {
     const [task, owner, deadline, status, priority] = Array.isArray(item)
       ? item
       : [item.task, item.owner, item.deadline, item.status, item.priority];
     const priorityClass = priorityClassName(priority);
     const statusClass = statusClassName(status);
+    const itemKey = checklistItemKey(item, index);
+    const checked = Boolean(checklistProgress[itemKey]);
     return `
-      <article class="timeline-card ${priorityClass}">
-        <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
-        <h4>${escapeHTML(friendlyText(task))}</h4>
-        <div class="timeline-meta">
-          <span class="meta-chip owner-chip"><em>${tr("Phụ trách", "Owner")}</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
-          <span class="meta-chip status-chip ${statusClass}"><em>${tr("Trạng thái", "Status")}</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
-          <span class="pill risk-priority ${priorityClass}"><em>${tr("Mức rủi ro", "Risk level")}</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
+      <article class="timeline-card ${priorityClass}${checked ? " is-done" : ""}">
+        <label class="checklist-done">
+          <input type="checkbox" data-checklist-done="${escapeHTML(itemKey)}" ${checked ? "checked" : ""}>
+          <span>${tr("Đã xong", "Done")}</span>
+        </label>
+        <div class="timeline-content">
+          <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
+          <h4>${escapeHTML(friendlyText(task))}</h4>
+          <div class="timeline-meta">
+            <span class="meta-chip owner-chip"><em>${tr("Phụ trách", "Owner")}</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
+            <span class="meta-chip status-chip ${statusClass}"><em>${tr("Trạng thái", "Status")}</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
+            <span class="pill risk-priority ${priorityClass}"><em>${tr("Mức rủi ro", "Risk level")}</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
+          </div>
         </div>
       </article>
     `;
@@ -2421,6 +2491,8 @@ function setFormFromLaunch(launch) {
 }
 
 function collectLaunchFromForm() {
+  collectRedTeamSupplements();
+  collectChecklistProgress();
   const selectedType = launchType.value;
   return {
     id: currentLaunch?.id,
@@ -2433,7 +2505,9 @@ function collectLaunchFromForm() {
     brief: briefInput.value.trim(),
     template: defaultTemplateForType(selectedType),
     templateVersions: currentLaunch?.templateVersions || [],
-    lessonSuggestions: currentLaunch?.lessonSuggestions || []
+    lessonSuggestions: currentLaunch?.lessonSuggestions || [],
+    redTeamBriefSupplements: stringMap(redTeamBriefSupplements),
+    checklistProgress: booleanMap(checklistProgress)
   };
 }
 
@@ -3436,7 +3510,7 @@ async function selectLaunch(id) {
     } else {
       currentLaunch = sanitizeLaunchData(fallbackLaunches.find((launch) => launch.id === id) || null);
     }
-    redTeamBriefSupplements = {};
+    loadLaunchUiState(currentLaunch);
     draftMode = false;
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
@@ -3464,9 +3538,11 @@ function startNewLaunch() {
     lessonSuggestions: [],
     analyses: [],
     postLaunchResult: "",
-    lessonsLearned: []
+    lessonsLearned: [],
+    redTeamBriefSupplements: {},
+    checklistProgress: {}
   };
-  redTeamBriefSupplements = {};
+  loadLaunchUiState(currentLaunch);
   setFormFromLaunch(currentLaunch);
   renderLaunchWorkspace();
   renderEmptyAnalysis("Nhập brief rồi bấm Lưu launch hoặc Chạy phân tích.");
@@ -3497,6 +3573,7 @@ async function saveCurrentLaunch({ silent = false } = {}) {
         body: JSON.stringify({ launch: launchData })
       });
       currentLaunch = sanitizeLaunchData(payload.launch);
+      loadLaunchUiState(currentLaunch);
       draftMode = false;
       upsertLaunchSummary(payload.summary || currentLaunch);
     } else {
@@ -3507,9 +3584,12 @@ async function saveCurrentLaunch({ silent = false } = {}) {
         analyses: currentLaunch?.analyses || [],
         templateVersions: currentLaunch?.templateVersions || [],
         lessonSuggestions: currentLaunch?.lessonSuggestions || [],
+        redTeamBriefSupplements: stringMap(redTeamBriefSupplements),
+        checklistProgress: booleanMap(checklistProgress),
         lessonsLearned: currentLaunch?.lessonsLearned || [],
         postLaunchResult: currentLaunch?.postLaunchResult || ""
       });
+      loadLaunchUiState(currentLaunch);
       const index = fallbackLaunches.findIndex((launch) => launch.id === currentLaunch.id);
       if (index >= 0) fallbackLaunches[index] = currentLaunch;
       else fallbackLaunches.push(currentLaunch);
@@ -4931,12 +5011,27 @@ redTeamCards?.addEventListener("input", (event) => {
   redTeamBriefSupplements[field.dataset.redteamBrief || ""] = field.value || "";
 });
 redTeamCards?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-redteam-reanalyze]");
-  if (!button) return;
-  reanalyzeWithRedTeamSupplements().catch((error) => {
-    console.warn("Red Team re-analysis failed.", error);
-    setAnalysisRunStatus("error", tr("Phân tích lại chưa thành công. Hãy kiểm tra backend hoặc thử lại.", "Re-analysis failed. Check the backend or try again."));
-  });
+  const reanalyzeButton = event.target.closest("[data-redteam-reanalyze]");
+  if (reanalyzeButton) {
+    reanalyzeWithRedTeamSupplements().catch((error) => {
+      console.warn("Red Team re-analysis failed.", error);
+      setAnalysisRunStatus("error", tr("Phân tích lại chưa thành công. Hãy kiểm tra backend hoặc thử lại.", "Re-analysis failed. Check the backend or try again."));
+    });
+    return;
+  }
+  const saveButton = event.target.closest("[data-redteam-save]");
+  if (saveButton) {
+    saveLaunchWithRedTeamSupplements().catch((error) => {
+      console.warn("Red Team supplement save failed.", error);
+      setAnalysisRunStatus("error", tr("Lưu brief bổ sung chưa thành công. Hãy thử lại.", "Could not save supplements. Try again."));
+    });
+  }
+});
+checklistRows?.addEventListener("change", (event) => {
+  const field = event.target.closest("[data-checklist-done]");
+  if (!field) return;
+  checklistProgress[field.dataset.checklistDone || ""] = Boolean(field.checked);
+  field.closest(".timeline-card")?.classList.toggle("is-done", Boolean(field.checked));
 });
 document.getElementById("clearRunLog")?.addEventListener("click", () => {
   const launchId = currentLaunch?.id || "(nháp)";
