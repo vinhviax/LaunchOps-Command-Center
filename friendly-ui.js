@@ -384,7 +384,7 @@
     refreshChatSummary();
     refreshPostLaunchPanel();
     addChatMessage('agent', ftr('Mình đã chuyển sang launch này. Lịch sử chat đã reset để không lẫn với launch trước.', 'I switched to this launch. Chat history was reset so it does not mix with the previous launch.'));
-    setNpcSpeech('Đã đổi launch, tôi đang đọc trạng thái mới.');
+    setNpcSpeech(ftr('Đã đổi launch, tôi đang đọc trạng thái mới.', 'Switched launch. Reading the new state.'));
     updateGuidance();
   }
 
@@ -672,7 +672,7 @@
     activeFriendlyDraftId = '';
     if (!friendlyEditDrafts[id]) return false;
     writeFriendlyFormData(friendlyEditDrafts[id]);
-    setNpcSpeech('Đã khôi phục phần đang sửa tạm của launch này.');
+    setNpcSpeech(ftr('Đã khôi phục phần đang sửa tạm của launch này.', 'Restored the unsaved draft for this launch.'));
     return true;
   }
 
@@ -698,7 +698,7 @@
       refreshChatSummary();
       updateGuidance();
     }
-    setNpcSpeech('Đã mở lại launch nháp. Bạn có thể tiếp tục cấu hình hoặc lưu.');
+    setNpcSpeech(ftr('Đã mở lại launch nháp. Bạn có thể tiếp tục cấu hình hoặc lưu.', 'Reopened draft launch. You can continue configuring or save it.'));
   }
 
   function scheduleFriendlySaveCleanup(draftId, editId) {
@@ -968,7 +968,7 @@
   function runPostLaunchReview() {
     var resultText = postResultText();
     if (!resultText) {
-      addLessonMessage('agent', 'Cần nhập kết quả sau launch trước, rồi mình mới phân tích sau launch được.');
+      addLessonMessage('agent', ftr('Cần nhập kết quả sau launch trước, rồi mình mới phân tích sau launch được.', 'Post-launch result is required before I can run the post-launch review.'));
       lessonAwaiting = 'postResult';
       setLessonActionState();
       return false;
@@ -977,11 +977,11 @@
     postReviewKey = key;
     postReviewDone = true;
     renderPostReviewSuggestions(postReviewSuggestions(resultText));
-    addLessonMessage('agent', 'Mình đã phân tích kết quả sau launch và đưa đề xuất bên dưới. Bước tiếp theo: thêm bài học ngắn để lưu lại.');
-    setNpcSpeech('Đã phân tích sau launch, đang chờ bài học cuối cùng.');
+    addLessonMessage('agent', ftr('Mình đã phân tích kết quả sau launch và đưa đề xuất bên dưới. Bước tiếp theo: thêm bài học ngắn để lưu lại.', 'I have reviewed the post-launch result and added suggestions below. Next: add a short lesson to save.'));
+    setNpcSpeech(ftr('Đã phân tích sau launch, đang chờ bài học cuối cùng.', 'Post-launch reviewed. Waiting for the final lesson.'));
     lessonAwaiting = 'lesson';
     var input = byId('friendlyLessonChatInput');
-    if (input) input.placeholder = 'Nhập bài học rút ra sau launch';
+    if (input) input.placeholder = ftr('Nhập bài học rút ra sau launch', 'Enter lesson learned');
     setLessonActionState();
     return true;
   }
@@ -998,17 +998,17 @@
     if (gate) {
       gate.classList.toggle('is-locked', locked);
       gate.classList.toggle('is-ready', !locked);
-      gate.textContent = locked ? 'Chưa tới sau launch' : 'Sau launch';
+      gate.textContent = locked ? ftr('Chưa tới sau launch', 'Post-launch not yet') : ftr('Sau launch', 'Post-launch');
     }
     if (status) {
       status.textContent = locked
-        ? 'Launch chưa ở trạng thái Đã chạy. Sau khi launch xong, quay lại nhập kết quả và bài học.'
-        : 'Flow bắt buộc: nhập kết quả sau launch -> Agent phân tích -> thêm bài học -> lưu.';
+        ? ftr('Launch chưa ở trạng thái Đã chạy. Sau khi launch xong, quay lại nhập kết quả và bài học.', 'Launch is not completed yet. Once it finishes, come back to enter results and lessons.')
+        : ftr('Flow bắt buộc: nhập kết quả sau launch -> Agent phân tích -> thêm bài học -> lưu.', 'Required flow: enter post-launch result → Agent reviews → add lesson → save.');
     }
     if (input) {
       input.placeholder = locked
-        ? 'Chỉ nhập sau khi launch đã chạy xong'
-        : (lessonAwaiting === 'lesson' ? 'Nhập bài học rút ra sau launch' : 'Nhập kết quả sau launch ở đây');
+        ? ftr('Chỉ nhập sau khi launch đã chạy xong', 'Only available after the launch has completed')
+        : (lessonAwaiting === 'lesson' ? ftr('Nhập bài học rút ra sau launch', 'Enter lesson learned') : ftr('Nhập kết quả sau launch ở đây', 'Enter post-launch result here'));
     }
     var currentResult = postResultText();
     var currentKey = currentResult + '|' + (lastSnapshot && lastSnapshot.decision ? lastSnapshot.decision : '');
@@ -1050,7 +1050,7 @@
     chatFlow = 'edit';
     chatFlowSteps = [];
     chatFlowIndex = -1;
-    chatInputPlaceholder('Chọn mục cần sửa hoặc gõ nội dung');
+    chatInputPlaceholder(ftr('Chọn mục cần sửa hoặc gõ nội dung', 'Pick a field to edit or type directly'));
     updateGuidance('Gợi ý tiếp theo: chọn một mục cần sửa, mình sẽ cập nhật ngay trong Chi tiết launch.');
     setChatActions([
       { label: 'Tên launch', action: 'field', value: 'name' },
@@ -1113,44 +1113,44 @@
     setChatActions([]);
     updateGuidance('Gợi ý tiếp theo: ' + fieldHint(field));
     if (field === 'name') {
-      addChatMessage('agent', 'Bạn đặt tên launch là gì?');
-      chatInputPlaceholder('Ví dụ: Golden Spin Weekend');
-      setNpcSpeech('Đang chờ tên launch. Tôi sẽ gắn tên này vào chi tiết ngay khi bạn gửi.');
+      addChatMessage('agent', ftr('Bạn đặt tên launch là gì?', 'What should we call this launch?'));
+      chatInputPlaceholder(ftr('Ví dụ: Golden Spin Weekend', 'e.g. Golden Spin Weekend'));
+      setNpcSpeech(ftr('Đang chờ tên launch. Tôi sẽ gắn tên này vào chi tiết ngay khi bạn gửi.', 'Waiting for launch name. I will fill it in as soon as you send.'));
     } else if (field === 'type') {
       chatAwaiting = 'type';
-      addChatMessage('agent', 'Chọn hoặc gõ phân loại launch để mình dùng đúng template. Ví dụ: Sự kiện game.');
-      chatInputPlaceholder('Gõ phân loại, hoặc gõ "giữ nguyên"');
-      setNpcSpeech('Đang chờ bạn chọn phân loại.');
+      addChatMessage('agent', ftr('Chọn hoặc gõ phân loại launch để mình dùng đúng template. Ví dụ: Sự kiện game.', 'Choose or type the launch type so I use the right template. e.g. Game event.'));
+      chatInputPlaceholder(ftr('Gõ phân loại, hoặc gõ "giữ nguyên"', 'Type a type, or type "keep"'));
+      setNpcSpeech(ftr('Đang chờ bạn chọn phân loại.', 'Waiting for launch type.'));
       showTypeActions();
     } else if (field === 'status') {
       chatAwaiting = 'status';
-      addChatMessage('agent', 'Chọn hoặc gõ trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.');
-      chatInputPlaceholder('Gõ trạng thái, hoặc gõ "giữ nguyên"');
-      setNpcSpeech('Đang chờ trạng thái launch.');
+      addChatMessage('agent', ftr('Chọn hoặc gõ trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.', 'Choose or type the launch status: Upcoming, Running, or Completed.'));
+      chatInputPlaceholder(ftr('Gõ trạng thái, hoặc gõ "giữ nguyên"', 'Type a status, or type "keep"'));
+      setNpcSpeech(ftr('Đang chờ trạng thái launch.', 'Waiting for launch status.'));
       showStatusActions();
     } else if (field === 'owner') {
-      addChatMessage('agent', 'Ai là owner chính của launch này?');
-      chatInputPlaceholder('Ví dụ: PM LiveOps');
-      setNpcSpeech('Đang chờ owner để cập nhật phần chi tiết launch.');
+      addChatMessage('agent', ftr('Ai là owner chính của launch này?', 'Who is the main owner of this launch?'));
+      chatInputPlaceholder(ftr('Ví dụ: PM LiveOps', 'e.g. PM LiveOps'));
+      setNpcSpeech(ftr('Đang chờ owner để cập nhật phần chi tiết launch.', 'Waiting for owner to update launch details.'));
     } else if (field === 'dates') {
-      addChatMessage('agent', 'Gõ thời gian dạng Start - End. Ví dụ: 12/06/2026 - 14/06/2026.');
-      chatInputPlaceholder('12/06/2026 - 14/06/2026');
-      setNpcSpeech('Đang chờ mốc thời gian. Chỉ cần nhập Start - End.');
+      addChatMessage('agent', ftr('Gõ thời gian dạng Start - End. Ví dụ: 12/06/2026 - 14/06/2026.', 'Type dates as Start - End. e.g. 12/06/2026 - 14/06/2026.'));
+      chatInputPlaceholder(ftr('12/06/2026 - 14/06/2026', '12/06/2026 - 14/06/2026'));
+      setNpcSpeech(ftr('Đang chờ mốc thời gian. Chỉ cần nhập Start - End.', 'Waiting for dates. Just type Start - End.'));
     } else if (field === 'brief') {
-      addChatMessage('agent', 'Dán brief thô vào đây. Không cần văn hay, chỉ cần đủ dữ liệu để Agent đọc.');
-      chatInputPlaceholder('Dán brief launch...');
-      setNpcSpeech('Đang chờ brief. Tôi sẽ đọc mục tiêu, phạm vi và phần còn mơ hồ.');
+      addChatMessage('agent', ftr('Dán brief thô vào đây. Không cần văn hay, chỉ cần đủ dữ liệu để Agent đọc.', 'Paste the raw brief here. No need to be polished — just enough data for the Agent to read.'));
+      chatInputPlaceholder(ftr('Dán brief launch...', 'Paste brief here...'));
+      setNpcSpeech(ftr('Đang chờ brief. Tôi sẽ đọc mục tiêu, phạm vi và phần còn mơ hồ.', 'Waiting for brief. I will read goals, scope, and unclear areas.'));
     } else if (field === 'postResult') {
-      addChatMessage('agent', 'Kết quả sau launch thực tế là gì?');
-      chatInputPlaceholder('Ví dụ: đạt 82% target, còn lỗi CS FAQ...');
-      setNpcSpeech('Đang chờ kết quả thật sau launch.');
+      addChatMessage('agent', ftr('Kết quả sau launch thực tế là gì?', 'What was the actual post-launch result?'));
+      chatInputPlaceholder(ftr('Ví dụ: đạt 82% target, còn lỗi CS FAQ...', 'e.g. hit 82% target, CS FAQ had issues...'));
+      setNpcSpeech(ftr('Đang chờ kết quả thật sau launch.', 'Waiting for the actual post-launch result.'));
     } else if (field === 'lesson') {
-      addChatMessage('agent', 'Bài học mới cần lưu là gì?');
-      chatInputPlaceholder('Ví dụ: Lần sau phải chốt FAQ trước T-1.');
-      setNpcSpeech('Đang chờ bài học để lưu lại cho lần sau.');
+      addChatMessage('agent', ftr('Bài học mới cần lưu là gì?', 'What lesson should we save?'));
+      chatInputPlaceholder(ftr('Ví dụ: Lần sau phải chốt FAQ trước T-1.', 'e.g. Next time confirm FAQ by T-1.'));
+      setNpcSpeech(ftr('Đang chờ bài học để lưu lại cho lần sau.', 'Waiting for a lesson to save for next time.'));
     } else {
       chatAwaiting = '';
-      addChatMessage('agent', 'Bạn muốn sửa mục nào?');
+      addChatMessage('agent', ftr('Bạn muốn sửa mục nào?', 'Which field do you want to edit?'));
       showEditActions();
     }
   }
@@ -1169,8 +1169,8 @@
     chatFlowIndex = 0;
     chatAwaiting = '';
     clearNode(byId('friendlyChatMessages'));
-    addChatMessage('agent', 'Mình bắt đầu một launch mới. Mình sẽ hỏi từng phần và tự điền vào LaunchOps.');
-    setNpcSpeech('Bắt đầu cấu hình launch mới.');
+    addChatMessage('agent', ftr('Mình bắt đầu một launch mới. Mình sẽ hỏi từng phần và tự điền vào LaunchOps.', 'Starting a new launch. I will ask step by step and fill in LaunchOps for you.'));
+    setNpcSpeech(ftr('Bắt đầu cấu hình launch mới.', 'Starting new launch setup.'));
     promptField(chatFlowSteps[chatFlowIndex]);
     focusFriendlyFirstInput();
   }
@@ -1181,8 +1181,8 @@
     chatFlowIndex = 0;
     chatAwaiting = '';
     clearNode(byId('friendlyChatMessages'));
-    addChatMessage('agent', 'Mình sẽ rà soát launch đang lưu theo từng mục. Nếu mục nào giữ nguyên, bạn gõ "giữ nguyên".');
-    setNpcSpeech('Bắt đầu flow sửa launch tuần tự.');
+    addChatMessage('agent', ftr('Mình sẽ rà soát launch đang lưu theo từng mục. Nếu mục nào giữ nguyên, bạn gõ "giữ nguyên".', 'I will go through each field. If a field stays the same, type "keep".'));
+    setNpcSpeech(ftr('Bắt đầu flow sửa launch tuần tự.', 'Starting sequential edit flow.'));
     promptField(chatFlowSteps[chatFlowIndex]);
     focusFriendlyFirstInput();
   }
@@ -1455,10 +1455,10 @@
     chatFlowIndex = -1;
     chatAwaiting = 'finalDecision';
     addChatMessage('agent', briefReviewText());
-    addChatMessage('agent', 'Bạn đã chốt final brief chưa? Gõ "phân tích" để chạy phân tích trước launch, "xem lại" để xem brief, hoặc "sửa" để chỉnh tiếp.');
-    setNpcSpeech('Đang chờ Human chốt final trước phân tích pre-launch.');
+    addChatMessage('agent', ftr('Bạn đã chốt final brief chưa? Gõ "phân tích" để chạy phân tích trước launch, "xem lại" để xem brief, hoặc "sửa" để chỉnh tiếp.', 'Is the brief finalized? Type "analyze" to run pre-launch analysis, "review" to read the brief, or "edit" to keep adjusting.'));
+    setNpcSpeech(ftr('Đang chờ Human chốt final trước phân tích pre-launch.', 'Waiting for final confirmation before pre-launch analysis.'));
     updateGuidance('Gợi ý tiếp theo: chốt final rồi mới chạy phân tích trước launch.');
-    chatInputPlaceholder('Gõ: phân tích / xem lại / sửa');
+    chatInputPlaceholder(ftr('Gõ: phân tích / xem lại / sửa', 'Type: analyze / review / edit'));
     setChatActions([
       { label: 'Phân tích ngay', action: 'final-analyze' },
       { label: 'Xem lại brief', action: 'final-review' },
@@ -1493,7 +1493,7 @@
 
     if (isSummaryIntent(value)) {
       addChatMessage('agent', launchSummaryText());
-      setNpcSpeech('Đang tổng hợp tình trạng launch hiện tại cho Human.');
+      setNpcSpeech(ftr('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarising the current launch status.'));
       updateGuidance('Gợi ý tiếp theo: hỏi tiếp về rule, rủi ro, checklist hoặc chốt phân tích trước launch.');
       setChatActions(friendlySupportActions());
       return;
@@ -1501,7 +1501,7 @@
 
     if (isSupportIntent(value)) {
       addChatMessage('agent', supportText(value));
-      setNpcSpeech('Đang giải thích theo ngữ cảnh thao tác của Human.');
+      setNpcSpeech(ftr('Đang giải thích theo ngữ cảnh thao tác của Human.', 'Explaining based on current action context.'));
       updateGuidance('Gợi ý tiếp theo: hỏi rõ phần bạn muốn hiểu, hoặc quay lại tạo/sửa launch.');
       setChatActions(friendlySupportActions());
       return;
@@ -1517,15 +1517,15 @@
     // Đặt TRƯỚC nhánh `chatAwaiting === 'brief'` để khỏi bị wizard nuốt text thô vào field.
     if (isWriteBriefIntent(value)) {
       var ideaSeed = text; // dùng raw text giữ nguyên dấu câu
-      addChatMessage('agent', 'Mình đang đọc ý tưởng và soạn brief launch đầy đủ theo format LaunchOps. Đợi mình một chút...');
-      setNpcSpeech('Đang nhờ Agent AI soạn brief đầy đủ từ ý tưởng của Human.');
+      addChatMessage('agent', ftr('Mình đang đọc ý tưởng và soạn brief launch đầy đủ theo format LaunchOps. Đợi mình một chút...', 'Reading your idea and drafting a full launch brief in LaunchOps format. Just a moment...'));
+      setNpcSpeech(ftr('Đang nhờ Agent AI soạn brief đầy đủ từ ý tưởng của Human.', 'Asking AI Agent to draft a full brief from your idea.'));
       updateGuidance('Đang chờ Agent AI viết brief...');
       callAssistantForBriefWriter(ideaSeed, function (reply) {
         if (reply) {
           if (setRealField('briefInput', reply)) {
-            addChatMessage('agent', 'Mình đã soạn brief đầy đủ và ghi vào ô brief launch. Bản brief:');
+            addChatMessage('agent', ftr('Mình đã soạn brief đầy đủ và ghi vào ô brief launch. Bản brief:', 'I have drafted the full brief and filled it in. Here it is:'));
             addChatMessage('agent', reply);
-            setNpcSpeech('Brief đã được Agent AI viết, mời Human kiểm tra.');
+            setNpcSpeech(ftr('Brief đã được Agent AI viết, mời Human kiểm tra.', 'Brief drafted by AI Agent. Please review.'));
             updateGuidance('Gợi ý: kiểm tra brief, sửa thêm nếu cần, rồi bấm Chạy phân tích.');
             // Nếu đang ở wizard step brief, đẩy flow đi tiếp; nếu không thì show edit actions
             if (chatAwaiting === 'brief') {
@@ -1534,13 +1534,13 @@
               setChatActions(friendlySupportActions());
             }
           } else {
-            addChatMessage('agent', 'Mình đã có bản brief nhưng chưa ghi được vào ô brief (form có thể đang đóng). Brief đề xuất:');
+            addChatMessage('agent', ftr('Mình đã có bản brief nhưng chưa ghi được vào ô brief (form có thể đang đóng). Brief đề xuất:', 'I have a draft brief but could not write it to the field (the form may be closed). Suggested brief:'));
             addChatMessage('agent', reply);
             setChatActions(friendlySupportActions());
           }
         } else {
-          addChatMessage('agent', 'Mình chưa gọi được Agent AI để viết brief lúc này. Bạn có thể tự gõ ý tưởng vào ô brief, hoặc thử lại sau.');
-          setNpcSpeech('Agent AI tạm không phản hồi.');
+          addChatMessage('agent', ftr('Mình chưa gọi được Agent AI để viết brief lúc này. Bạn có thể tự gõ ý tưởng vào ô brief, hoặc thử lại sau.', 'I could not reach the AI Agent right now. You can type your idea into the brief field directly, or try again later.'));
+          setNpcSpeech(ftr('Agent AI tạm không phản hồi.', 'AI Agent is temporarily unavailable.'));
           setChatActions(friendlySupportActions());
         }
       });
@@ -1552,17 +1552,17 @@
     // Đặt TRƯỚC các nhánh rule-based "brief/owner/..." để không bị nuốt thành prompt field.
     if (isAdviceIntent(value)) {
       var ctxForAdvice = currentLaunchContextForChat();
-      addChatMessage('agent', 'Mình đang xem brief, readiness và rủi ro để góp ý cụ thể cho bạn...');
-      setNpcSpeech('Đang xin góp ý từ Agent AI dựa trên brief và rủi ro hiện tại.');
+      addChatMessage('agent', ftr('Mình đang xem brief, readiness và rủi ro để góp ý cụ thể cho bạn...', 'Reviewing the brief, readiness, and risks to give you specific feedback...'));
+      setNpcSpeech(ftr('Đang xin góp ý từ Agent AI dựa trên brief và rủi ro hiện tại.', 'Asking AI Agent for feedback on the current brief and risks.'));
       updateGuidance('Đang chờ Agent AI trả lời...');
       callAssistantForChat(value, ctxForAdvice, function (reply) {
         if (reply) {
           addChatMessage('agent', reply);
-          setNpcSpeech('Agent AI vừa góp ý dựa trên brief launch hiện tại.');
+          setNpcSpeech(ftr('Agent AI vừa góp ý dựa trên brief launch hiện tại.', 'AI Agent just gave feedback on the current launch brief.'));
           updateGuidance('Bạn có thể hỏi tiếp về rủi ro, Red Team, checklist hoặc bấm Chạy phân tích.');
         } else {
-          addChatMessage('agent', 'Mình chưa gọi được Agent AI lúc này (backend hoặc mạng có thể tạm gián đoạn). Bạn có thể bấm "Chạy phân tích" để chấm rủi ro local, hoặc hỏi lại sau.');
-          setNpcSpeech('Agent AI tạm không phản hồi, dùng local fallback.');
+          addChatMessage('agent', ftr('Mình chưa gọi được Agent AI lúc này (backend hoặc mạng có thể tạm gián đoạn). Bạn có thể bấm "Chạy phân tích" để chấm rủi ro local, hoặc hỏi lại sau.', 'I could not reach the AI Agent right now (backend or network may be down). You can click "Run analysis" to score locally, or try again later.'));
+          setNpcSpeech(ftr('Agent AI tạm không phản hồi, dùng local fallback.', 'AI Agent unavailable, using local fallback.'));
           updateGuidance('Gợi ý: bấm Chạy phân tích hoặc hỏi lại.');
         }
         setChatActions(friendlySupportActions());
@@ -1578,12 +1578,12 @@
         handleFriendlyAction('save');
       } else if (finalLow.indexOf('xem') !== -1 || finalLow.indexOf('review') !== -1) {
         addChatMessage('agent', briefReviewText());
-        addChatMessage('agent', 'Nếu đã ổn, gõ "phân tích". Nếu cần sửa, gõ "sửa".');
+        addChatMessage('agent', ftr('Nếu đã ổn, gõ "phân tích". Nếu cần sửa, gõ "sửa".', 'If it looks good, type "analyze". If you need changes, type "edit".'));
       } else if (finalLow.indexOf('sua') !== -1 || finalLow.indexOf('chinh') !== -1) {
         showEditActions();
-        addChatMessage('agent', 'Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.');
+        addChatMessage('agent', ftr('Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.', 'Which part do you want to edit first? Pick a button or type directly.'));
       } else {
-        addChatMessage('agent', 'Mình chưa rõ. Bạn gõ "phân tích", "xem lại", hoặc "sửa" nhé.');
+        addChatMessage('agent', ftr('Mình chưa rõ. Bạn gõ "phân tích", "xem lại", hoặc "sửa" nhé.', 'I am not sure. Try typing "analyze", "review", or "edit".'));
       }
       return;
     }
@@ -1596,14 +1596,14 @@
     if (chatAwaiting === 'type') {
       var typeValue = optionValueFromText('launchType', value);
       if (typeValue && setRealField('launchType', typeValue)) finishField('Đã cập nhật phân loại launch.', 'type');
-      else addChatMessage('agent', 'Mình chưa khớp được phân loại này. Bạn có thể gõ "Sự kiện game", "Chiến dịch marketing", "Ra mắt tính năng"...');
+      else addChatMessage('agent', ftr('Mình chưa khớp được phân loại này. Bạn có thể gõ "Sự kiện game", "Chiến dịch marketing", "Ra mắt tính năng"...', 'I could not match that type. Try "Game event", "Marketing campaign", "Feature launch"...'));
       return;
     }
 
     if (chatAwaiting === 'status') {
       var statusValue = statusValueFromText(value);
       if (statusValue && setRealField('launchStatus', statusValue)) finishField('Đã cập nhật trạng thái launch.', 'status');
-      else addChatMessage('agent', 'Mình chưa khớp được trạng thái. Bạn gõ Sắp chạy, Đang chạy, hoặc Đã chạy nhé.');
+      else addChatMessage('agent', ftr('Mình chưa khớp được trạng thái. Bạn gõ Sắp chạy, Đang chạy, hoặc Đã chạy nhé.', 'I could not match that status. Try Upcoming, Running, or Completed.'));
       return;
     }
 
@@ -1621,7 +1621,7 @@
       if (dates.start) changedDates = setRealField('launchTargetDate', dates.start) || changedDates;
       if (dates.end) changedDates = setRealField('launchEndDate', dates.end) || changedDates;
       if (changedDates) finishField('Đã cập nhật thời gian launch.', 'dates');
-      else addChatMessage('agent', 'Mình chưa đọc được thời gian. Bạn gõ theo dạng 12/06/2026 - 14/06/2026 nhé.');
+      else addChatMessage('agent', ftr('Mình chưa đọc được thời gian. Bạn gõ theo dạng 12/06/2026 - 14/06/2026 nhé.', 'I could not read the dates. Please type them as 12/06/2026 - 14/06/2026.'));
       return;
     }
     if (chatAwaiting === 'brief') {
@@ -1642,7 +1642,7 @@
       clickRealButton('newLaunch');
     } else if (fold(value).indexOf('sua launch') !== -1 || fold(value).indexOf('chinh launch') !== -1) {
       showEditActions();
-      addChatMessage('agent', 'Bạn muốn sửa phần nào của launch này? Chọn nút hoặc gõ trực tiếp.');
+      addChatMessage('agent', ftr('Bạn muốn sửa phần nào của launch này? Chọn nút hoặc gõ trực tiếp.', 'Which part of this launch do you want to edit? Pick a button or type directly.'));
     } else if (fold(value).indexOf('phan tich') !== -1 || fold(value).indexOf('chay phan tich') !== -1) {
       showPreAnalyzeDecision();
     } else if (fold(value).indexOf('demo') !== -1) {
@@ -1661,7 +1661,7 @@
       beginPostLaunchFlow('lesson');
     }
     else {
-      addChatMessage('agent', 'Mình có thể tạo launch, sửa tên, phân loại, owner, thời gian, brief, hoặc chạy phân tích. Bạn chọn một nút nhanh nhé.');
+      addChatMessage('agent', ftr('Mình có thể tạo launch, sửa tên, phân loại, owner, thời gian, brief, hoặc chạy phân tích. Bạn chọn một nút nhanh nhé.', 'I can create a launch, edit name, type, owner, dates, brief, or run analysis. Pick a quick button.'));
       showHomeActions();
     }
   }
@@ -1675,8 +1675,8 @@
     scheduleFriendlySaveCleanup(activeFriendlyDraftId, activeRealLaunchId());
     if (clickRealButton('analyzeBrief')) {
       setStep(0);
-      addChatMessage('agent', 'Mình đang chạy phân tích trước launch. Khi xong, readiness, Red Team và checklist sẽ cập nhật bằng dữ liệu thật.');
-      setNpcSpeech('Đang phân tích trước launch từ brief đã chốt.');
+      addChatMessage('agent', ftr('Mình đang chạy phân tích trước launch. Khi xong, readiness, Red Team và checklist sẽ cập nhật bằng dữ liệu thật.', 'Running pre-launch analysis. When done, readiness, Red Team, and checklist will update with real data.'));
+      setNpcSpeech(ftr('Đang phân tích trước launch từ brief đã chốt.', 'Running pre-launch analysis from the finalized brief.'));
       updateGuidance('Gợi ý tiếp theo: chờ phân tích xong rồi xem readiness, phản biện và checklist.');
       setChatActions([
         { label: 'Xem readiness', action: 'step', value: '1' },
@@ -1695,25 +1695,25 @@
     lessonAwaiting = target || 'postResult';
     refreshPostLaunchPanel();
     if (!isPostLaunchOpen()) {
-      addLessonMessage('agent', 'Launch này chưa ở trạng thái Đã chạy. Sau khi launch chạy xong, quay lại đây để nhập kết quả sau launch, phân tích sau launch, thêm bài học rồi lưu.');
-      setNpcSpeech('Chưa mở flow sau launch vì launch chưa hoàn tất.');
+      addLessonMessage('agent', ftr('Launch này chưa ở trạng thái Đã chạy. Sau khi launch chạy xong, quay lại đây để nhập kết quả sau launch, phân tích sau launch, thêm bài học rồi lưu.', 'This launch is not completed yet. Once it finishes, come back to enter post-launch results, run post-launch review, add a lesson, and save.'));
+      setNpcSpeech(ftr('Chưa mở flow sau launch vì launch chưa hoàn tất.', 'Post-launch flow is not open yet because the launch is not completed.'));
       return;
     }
     if (lessonAwaiting === 'lesson') {
       if (!postResultText()) {
-        addLessonMessage('agent', 'Cần nhập kết quả sau launch trước. Sau đó mình mới phân tích và mở bước thêm bài học.');
+        addLessonMessage('agent', ftr('Cần nhập kết quả sau launch trước. Sau đó mình mới phân tích và mở bước thêm bài học.', 'Post-launch result is required first. Then I can review and open the add-lesson step.'));
         lessonAwaiting = 'postResult';
       } else if (!postReviewDone) {
         runPostLaunchReview();
       } else {
-        addLessonMessage('agent', 'Bạn nhập bài học rút ra sau launch nhé.');
+        addLessonMessage('agent', ftr('Bạn nhập bài học rút ra sau launch nhé.', 'Enter a lesson learned from this launch.'));
       }
     } else {
-      addLessonMessage('agent', 'Bạn nhập kết quả sau launch thực tế trước. Đây là lần phân tích bắt buộc thứ hai, sau khi launch đã chạy.');
+      addLessonMessage('agent', ftr('Bạn nhập kết quả sau launch thực tế trước. Đây là lần phân tích bắt buộc thứ hai, sau khi launch đã chạy.', 'Enter the actual post-launch result first. This is the required second review, after the launch has run.'));
     }
     var input = byId('friendlyLessonChatInput');
     if (input) {
-      input.placeholder = lessonAwaiting === 'lesson' ? 'Nhập bài học rút ra sau launch' : 'Nhập kết quả sau launch';
+      input.placeholder = lessonAwaiting === 'lesson' ? ftr('Nhập bài học rút ra sau launch', 'Enter lesson learned') : ftr('Nhập kết quả sau launch', 'Enter post-launch result');
       try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     }
     setLessonActionState();
@@ -1724,20 +1724,20 @@
     if (!value) return;
     addLessonMessage('human', value);
     if (!isPostLaunchOpen()) {
-      addLessonMessage('agent', 'Flow sau launch đang bị khóa. Khi launch chuyển sang Đã chạy, bạn quay lại nhập kết quả sau launch.');
+      addLessonMessage('agent', ftr('Flow sau launch đang bị khóa. Khi launch chuyển sang Đã chạy, bạn quay lại nhập kết quả sau launch.', 'Post-launch flow is locked. Once the launch status changes to Completed, come back to enter the result.'));
       return;
     }
     if (lessonAwaiting === 'lesson') {
       if (setRealField('lessonInput', text)) {
-        addLessonMessage('agent', 'Đã nhận bài học. Bây giờ bạn có thể lưu kết quả / bài học.');
-        setNpcSpeech('Đã có bài học, sẵn sàng lưu.');
+        addLessonMessage('agent', ftr('Đã nhận bài học. Bây giờ bạn có thể lưu kết quả / bài học.', 'Lesson received. You can now save the result and lesson.'));
+        setNpcSpeech(ftr('Đã có bài học, sẵn sàng lưu.', 'Lesson ready. Ready to save.'));
       }
       refreshPostLaunchPanel();
       return;
     }
     if (setRealField('postResultInput', text)) {
       setRealField('postResultStatus', 'completed');
-      addLessonMessage('agent', 'Đã nhận kết quả sau launch. Mình sẽ phân tích sau launch và đưa đề xuất.');
+      addLessonMessage('agent', ftr('Đã nhận kết quả sau launch. Mình sẽ phân tích sau launch và đưa đề xuất.', 'Post-launch result received. I will run the post-launch review and add suggestions.'));
       runPostLaunchReview();
       refreshPostLaunchPanel();
     }
@@ -1746,34 +1746,34 @@
   function handleFriendlyAction(action, value) {
     if (!action) return;
     if (action === 'new') {
-      addChatMessage('human', 'Tạo launch mới');
+      addChatMessage('human', ftr('Tạo launch mới', 'New launch'));
       clickRealButton('newLaunch');
       return;
     }
     if (action === 'edit') {
-      addChatMessage('human', 'Sửa launch này');
+      addChatMessage('human', ftr('Sửa launch này', 'Edit this launch'));
       showEditActions();
-      addChatMessage('agent', 'Bạn muốn sửa phần nào? Chọn một mục bên dưới hoặc gõ trực tiếp, ví dụ: đổi owner thành PM LiveOps.');
-      setNpcSpeech('Đang chờ Human chọn phần cần sửa của launch này.');
+      addChatMessage('agent', ftr('Bạn muốn sửa phần nào? Chọn một mục bên dưới hoặc gõ trực tiếp, ví dụ: đổi owner thành PM LiveOps.', 'Which part do you want to change? Pick one below or type directly, e.g. change owner to PM LiveOps.'));
+      setNpcSpeech(ftr('Đang chờ Human chọn phần cần sửa của launch này.', 'Waiting for you to pick a field to edit.'));
       focusFriendlyFirstInput();
       return;
     }
     if (action === 'edit-sequential') {
-      addChatMessage('human', 'Rà soát tuần tự');
+      addChatMessage('human', ftr('Rà soát tuần tự', 'Sequential review'));
       beginEditLaunchFlow();
       return;
     }
     if (action === 'summarize') {
-      addChatMessage('human', 'Tổng hợp launch');
+      addChatMessage('human', ftr('Tổng hợp launch', 'Summarize launch'));
       addChatMessage('agent', launchSummaryText());
-      setNpcSpeech('Đang tổng hợp tình trạng launch hiện tại cho Human.');
+      setNpcSpeech(ftr('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarising the current launch status.'));
       setChatActions(friendlySupportActions());
       return;
     }
     if (action === 'support') {
-      addChatMessage('human', 'Hỗ trợ / giải thích');
+      addChatMessage('human', ftr('Hỗ trợ / giải thích', 'Support / explain'));
       addChatMessage('agent', supportText(''));
-      setNpcSpeech('Đang mở chế độ hỗ trợ, giải thích cách dùng và rule LaunchOps.');
+      setNpcSpeech(ftr('Đang mở chế độ hỗ trợ, giải thích cách dùng và rule LaunchOps.', 'Opening support mode, explaining usage and LaunchOps rules.'));
       setChatActions(friendlySupportActions());
       return;
     }
@@ -1815,8 +1815,8 @@
       persistActiveFriendlySession(false);
       activeFriendlyDraftId = '';
       if (clickRealButton('demoMode')) {
-        addChatMessage('agent', 'Demo mode nạp một launch mẫu và tự tạo đủ readiness, Red Team, checklist, bài học để quay hoặc review nhanh.');
-        setNpcSpeech('Đang nạp flow demo mẫu.');
+        addChatMessage('agent', ftr('Demo mode nạp một launch mẫu và tự tạo đủ readiness, Red Team, checklist, bài học để quay hoặc review nhanh.', 'Demo mode loads a sample launch and generates readiness, Red Team, checklist, and lessons so you can record or review quickly.'));
+        setNpcSpeech(ftr('Đang nạp flow demo mẫu.', 'Loading demo flow.'));
         [500, 1300, 2300].forEach(function (ms) { setTimeout(updateFromDom, ms); });
       }
       return;
@@ -1826,8 +1826,8 @@
       syncLaunchFieldsFromFriendly();
       persistActiveFriendlySession(false);
       if (clickRealButton('exportReport')) {
-        addChatMessage('agent', 'Report Markdown đã được xuất bằng nút thật. Nếu trình duyệt không hiện popup, hãy kiểm tra thư mục Downloads hoặc clipboard.');
-        setNpcSpeech('Đã gửi lệnh xuất report cho launch đang mở.');
+        addChatMessage('agent', ftr('Report Markdown đã được xuất bằng nút thật. Nếu trình duyệt không hiện popup, hãy kiểm tra thư mục Downloads hoặc clipboard.', 'Markdown report exported via the real button. If the browser did not show a popup, check your Downloads folder or clipboard.'));
+        setNpcSpeech(ftr('Đã gửi lệnh xuất report cho launch đang mở.', 'Triggered export report for the current launch.'));
       }
       return;
     }
@@ -1907,28 +1907,28 @@
     }
     if (action === 'save-lesson') {
       if (!isPostLaunchOpen()) {
-        addLessonMessage('agent', 'Chưa thể lưu. Launch cần ở trạng thái Đã chạy trước.');
+        addLessonMessage('agent', ftr('Chưa thể lưu. Launch cần ở trạng thái Đã chạy trước.', 'Cannot save yet. The launch must be in Completed status first.'));
         return;
       }
       if (!postResultText()) {
-        addLessonMessage('agent', 'Chưa thể lưu. Bạn cần nhập kết quả sau launch trước.');
+        addLessonMessage('agent', ftr('Chưa thể lưu. Bạn cần nhập kết quả sau launch trước.', 'Cannot save yet. Please enter the post-launch result first.'));
         beginPostLaunchFlow('postResult');
         return;
       }
       if (!postReviewDone) {
-        addLessonMessage('agent', 'Chưa thể lưu. Mình cần phân tích sau launch và đưa đề xuất trước.');
+        addLessonMessage('agent', ftr('Chưa thể lưu. Mình cần phân tích sau launch và đưa đề xuất trước.', 'Cannot save yet. I need to run the post-launch review and add suggestions first.'));
         runPostLaunchReview();
         return;
       }
       if (!lessonText()) {
-        addLessonMessage('agent', 'Chưa thể lưu. Bạn cần thêm ít nhất một bài học ngắn.');
+        addLessonMessage('agent', ftr('Chưa thể lưu. Bạn cần thêm ít nhất một bài học ngắn.', 'Cannot save yet. Please add at least one short lesson.'));
         beginPostLaunchFlow('lesson');
         return;
       }
       syncLessonFieldsFromFriendly();
       if (clickRealButton('saveLesson')) {
-        addLessonMessage('agent', 'Mình đã gửi lệnh lưu kết quả / bài học bằng nút thật.');
-        setNpcSpeech('Đang lưu kết quả và bài học.');
+        addLessonMessage('agent', ftr('Mình đã gửi lệnh lưu kết quả / bài học bằng nút thật.', 'I triggered the real save result / lesson button.'));
+        setNpcSpeech(ftr('Đang lưu kết quả và bài học.', 'Saving result and lesson.'));
       }
       return;
     }

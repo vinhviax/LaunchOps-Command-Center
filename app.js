@@ -1521,7 +1521,7 @@ function syncLaunchTypeOptionLabels() {
 function syncTemplateDisplayLabels() {
   if (templateName) {
     const template = activeTemplate();
-    templateName.textContent = `Bộ luật: ${templateDisplayName(template)}${template.customized ? " · Đã tùy chỉnh" : ""}`;
+    templateName.textContent = `${tr("Bộ luật", "Ruleset")}: ${templateDisplayName(template)}${template.customized ? " · " + tr("Đã tùy chỉnh", "Customised") : ""}`;
   }
   classificationEditor?.querySelectorAll("[data-type-template] option").forEach((option) => {
     option.textContent = templateDisplayName(baseTemplateById(option.value));
@@ -3460,7 +3460,7 @@ function renderTemplateConfig() {
   renderTemplateCatalog(editable);
 
   templateName.dataset.baseName = template.name;
-  templateName.textContent = `Bộ luật: ${templateDisplayName(template)}${template.customized ? " · Đã tùy chỉnh" : ""}`;
+  templateName.textContent = `${tr("Bộ luật", "Ruleset")}: ${templateDisplayName(template)}${template.customized ? " · " + tr("Đã tùy chỉnh", "Customised") : ""}`;
   templateMaxScore.textContent = String(maxScore);
   templateRiskCount.textContent = String((template.riskGroups || []).length);
   templatePersonaCount.textContent = String((template.redTeam || []).length);
