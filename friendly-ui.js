@@ -883,14 +883,14 @@
   }
 
   function fieldHint(field) {
-    if (field === 'name') return 'đặt tên launch ngắn, dễ nhận ra trong danh sách.';
-    if (field === 'type') return 'chọn phân loại để dùng đúng bộ luật đánh giá.';
-    if (field === 'owner') return 'nhập owner chính để checklist có người chịu trách nhiệm.';
-    if (field === 'dates') return 'nhập Start - End theo dạng dd/mm/yyyy - dd/mm/yyyy.';
-    if (field === 'brief') return 'dán brief thô, càng rõ mục tiêu và phạm vi càng tốt.';
-    if (field === 'postResult') return 'ghi kết quả thật sau launch để lưu bài học.';
-    if (field === 'lesson') return 'ghi bài học ngắn, có thể dùng lại cho launch sau.';
-    return 'chọn thao tác hoặc gõ trực tiếp cho Mission Control.';
+    if (field === 'name') return ftr('đặt tên launch ngắn, dễ nhận ra trong danh sách.', 'give the launch a short name easy to recognise in the list.');
+    if (field === 'type') return ftr('chọn phân loại để dùng đúng bộ luật đánh giá.', 'pick a type so the right scoring rules are used.');
+    if (field === 'owner') return ftr('nhập owner chính để checklist có người chịu trách nhiệm.', 'enter the main owner so the checklist has someone accountable.');
+    if (field === 'dates') return ftr('nhập Start - End theo dạng dd/mm/yyyy - dd/mm/yyyy.', 'type Start - End as dd/mm/yyyy - dd/mm/yyyy.');
+    if (field === 'brief') return ftr('dán brief thô, càng rõ mục tiêu và phạm vi càng tốt.', 'paste the raw brief — the clearer the goals and scope, the better.');
+    if (field === 'postResult') return ftr('ghi kết quả thật sau launch để lưu bài học.', 'write the actual post-launch result to save a lesson.');
+    if (field === 'lesson') return ftr('ghi bài học ngắn, có thể dùng lại cho launch sau.', 'write a short lesson that can be reused for future launches.');
+    return ftr('chọn thao tác hoặc gõ trực tiếp cho Mission Control.', 'pick an action or type directly in Mission Control.');
   }
 
   function guidanceText(snapshot) {
@@ -1051,7 +1051,7 @@
     chatFlowSteps = [];
     chatFlowIndex = -1;
     chatInputPlaceholder(ftr('Chọn mục cần sửa hoặc gõ nội dung', 'Pick a field to edit or type directly'));
-    updateGuidance('Gợi ý tiếp theo: chọn một mục cần sửa, mình sẽ cập nhật ngay trong Chi tiết launch.');
+    updateGuidance(ftr('Gợi ý tiếp theo: chọn một mục cần sửa, mình sẽ cập nhật ngay trong Chi tiết launch.', 'Next suggestion: pick a field to edit — I will update it in the Launch Details right away.'));
     setChatActions([
       { label: 'Tên launch', action: 'field', value: 'name' },
       { label: 'Phân loại', action: 'field', value: 'type' },
@@ -1111,7 +1111,7 @@
   function promptField(field) {
     chatAwaiting = field;
     setChatActions([]);
-    updateGuidance('Gợi ý tiếp theo: ' + fieldHint(field));
+    updateGuidance(ftr('Gợi ý tiếp theo: ', 'Next suggestion: ') + fieldHint(field));
     if (field === 'name') {
       addChatMessage('agent', ftr('Bạn đặt tên launch là gì?', 'What should we call this launch?'));
       chatInputPlaceholder(ftr('Ví dụ: Golden Spin Weekend', 'e.g. Golden Spin Weekend'));
@@ -1457,7 +1457,7 @@
     addChatMessage('agent', briefReviewText());
     addChatMessage('agent', ftr('Bạn đã chốt final brief chưa? Gõ "phân tích" để chạy phân tích trước launch, "xem lại" để xem brief, hoặc "sửa" để chỉnh tiếp.', 'Is the brief finalized? Type "analyze" to run pre-launch analysis, "review" to read the brief, or "edit" to keep adjusting.'));
     setNpcSpeech(ftr('Đang chờ Human chốt final trước phân tích pre-launch.', 'Waiting for final confirmation before pre-launch analysis.'));
-    updateGuidance('Gợi ý tiếp theo: chốt final rồi mới chạy phân tích trước launch.');
+    updateGuidance(ftr('Gợi ý tiếp theo: chốt final rồi mới chạy phân tích trước launch.', 'Next suggestion: finalise the brief before running the pre-launch analysis.'));
     chatInputPlaceholder(ftr('Gõ: phân tích / xem lại / sửa', 'Type: analyze / review / edit'));
     setChatActions([
       { label: 'Phân tích ngay', action: 'final-analyze' },
@@ -1494,7 +1494,7 @@
     if (isSummaryIntent(value)) {
       addChatMessage('agent', launchSummaryText());
       setNpcSpeech(ftr('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarising the current launch status.'));
-      updateGuidance('Gợi ý tiếp theo: hỏi tiếp về rule, rủi ro, checklist hoặc chốt phân tích trước launch.');
+      updateGuidance(ftr('Gợi ý tiếp theo: hỏi tiếp về rule, rủi ro, checklist hoặc chốt phân tích trước launch.', 'Next suggestion: ask about rules, risks, or checklist, or finalise the pre-launch analysis.'));
       setChatActions(friendlySupportActions());
       return;
     }
@@ -1502,7 +1502,7 @@
     if (isSupportIntent(value)) {
       addChatMessage('agent', supportText(value));
       setNpcSpeech(ftr('Đang giải thích theo ngữ cảnh thao tác của Human.', 'Explaining based on current action context.'));
-      updateGuidance('Gợi ý tiếp theo: hỏi rõ phần bạn muốn hiểu, hoặc quay lại tạo/sửa launch.');
+      updateGuidance(ftr('Gợi ý tiếp theo: hỏi rõ phần bạn muốn hiểu, hoặc quay lại tạo/sửa launch.', 'Next suggestion: ask about the part you want to understand, or go back to create/edit a launch.'));
       setChatActions(friendlySupportActions());
       return;
     }
@@ -1677,7 +1677,7 @@
       setStep(0);
       addChatMessage('agent', ftr('Mình đang chạy phân tích trước launch. Khi xong, readiness, Red Team và checklist sẽ cập nhật bằng dữ liệu thật.', 'Running pre-launch analysis. When done, readiness, Red Team, and checklist will update with real data.'));
       setNpcSpeech(ftr('Đang phân tích trước launch từ brief đã chốt.', 'Running pre-launch analysis from the finalized brief.'));
-      updateGuidance('Gợi ý tiếp theo: chờ phân tích xong rồi xem readiness, phản biện và checklist.');
+      updateGuidance(ftr('Gợi ý tiếp theo: chờ phân tích xong rồi xem readiness, phản biện và checklist.', 'Next suggestion: wait for analysis to finish, then review readiness, red team, and checklist.'));
       setChatActions([
         { label: 'Xem readiness', action: 'step', value: '1' },
         { label: 'Xem Red Team', action: 'step', value: '2' },

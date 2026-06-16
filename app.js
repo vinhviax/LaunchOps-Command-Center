@@ -2521,7 +2521,7 @@ function collectChecklistProgress() {
 function renderChecklist(items = activeTemplate().checklist) {
   collectChecklistProgress();
   if (!items?.length) {
-    checklistRows.innerHTML = `<div class="empty-state">Chưa có danh sách việc cần làm.</div>`;
+    checklistRows.innerHTML = `<div class="empty-state">${tr("Chưa có danh sách việc cần làm.", "No to-do items yet.")}</div>`;
     return;
   }
 
@@ -5034,14 +5034,14 @@ function templateOptionsForAssistant() {
 }
 
 function assistantCancelOptions() {
-  return [{ label: "Hủy", value: "assistant:cancel" }];
+  return [{ label: tr("Hủy", "Cancel"), value: "assistant:cancel" }];
 }
 
 function assistantConfirmOptions() {
   return [
-    { label: "Xác nhận tạo launch", value: "wizard:create:confirm" },
-    { label: "Sửa lại brief", value: "wizard:create:editBrief" },
-    { label: "Hủy", value: "assistant:cancel" }
+    { label: tr("Xác nhận tạo launch", "Confirm create launch"), value: "wizard:create:confirm" },
+    { label: tr("Sửa lại brief", "Edit brief"), value: "wizard:create:editBrief" },
+    { label: tr("Hủy", "Cancel"), value: "assistant:cancel" }
   ];
 }
 
@@ -5094,7 +5094,7 @@ function startCreateLaunchWizard() {
     }
   };
   return {
-    reply: "Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, launch này thuộc phân loại/function nào?",
+    reply: tr("Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, launch này thuộc phân loại/function nào?", "I will help you create a new launch step by step. First, what type/function does this launch belong to?"),
     options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()]
   };
 }
@@ -5118,7 +5118,7 @@ function startEditLaunchWizard() {
       { label: "Owner", value: "wizard:edit:field:owner" },
       { label: "Start/End Launch", value: "wizard:edit:field:date" },
       { label: "Nội dung brief", value: "wizard:edit:field:brief" },
-      { label: "Hủy", value: "assistant:cancel" }
+      { label: tr("Hủy", "Cancel"), value: "assistant:cancel" }
     ]
   };
 }
@@ -5322,8 +5322,8 @@ function handleEditWizardInput(rawText) {
     return {
       reply: `Tôi sẽ cập nhật phần này trên form nhưng chưa tự deploy hay đổi cấu hình chung.\n\nNội dung mới:\n${value}\n\nBạn xác nhận sửa không?`,
       options: [
-        { label: "Xác nhận sửa", value: "wizard:edit:confirm" },
-        { label: "Hủy", value: "assistant:cancel" }
+        { label: tr("Xác nhận sửa", "Confirm edit"), value: "wizard:edit:confirm" },
+        { label: tr("Hủy", "Cancel"), value: "assistant:cancel" }
       ]
     };
   }

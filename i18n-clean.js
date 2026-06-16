@@ -73,6 +73,13 @@ const CLEAN_I18N_DICT = {
     tabHistory: "Lịch sử",
     tabLessons: "Bài học",
     tabLog: "Log",
+    vizAgentReady: "Sẵn sàng",
+    vizSpeechIdle: "Đang chờ lệnh. Nếu bạn nhập gì, tôi sẽ gắn vào launch đang mở.",
+    vizVerdictIdle: "Chưa phân tích",
+    vizScoreIdle: "Chưa có điểm",
+    vizBriefMissingIdle: "Agent sẽ đọc phần còn thiếu sau khi có kết quả.",
+    vizChatSubtitle: "Chọn nhanh hoặc gõ từng ý để tạo/sửa launch.",
+    vizTypedIdle: "Gợi ý tiếp theo: chọn thao tác hoặc gõ trực tiếp cho Mission Control.",
     vizKicker: "Friendly mode",
     vizTitle: "Visualize 5 bước trước khi launch",
     vizReplay: "Về bước 1",
@@ -181,6 +188,13 @@ const CLEAN_I18N_DICT = {
     tabHistory: "History",
     tabLessons: "Lessons",
     tabLog: "Log",
+    vizAgentReady: "Ready",
+    vizSpeechIdle: "Waiting for your command. If you type something, I will apply it to the open launch.",
+    vizVerdictIdle: "Not analyzed",
+    vizScoreIdle: "No score yet",
+    vizBriefMissingIdle: "The Agent will identify missing parts after analysis.",
+    vizChatSubtitle: "Pick a quick action or type to create/edit a launch.",
+    vizTypedIdle: "Next suggestion: pick an action or type directly in Mission Control.",
     vizKicker: "Friendly mode",
     vizTitle: "Visualize the 5 pre-launch steps",
     vizReplay: "Back to step 1",
@@ -479,6 +493,34 @@ function applyCleanTranslations(lang) {
   document.querySelectorAll("#friendlyVisualize .friendly-viz-step b").forEach((label, index) => {
     if (dict.vizSteps[index]) label.textContent = dict.vizSteps[index];
   });
+
+  // Friendly viz idle-state strings (only overwrite when still showing either VI or EN idle text)
+  const vizAgentName = document.getElementById("friendlyVizAgentName");
+  if (vizAgentName && /^(Sẵn sàng|Ready)$/.test(vizAgentName.textContent.trim())) {
+    vizAgentName.textContent = dict.vizAgentReady;
+  }
+  const vizSpeech = document.getElementById("friendlyVizSpeech");
+  if (vizSpeech && /Đang chờ lệnh|Waiting for your command/.test(vizSpeech.textContent)) {
+    vizSpeech.textContent = dict.vizSpeechIdle;
+  }
+  const vizVerdict = document.getElementById("friendlyVizVerdict");
+  if (vizVerdict && /^(Chưa phân tích|Not analyzed)$/.test(vizVerdict.textContent.trim())) {
+    vizVerdict.textContent = dict.vizVerdictIdle;
+  }
+  const vizScore = document.getElementById("friendlyVizScore");
+  if (vizScore && /^(Chưa có điểm|No score yet)$/.test(vizScore.textContent.trim())) {
+    vizScore.textContent = dict.vizScoreIdle;
+  }
+  const vizBriefMissing = document.getElementById("friendlyVizBriefMissing");
+  if (vizBriefMissing && /Agent sẽ đọc phần còn thiếu|The Agent will identify missing/.test(vizBriefMissing.textContent)) {
+    vizBriefMissing.textContent = dict.vizBriefMissingIdle;
+  }
+  const vizChatSubEl = document.querySelector(".friendly-chat-head > div > span");
+  if (vizChatSubEl) vizChatSubEl.textContent = dict.vizChatSubtitle;
+  const vizTyped = document.getElementById("friendlyVizTyped");
+  if (vizTyped && /Gợi ý tiếp theo.*Mission Control|Next suggestion.*Mission Control/.test(vizTyped.textContent)) {
+    vizTyped.textContent = dict.vizTypedIdle;
+  }
 
   // Friendly visualize stage titles (4 stages, in order)
   const vizTitleTexts = [dict.vizTitleReadiness, dict.vizTitleRedteam, dict.vizTitleTasks, dict.vizTitleLessons];
