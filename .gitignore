@@ -16,6 +16,4 @@ node_modules/
 .agents/
 .claude/
 server/launchops.db
-.agentbase/
 Clawathon/
-.agentbase/
