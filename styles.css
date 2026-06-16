@@ -1242,8 +1242,25 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   justify-content: center;
   gap: 1px;
   min-width: 132px;
-  padding: 12px;
+  position: relative;
+  padding: 12px 28px 12px 12px;
   border-right: 1px solid var(--line);
+}
+
+.decision-card .card-kicker .help-button::after {
+  bottom: auto;
+  top: calc(100% + 9px);
+  left: 0;
+  transform: none;
+}
+
+.decision-card .card-kicker .help-button::before {
+  bottom: auto;
+  top: calc(100% + 4px);
+  left: 7px;
+  border-top-color: transparent;
+  border-bottom-color: var(--ink-deep-2);
+  transform: none;
 }
 
 .metric:last-child {
@@ -1251,9 +1268,11 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 }
 
 .metric span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
+  max-width: 100%;
+  padding-right: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 8.5px;
   font-weight: 800;
@@ -1264,8 +1283,10 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 
 /* Chống "?" trong metric bị co/đè lên nhãn khi chật */
 .metric span .help-button.inline {
-  flex: 0 0 auto;
-  margin-left: 1px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin-left: 0;
 }
 
 .metric strong {
@@ -1298,11 +1319,13 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 .score-metric.green { box-shadow: inset 4px 0 0 var(--green); }
 .score-metric.yellow { box-shadow: inset 4px 0 0 #d9a400; }
 .score-metric.red { box-shadow: inset 4px 0 0 var(--red); }
+.score-metric.unknown { box-shadow: inset 4px 0 0 var(--muted-2); }
 
 .score-metric #scoreValue { font-size: 24px; line-height: 1.1; }
 .score-metric.green #scoreValue, .score-metric.green #scoreColor { color: var(--green); }
 .score-metric.yellow #scoreValue, .score-metric.yellow #scoreColor { color: var(--yellow); }
 .score-metric.red #scoreValue, .score-metric.red #scoreColor { color: var(--red); }
+.score-metric.unknown #scoreValue, .score-metric.unknown #scoreColor { color: var(--muted); }
 
 #scoreColor {
   font-weight: 800;
@@ -1310,13 +1333,11 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 
 /* Hàng nút thao tác — nằm sát nội dung brief để người dùng chạy/lưu sau khi đọc guideline */
 .detail-actions {
-  display: flex;
-  flex-direction: column;
+  display: block;
   align-items: flex-start;
-  gap: 6px;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
-  margin: 12px 0 4px;
+  margin: 10px 0 4px;
 }
 
 .action-button-row {
@@ -1325,7 +1346,7 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
   align-items: center;
   justify-content: flex-start;
   gap: 9px;
-  width: auto;
+  width: 100%;
   max-width: 100%;
   padding: 8px;
   border: 1px solid var(--line);
@@ -1361,18 +1382,21 @@ body.ui-mode-pro .launch-card.readiness-red::before { background: #e25a50; }
 }
 
 .analysis-run-status {
-  width: min(420px, 100%);
-  min-height: 30px;
-  display: flex;
+  width: auto;
+  max-width: 340px;
+  min-height: 28px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  margin-left: auto;
+  padding: 5px 10px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   line-height: 1.35;
+  text-align: center;
   visibility: hidden;
 }
 
@@ -1700,6 +1724,7 @@ textarea {
 
 .decision-card.green::before { background: linear-gradient(90deg, var(--green), #2ebd77); }
 .decision-card.red::before { background: linear-gradient(90deg, var(--red), #e25a50); }
+.decision-card.unknown::before { background: linear-gradient(90deg, var(--muted-2), var(--line-strong)); }
 
 .decision-main {
   display: flex;

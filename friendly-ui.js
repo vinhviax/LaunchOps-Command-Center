@@ -6,8 +6,7 @@
   'use strict';
 
   var STORAGE_KEY = 'launchops_ui_mode';
-  // Mac dinh Friendly sau khi da test xong layout Visualize.
-  var DEFAULT_MODE = 'friendly';
+  var DEFAULT_MODE = 'pro';
 
   function getMode() {
     try {
@@ -15,6 +14,18 @@
     } catch (e) {
       return DEFAULT_MODE;
     }
+  }
+
+  function friendlyLang() {
+    try {
+      return localStorage.getItem('launchops_lang') === 'en' ? 'en' : 'vi';
+    } catch (e) {
+      return 'vi';
+    }
+  }
+
+  function ftr(vi, en) {
+    return friendlyLang() === 'en' ? en : vi;
   }
 
   function applyMode(mode) {
@@ -316,7 +327,7 @@
     if (state === 'green') return 'Green' + (score ? ' ' + score[0] : '');
     if (state === 'yellow') return 'Yellow' + (score ? ' ' + score[0] : '');
     if (state === 'red') return 'Red' + (score ? ' ' + score[0] : '');
-    return 'Chưa chấm';
+    return ftr('Chưa chấm', 'Not scored');
   }
 
   function enhanceLaunchCards() {
@@ -372,7 +383,7 @@
     showHomeActions();
     refreshChatSummary();
     refreshPostLaunchPanel();
-    addChatMessage('agent', 'Mình đã chuyển sang launch này. Lịch sử chat đã reset để không lẫn với launch trước.');
+    addChatMessage('agent', ftr('Mình đã chuyển sang launch này. Lịch sử chat đã reset để không lẫn với launch trước.', 'I switched to this launch. Chat history was reset so it does not mix with the previous launch.'));
     setNpcSpeech('Đã đổi launch, tôi đang đọc trạng thái mới.');
     updateGuidance();
   }
@@ -796,6 +807,9 @@
     'Hỗ trợ / giải thích': 'Help / explain',
     'Lưu launch': 'Save launch',
     'Nạp Brief Mẫu': 'Load Sample Brief',
+    'Xóa launch này': 'Delete launch',
+    'Demo mode': 'Demo mode',
+    'Export report': 'Export report',
     'Phân loại': 'Type',
     'Phân tích ngay': 'Analyze now',
     'Quay lại': 'Back',
@@ -865,7 +879,7 @@
 
   function chatInputPlaceholder(text) {
     var input = byId('friendlyChatInput');
-    if (input) input.placeholder = text || 'Gõ câu trả lời hoặc dán brief ở đây';
+    if (input) input.placeholder = text || ftr('Gõ câu trả lời hoặc dán brief ở đây', 'Type an answer or paste the brief here');
   }
 
   function fieldHint(field) {
@@ -880,11 +894,11 @@
   }
 
   function guidanceText(snapshot) {
-    if (chatAwaiting) return 'Gợi ý tiếp theo: ' + fieldHint(chatAwaiting);
-    if (chatFlow === 'new') return 'Gợi ý tiếp theo: mình sẽ tự dẫn từng mục cho tới khi đủ launch brief.';
-    if (!snapshot || snapshot.state === 'idle') return 'Gợi ý tiếp theo: tạo/sửa launch bằng chat, hoặc chạy phân tích khi brief đã đủ.';
-    if (snapshot.topRisks && snapshot.topRisks.length) return 'Gợi ý tiếp theo: xử lý "' + shorten(snapshot.topRisks[0], 86) + '" trước khi launch.';
-    return 'Gợi ý tiếp theo: xem readiness, phản biện và checklist trước khi lưu quyết định.';
+    if (chatAwaiting) return ftr('Gợi ý tiếp theo: ', 'Next suggestion: ') + fieldHint(chatAwaiting);
+    if (chatFlow === 'new') return ftr('Gợi ý tiếp theo: mình sẽ tự dẫn từng mục cho tới khi đủ launch brief.', 'Next suggestion: I will walk through each field until the launch brief is complete.');
+    if (!snapshot || snapshot.state === 'idle') return ftr('Gợi ý tiếp theo: tạo/sửa launch bằng chat, hoặc chạy phân tích khi brief đã đủ.', 'Next suggestion: create/edit a launch in chat, or run analysis when the brief is ready.');
+    if (snapshot.topRisks && snapshot.topRisks.length) return ftr('Gợi ý tiếp theo: xử lý "', 'Next suggestion: fix "') + shorten(snapshot.topRisks[0], 86) + ftr('" trước khi launch.', '" before launch.');
+    return ftr('Gợi ý tiếp theo: xem readiness, phản biện và checklist trước khi lưu quyết định.', 'Next suggestion: review readiness, red-team notes, and checklist before saving the decision.');
   }
 
   function updateGuidance(text) {
@@ -1014,7 +1028,7 @@
     chatFlow = '';
     chatFlowSteps = [];
     chatFlowIndex = -1;
-    chatInputPlaceholder('Gõ yêu cầu, ví dụ: đổi owner thành PM LiveOps');
+    chatInputPlaceholder(ftr('Gõ yêu cầu, ví dụ: đổi owner thành PM LiveOps', 'Type a request, e.g. change owner to PM LiveOps'));
     updateGuidance();
     setChatActions([
       { label: 'Tạo launch mới', action: 'new' },
@@ -1022,6 +1036,8 @@
       { label: 'Tổng hợp launch', action: 'summarize' },
       { label: 'Hỗ trợ / giải thích', action: 'support' },
       { label: 'Nạp Brief Mẫu', action: 'sample' },
+      { label: 'Lưu launch', action: 'save' },
+      { label: 'Xóa launch này', action: 'delete' },
       { label: 'Chạy phân tích', action: 'analyze' },
       { label: 'Demo mode', action: 'demo' },
       { label: 'Export report', action: 'export' },
@@ -1052,7 +1068,7 @@
     var real = byId(realId);
     if (!real) return false;
     if (real.disabled) {
-      addChatMessage('agent', 'Bản demo hiện mở full quyền thao tác. Nếu nút chưa dùng được, hãy kiểm tra launch đã có dữ liệu hợp lệ hoặc mở Pro để xem chi tiết.');
+      addChatMessage('agent', ftr('Bản demo hiện mở full quyền thao tác. Nếu nút chưa dùng được, hãy kiểm tra launch đã có dữ liệu hợp lệ hoặc mở Pro để xem chi tiết.', 'This demo allows full actions. If a button is not available, check that the launch has valid data or switch to Pro for details.'));
       return false;
     }
     setControlValue(real, value);
@@ -1067,7 +1083,7 @@
   function clickRealButton(realId) {
     var real = byId(realId);
     if (!real || real.disabled) {
-      addChatMessage('agent', 'Nút này hiện chưa dùng được với dữ liệu launch hiện tại. Hãy kiểm tra brief hoặc trạng thái launch rồi thử lại.');
+      addChatMessage('agent', ftr('Nút này hiện chưa dùng được với dữ liệu launch hiện tại. Hãy kiểm tra brief hoặc trạng thái launch rồi thử lại.', 'This button is not available for the current launch data. Check the brief or launch status, then try again.'));
       return false;
     }
     real.click();
@@ -1780,16 +1796,16 @@
       return;
     }
     if (action === 'sample') {
-      addChatMessage('human', 'Nạp Brief Mẫu');
+      addChatMessage('human', ftr('Nạp Brief Mẫu', 'Load Sample Brief'));
       if (clickRealButton('loadBadBrief')) {
         setTimeout(function () {
           syncFriendlyFormFromReal();
           persistActiveFriendlySession(true);
           refreshFriendlyDetailPreview();
           refreshChatSummary();
-          addChatMessage('agent', 'Đã nạp brief mẫu. Bạn có thể sửa brief hoặc chạy phân tích.');
-          setNpcSpeech('Brief mẫu đã được nạp, tôi đang chờ bạn kiểm tra lại.');
-          updateGuidance('Gợi ý tiếp theo: kiểm tra brief rồi bấm Chạy phân tích.');
+          addChatMessage('agent', ftr('Đã nạp brief mẫu. Bạn có thể sửa brief hoặc chạy phân tích.', 'Sample brief loaded. You can edit the brief or run analysis.'));
+          setNpcSpeech(ftr('Brief mẫu đã được nạp, tôi đang chờ bạn kiểm tra lại.', 'Sample brief is loaded. I am waiting for you to review it.'));
+          updateGuidance(ftr('Gợi ý tiếp theo: kiểm tra brief rồi bấm Chạy phân tích.', 'Next suggestion: review the brief, then click Run analysis.'));
         }, 100);
       }
       return;
@@ -1816,31 +1832,31 @@
       return;
     }
     if (action === 'save') {
-      addChatMessage('human', 'Lưu launch');
+      addChatMessage('human', ftr('Lưu launch', 'Save launch'));
       syncLaunchFieldsFromFriendly();
       persistActiveFriendlySession(true);
       scheduleFriendlySaveCleanup(activeFriendlyDraftId, activeRealLaunchId());
       if (clickRealButton('saveLaunch')) {
-        addChatMessage('agent', 'Mình đã gửi lệnh lưu bằng nút Lưu launch thật.');
-        setNpcSpeech('Đang lưu launch vào dữ liệu thật.');
+        addChatMessage('agent', ftr('Mình đã gửi lệnh lưu bằng nút Lưu launch thật.', 'I triggered the real Save launch button.'));
+        setNpcSpeech(ftr('Đang lưu launch vào dữ liệu thật.', 'Saving the launch into real data.'));
       }
       return;
     }
     if (action === 'delete') {
-      addChatMessage('human', 'Xóa launch này');
+      addChatMessage('human', ftr('Xóa launch này', 'Delete launch'));
       var deleteBtn = byId('deleteLaunch');
       if (!deleteBtn) {
-        addChatMessage('agent', 'Mình không tìm thấy nút xóa thật trên giao diện. Có thể launch này không hỗ trợ xóa, hoặc bạn cần mở Pro mode để thao tác trực tiếp.');
-        setNpcSpeech('Không tìm thấy nút xóa.');
+        addChatMessage('agent', ftr('Mình không tìm thấy nút xóa thật trên giao diện. Có thể launch này không hỗ trợ xóa, hoặc bạn cần mở Pro mode để thao tác trực tiếp.', 'I could not find the real delete button. This launch may not support deletion, or you may need Pro mode to act directly.'));
+        setNpcSpeech(ftr('Không tìm thấy nút xóa.', 'Delete button not found.'));
         return;
       }
       if (deleteBtn.disabled) {
-        addChatMessage('agent', 'Launch này hiện chưa xóa được, thường vì launch nháp chưa có id hoặc dữ liệu chưa lưu. Hãy lưu launch rồi thử lại trong Pro mode nếu cần.');
-        setNpcSpeech('Quyền xóa bị khóa.');
+        addChatMessage('agent', ftr('Launch này hiện chưa xóa được, thường vì launch nháp chưa có id hoặc dữ liệu chưa lưu. Hãy lưu launch rồi thử lại trong Pro mode nếu cần.', 'This launch cannot be deleted yet, usually because a draft has no id or saved data. Save it first, then try again in Pro mode if needed.'));
+        setNpcSpeech(ftr('Quyền xóa bị khóa.', 'Delete is locked.'));
         return;
       }
-      addChatMessage('agent', 'Mình đang gửi lệnh xóa launch này. Trình duyệt sẽ hỏi xác nhận — bạn bấm OK nếu chắc chắn muốn xóa.');
-      setNpcSpeech('Đang xóa launch hiện tại theo lệnh.');
+      addChatMessage('agent', ftr('Mình đang gửi lệnh xóa launch này. Trình duyệt sẽ hỏi xác nhận — bạn bấm OK nếu chắc chắn muốn xóa.', 'I am sending the delete command. The browser will ask for confirmation; click OK only if you are sure.'));
+      setNpcSpeech(ftr('Đang xóa launch hiện tại theo lệnh.', 'Deleting the current launch as requested.'));
       // app.js gắn handler vào click → sẽ confirm() rồi xóa
       deleteBtn.click();
       // Refresh chat sau khi xóa xong (DOM đã đổi launch khác)
@@ -1852,26 +1868,26 @@
       return;
     }
     if (action === 'analyze') {
-      addChatMessage('human', 'Chạy phân tích');
+      addChatMessage('human', ftr('Chạy phân tích', 'Run analysis'));
       showPreAnalyzeDecision();
       return;
     }
     if (action === 'final-analyze') {
-      addChatMessage('human', 'Phân tích ngay');
+      addChatMessage('human', ftr('Phân tích ngay', 'Analyze now'));
       runPreLaunchAnalyze();
       return;
     }
     if (action === 'final-review') {
-      addChatMessage('human', 'Xem lại brief');
+      addChatMessage('human', ftr('Xem lại brief', 'Review brief'));
       addChatMessage('agent', briefReviewText());
-      addChatMessage('agent', 'Nếu đã ổn, gõ "phân tích" hoặc bấm Phân tích ngay. Nếu cần sửa, gõ "sửa".');
+      addChatMessage('agent', ftr('Nếu đã ổn, gõ "phân tích" hoặc bấm Phân tích ngay. Nếu cần sửa, gõ "sửa".', 'If it looks good, type "analyze" or click Analyze now. If it needs changes, type "edit".'));
       chatAwaiting = 'finalDecision';
       return;
     }
     if (action === 'final-edit') {
-      addChatMessage('human', 'Chỉnh sửa lại');
+      addChatMessage('human', ftr('Chỉnh sửa lại', 'Edit again'));
       showEditActions();
-      addChatMessage('agent', 'Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.');
+      addChatMessage('agent', ftr('Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.', 'Which part should we edit first? Pick a button or type directly.'));
       return;
     }
     if (action === 'lesson') {
@@ -1929,7 +1945,7 @@
     var lessonInput = byId('friendlyLessonChatInput');
     if (chatSeeded || !form || !actions || !input) return;
     chatSeeded = true;
-    addChatMessage('agent', 'Bạn muốn tạo launch mới, sửa launch đang chọn, hay chạy phân tích? Mình sẽ hỏi từng bước và tự điền vào LaunchOps.');
+    addChatMessage('agent', ftr('Bạn muốn tạo launch mới, sửa launch đang chọn, hay chạy phân tích? Mình sẽ hỏi từng bước và tự điền vào LaunchOps.', 'Do you want to create a new launch, edit the selected launch, or run analysis? I will ask step by step and fill LaunchOps for you.'));
     showHomeActions();
     refreshChatSummary();
 
@@ -2027,18 +2043,18 @@
   }
 
   function colorText(state) {
-    if (state === 'green') return 'Xanh';
-    if (state === 'red') return 'Đỏ';
-    if (state === 'yellow') return 'Vàng';
-    return 'Chưa rõ';
+    if (state === 'green') return ftr('Xanh', 'Green');
+    if (state === 'red') return ftr('Đỏ', 'Red');
+    if (state === 'yellow') return ftr('Vàng', 'Yellow');
+    return ftr('Chưa rõ', 'Unknown');
   }
 
   function verdictText(state) {
-    if (state === 'green') return 'Có thể launch';
-    if (state === 'yellow') return 'Cần sửa trước khi launch';
-    if (state === 'red') return 'Dừng để xử lý rủi ro';
-    if (state === 'thinking') return 'Đang phân tích';
-    return 'Chưa phân tích';
+    if (state === 'green') return ftr('Có thể launch', 'Ready to launch');
+    if (state === 'yellow') return ftr('Cần sửa trước khi launch', 'Fix before launch');
+    if (state === 'red') return ftr('Dừng để xử lý rủi ro', 'Stop and fix risks');
+    if (state === 'thinking') return ftr('Đang phân tích', 'Analyzing');
+    return ftr('Chưa phân tích', 'Not analyzed');
   }
 
   function cleanAnalysisLine(value) {
@@ -2050,7 +2066,7 @@
 
   function briefGoal(text) {
     var lines = String(text || '').split(/\n+/).map(normalize).filter(Boolean);
-    if (!lines.length) return 'Brief đang trống. Hãy nhập hoặc chọn launch có brief trước khi chạy phân tích.';
+    if (!lines.length) return ftr('Brief đang trống. Hãy nhập hoặc chọn launch có brief trước khi chạy phân tích.', 'Brief is empty. Enter or select a launch with a brief before running analysis.');
     for (var i = 0; i < lines.length; i++) {
       if (lines[i].charAt(0) !== '-' && lines[i].charAt(0) !== '*') return shorten(lines[i], 150);
     }
@@ -2062,10 +2078,10 @@
     return nodes.map(function (node) {
       var parsed = parseScore(firstText(node, '.risk-score'));
       return {
-        label: firstText(node, 'strong') || 'Nhóm rủi ro',
+        label: firstText(node, 'strong') || ftr('Nhóm rủi ro', 'Risk group'),
         score: parsed.score,
         max: parsed.max,
-        detail: firstText(node, 'small') || firstText(node, '.risk-meaning') || 'Cần kiểm tra thêm.'
+        detail: firstText(node, 'small') || firstText(node, '.risk-meaning') || ftr('Cần kiểm tra thêm.', 'Needs more review.')
       };
     }).filter(function (item) {
       return item.label && item.label.toLowerCase().indexOf('chưa có') === -1;
@@ -2112,10 +2128,10 @@
     return (topRisks || []).slice(0, 3).map(function (risk, index) {
       return {
         initials: 'R' + (index + 1),
-        persona: 'Nhóm phản biện',
+        persona: ftr('Nhóm phản biện', 'Review group'),
         worry: risk,
-        evidence: 'Rủi ro này đang đứng trong top risks của analysis.',
-        fix: 'Cần chốt cách xử lý trong brief hoặc checklist.',
+        evidence: ftr('Rủi ro này đang đứng trong top risks của analysis.', 'This risk appears in the analysis top risks.'),
+        fix: ftr('Cần chốt cách xử lý trong brief hoặc checklist.', 'Lock the mitigation in the brief or checklist.'),
         summary: risk
       };
     });
@@ -2128,7 +2144,7 @@
       var status = firstText(card, '.status-chip strong');
       var deadline = firstText(card, '.timeline-date');
       return {
-        name: firstText(card, 'h4') || 'Việc cần làm',
+        name: firstText(card, 'h4') || ftr('Việc cần làm', 'Task'),
         meta: [owner, deadline || status].filter(Boolean).join(' - ')
       };
     }).filter(function (item) {
@@ -2143,19 +2159,19 @@
       var title = firstText(first, 'h3');
       var item = firstText(first, 'li');
       return {
-        memo: title || 'Đã có câu hỏi post-mortem',
-        detail: item || 'Dùng phần bài học sau launch để ghi lại quyết định và kết quả thật.'
+        memo: title || ftr('Đã có câu hỏi post-mortem', 'Post-mortem questions are ready'),
+        detail: item || ftr('Dùng phần bài học sau launch để ghi lại quyết định và kết quả thật.', 'Use the post-launch lesson area to record decisions and real results.')
       };
     }
     if (topRisks && topRisks.length) {
       return {
-        memo: 'Đã gom rủi ro chính',
+      memo: ftr('Đã gom rủi ro chính', 'Main risks collected'),
         detail: shorten(topRisks[0], 150)
       };
     }
     return {
-      memo: 'Kết quả phân tích đã sẵn sàng',
-      detail: 'Bài học, rủi ro và quyết định sẽ được lưu lại để lần launch sau an toàn hơn.'
+      memo: ftr('Kết quả phân tích đã sẵn sàng', 'Analysis result is ready'),
+      detail: ftr('Bài học, rủi ro và quyết định sẽ được lưu lại để lần launch sau an toàn hơn.', 'Lessons, risks, and decisions will be saved so the next launch is safer.')
     };
   }
 
@@ -2164,7 +2180,7 @@
     var topRisks = collectTopRisks();
     var state = detectState();
     var brief = byId('briefInput') ? byId('briefInput').value : '';
-    var launchName = (byId('launchName') && byId('launchName').value) || ownText(byId('detailTitle')) || 'Launch chưa đặt tên';
+    var launchName = (byId('launchName') && byId('launchName').value) || ownText(byId('detailTitle')) || ftr('Launch chưa đặt tên', 'Untitled launch');
     var launchType = selectedText(byId('launchType')) || 'Launch';
     var lesson = collectLessonText(topRisks);
 
@@ -2177,7 +2193,7 @@
       launchName: normalize(launchName),
       launchType: launchType,
       briefGoal: briefGoal(brief),
-      decision: ownText(byId('decisionTitle')) || 'Chưa có phân tích',
+      decision: ownText(byId('decisionTitle')) || ftr('Chưa có phân tích', 'No analysis yet'),
       gate: ownText(byId('launchGate')) || verdictText(state),
       topRisks: topRisks,
       risks: collectRisks(),
@@ -2208,7 +2224,7 @@
     var box = byId('friendlyVizRiskBars');
     if (!box) return;
     clearNode(box);
-    var items = risks && risks.length ? risks : [{ label: 'Chưa có điểm rủi ro', score: 0, max: 2, detail: '' }];
+    var items = risks && risks.length ? risks : [{ label: ftr('Chưa có điểm rủi ro', 'No risk score yet'), score: 0, max: 2, detail: '' }];
     items.slice(0, 6).forEach(function (risk) {
       var row = makeEl('div', 'friendly-viz-bar');
       var label = makeEl('span', '', shorten(risk.label, 38));
@@ -2231,7 +2247,7 @@
     var box = byId('friendlyVizScoreTopRisks');
     if (!box) return;
     clearNode(box);
-    var items = topRisks && topRisks.length ? topRisks.slice(0, 3) : ['Chưa có top risk rõ ràng'];
+    var items = topRisks && topRisks.length ? topRisks.slice(0, 3) : [ftr('Chưa có top risk rõ ràng', 'No clear top risk yet')];
     items.forEach(function (item) {
       box.appendChild(makeEl('span', 'friendly-viz-score-chip', shorten(item, 54)));
     });
@@ -2241,16 +2257,16 @@
     var box = byId('friendlyVizVoices');
     if (!box) return;
     clearNode(box);
-    var items = voices && voices.length ? voices : [{ initials: 'RT', persona: 'Red Team', worry: 'Chạy phân tích để xem các góc phản biện.', evidence: 'Khi có kết quả thật, từng vai phản biện sẽ hiển thị đầy đủ.', fix: 'Mở brief và bổ sung phần còn thiếu trước launch.', summary: 'Chạy phân tích để xem các góc phản biện.' }];
+    var items = voices && voices.length ? voices : [{ initials: 'RT', persona: 'Red Team', worry: ftr('Chạy phân tích để xem các góc phản biện.', 'Run analysis to see red-team perspectives.'), evidence: ftr('Khi có kết quả thật, từng vai phản biện sẽ hiển thị đầy đủ.', 'When a real result exists, each reviewer role will be shown.'), fix: ftr('Mở brief và bổ sung phần còn thiếu trước launch.', 'Open the brief and add missing parts before launch.'), summary: ftr('Chạy phân tích để xem các góc phản biện.', 'Run analysis to see red-team perspectives.') }];
     items.slice(0, 5).forEach(function (voice, index) {
       var row = makeEl('div', 'friendly-viz-voice');
       row.style.animationDelay = (index * 0.16) + 's';
       row.appendChild(makeEl('div', 'friendly-viz-avatar', shorten(voice.initials || 'RT', 3)));
       var body = makeEl('div', 'friendly-viz-voice-body');
       body.appendChild(makeEl('b', '', voice.persona || 'Red Team'));
-      body.appendChild(makeVoiceLine('Lo ngại', voice.worry || voice.concern || ''));
-      if (voice.evidence) body.appendChild(makeVoiceLine('Dấu hiệu', voice.evidence));
-      if (voice.fix) body.appendChild(makeVoiceLine('Cách xử lý', voice.fix));
+      body.appendChild(makeVoiceLine(ftr('Lo ngại', 'Concern'), voice.worry || voice.concern || ''));
+      if (voice.evidence) body.appendChild(makeVoiceLine(ftr('Dấu hiệu', 'Evidence'), voice.evidence));
+      if (voice.fix) body.appendChild(makeVoiceLine(ftr('Cách xử lý', 'Fix'), voice.fix));
       if (voice.summary) body.appendChild(makeEl('p', 'friendly-viz-voice-summary', shorten(voice.summary, 170)));
       row.appendChild(body);
       box.appendChild(row);
@@ -2261,7 +2277,7 @@
     var box = byId('friendlyVizTasks');
     if (!box) return;
     clearNode(box);
-    var items = tasks && tasks.length ? tasks : [{ name: 'Chạy phân tích để tạo checklist', meta: 'Agent' }];
+    var items = tasks && tasks.length ? tasks : [{ name: ftr('Chạy phân tích để tạo checklist', 'Run analysis to create checklist'), meta: 'Agent' }];
     items.slice(0, 5).forEach(function (task, index) {
       var row = makeEl('div', 'friendly-viz-task');
       row.style.animationDelay = (index * 0.18) + 's';
@@ -2297,13 +2313,13 @@
     if (lights) lights.setAttribute('data-on', snapshot.state === 'idle' ? 'idle' : snapshot.state);
 
     setText('friendlyVizVerdict', verdictText(snapshot.state));
-    setText('friendlyVizScore', snapshot.state === 'idle' ? 'Chưa có điểm' : snapshot.score.text + ' - ' + snapshot.scoreLabel);
-    setText('friendlyVizScoreDecision', snapshot.decision || 'Chưa có phân tích');
+    setText('friendlyVizScore', snapshot.state === 'idle' ? ftr('Chưa có điểm', 'No score yet') : snapshot.score.text + ' - ' + snapshot.scoreLabel);
+    setText('friendlyVizScoreDecision', snapshot.decision || ftr('Chưa có phân tích', 'No analysis yet'));
     setText('friendlyVizScoreGate', snapshot.gate || verdictText(snapshot.state));
-    setText('friendlyVizScoreReason', snapshot.scoreReason || snapshot.decision || 'Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.');
+    setText('friendlyVizScoreReason', snapshot.scoreReason || snapshot.decision || ftr('Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.', 'Run analysis to see score reasons, verdict, and missing parts.'));
     setText('friendlyVizBriefTitle', snapshot.launchName + ' - ' + snapshot.launchType);
     setText('friendlyVizBriefGoal', snapshot.briefGoal);
-    setText('friendlyVizBriefMissing', snapshot.topRisks.length ? 'Thiếu: ' + snapshot.topRisks.slice(0, 3).map(function (item) { return shorten(item, 48); }).join(' | ') : 'Agent sẽ đọc phần còn thiếu sau khi có kết quả.');
+    setText('friendlyVizBriefMissing', snapshot.topRisks.length ? ftr('Thiếu: ', 'Missing: ') + snapshot.topRisks.slice(0, 3).map(function (item) { return shorten(item, 48); }).join(' | ') : ftr('Agent sẽ đọc phần còn thiếu sau khi có kết quả.', 'The Agent will identify missing parts after analysis.'));
     setText('friendlyVizGaugeNumber', Math.round(snapshot.score.score));
     setText('friendlyVizGaugeMax', '/ ' + Math.round(snapshot.score.max) + ' - ' + snapshot.scoreLabel);
     renderTopRiskChips(snapshot.topRisks);
@@ -2321,26 +2337,26 @@
     var agent = byId('friendlyVizAgentName');
     if (agent) agent.textContent = (STEPS[step] || 'LaunchOps') + ' Agent';
 
-    var speech = 'Đang chờ lệnh. Nếu bạn nhập gì, tôi sẽ gắn vào launch đang mở.';
+    var speech = ftr('Đang chờ lệnh. Nếu bạn nhập gì, tôi sẽ gắn vào launch đang mở.', 'Waiting for your command. If you type something, I will apply it to the open launch.');
     if (snapshot.state === 'thinking') {
-      speech = 'Đang tập trung đọc brief và gom tín hiệu rủi ro.';
+      speech = ftr('Đang tập trung đọc brief và gom tín hiệu rủi ro.', 'Reading the brief and collecting risk signals.');
     } else if (snapshot.state !== 'idle') {
-      if (step === 0) speech = 'Đang soi brief của ' + snapshot.launchType + ', ưu tiên phần còn mơ hồ.';
-      if (step === 1) speech = 'Đang nhìn readiness: ' + snapshot.score.text + ', trạng thái ' + snapshot.scoreLabel + '.';
-      if (step === 2) speech = 'Đang bật chế độ phản biện, ưu tiên câu hỏi khó.';
-      if (step === 3) speech = 'Đang gom việc cần owner và deadline rõ ràng.';
-      if (step === 4) speech = 'Đang chuẩn bị lưu quyết định và bài học cho lần sau.';
+      if (step === 0) speech = ftr('Đang soi brief của ', 'Reviewing the ') + snapshot.launchType + ftr(', ưu tiên phần còn mơ hồ.', ' brief, starting with unclear parts.');
+      if (step === 1) speech = ftr('Đang nhìn readiness: ', 'Reviewing readiness: ') + snapshot.score.text + ftr(', trạng thái ', ', status ') + snapshot.scoreLabel + '.';
+      if (step === 2) speech = ftr('Đang bật chế độ phản biện, ưu tiên câu hỏi khó.', 'Running red-team mode and prioritizing hard questions.');
+      if (step === 3) speech = ftr('Đang gom việc cần owner và deadline rõ ràng.', 'Collecting tasks that need clear owners and deadlines.');
+      if (step === 4) speech = ftr('Đang chuẩn bị lưu quyết định và bài học cho lần sau.', 'Preparing to save decisions and lessons for next time.');
     }
     if (friendlySpeechOverride) speech = friendlySpeechOverride;
     setText('friendlyVizSpeech', speech);
   }
 
   function manualStepSpeech(step) {
-    if (step === 1) return 'Tôi đang nhìn đồng hồ readiness, chưa tự chuyển bước.';
-    if (step === 2) return 'Tôi đang bật mặt khó tính của Red Team.';
-    if (step === 3) return 'Tôi đang lọc việc nào cần chủ sở hữu rõ ràng.';
-    if (step === 4) return 'Tôi đang giữ chỗ cho kết quả và bài học sau launch.';
-    return 'Tôi đang ở Mission Control, chờ thao tác cấu hình launch.';
+    if (step === 1) return ftr('Tôi đang nhìn đồng hồ readiness, chưa tự chuyển bước.', 'I am reviewing the readiness gauge and staying on this step.');
+    if (step === 2) return ftr('Tôi đang bật mặt khó tính của Red Team.', 'I am switching into Red Team mode.');
+    if (step === 3) return ftr('Tôi đang lọc việc nào cần chủ sở hữu rõ ràng.', 'I am filtering tasks that need clear ownership.');
+    if (step === 4) return ftr('Tôi đang giữ chỗ cho kết quả và bài học sau launch.', 'I am holding space for post-launch results and lessons.');
+    return ftr('Tôi đang ở Mission Control, chờ thao tác cấu hình launch.', 'I am at Mission Control, waiting for launch setup actions.');
   }
 
   function clearEffects() {
@@ -2479,16 +2495,16 @@
     }
     if ((kind === 'success' || kind === 'error') && runToken !== lastPlayedToken && hasRealAnalysis()) {
       lastPlayedToken = runToken;
-      addChatMessage('agent', 'Phân tích đã xong. Kết quả thật đã cập nhật vào readiness, Red Team và checklist.');
+      addChatMessage('agent', ftr('Phân tích đã xong. Kết quả thật đã cập nhật vào readiness, Red Team và checklist.', 'Analysis is complete. The real result updated readiness, Red Team, and checklist.'));
       if (analysisAutoAdvancePending) {
         analysisAutoAdvancePending = false;
         setStep(1);
-        addChatMessage('agent', 'Mình đưa bạn sang Chấm điểm để xem kết luận và lý do điểm trước.');
-        setNpcSpeech('Phân tích xong, đang ở bước Chấm điểm.');
-        updateGuidance('Gợi ý tiếp theo: đọc lý do điểm, top risks, rồi chuyển sang Phản biện.');
+        addChatMessage('agent', ftr('Mình đưa bạn sang Chấm điểm để xem kết luận và lý do điểm trước.', 'I moved you to Scoring so you can review the verdict and score reason first.'));
+        setNpcSpeech(ftr('Phân tích xong, đang ở bước Chấm điểm.', 'Analysis complete, now on the Scoring step.'));
+        updateGuidance(ftr('Gợi ý tiếp theo: đọc lý do điểm, top risks, rồi chuyển sang Phản biện.', 'Next suggestion: read the score reason and top risks, then move to Red Team.'));
       } else {
-        setNpcSpeech('Phân tích xong, kết quả đã đồng bộ vào Friendly.');
-        updateGuidance('Gợi ý tiếp theo: dùng Trước/Tiếp ở rail trái để xem readiness, phản biện và checklist.');
+        setNpcSpeech(ftr('Phân tích xong, kết quả đã đồng bộ vào Friendly.', 'Analysis complete, result synced into Friendly.'));
+        updateGuidance(ftr('Gợi ý tiếp theo: dùng Trước/Tiếp ở rail trái để xem readiness, phản biện và checklist.', 'Next suggestion: use Back/Next on the left rail to review readiness, red-team notes, and checklist.'));
       }
     }
     lastStatusKind = kind;
@@ -2618,7 +2634,7 @@
     if (replay) replay.addEventListener('click', function () {
       stopAutoplay();
       setStep(0);
-      addChatMessage('agent', 'Mình đã đưa bạn về bước Đọc brief. Bạn có thể tiếp tục chat để tạo hoặc sửa launch.');
+      addChatMessage('agent', ftr('Mình đã đưa bạn về bước Đọc brief. Bạn có thể tiếp tục chat để tạo hoặc sửa launch.', 'I moved you back to Read brief. You can keep chatting to create or edit the launch.'));
     });
     if (prev) prev.addEventListener('click', function () {
       stopAutoplay();

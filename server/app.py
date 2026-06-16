@@ -42,7 +42,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260616f"
+UI_CACHE_VERSION = "fix-20260616g"
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -3030,11 +3030,20 @@ VI_DIACRITIC_CHARS = set(
 
 
 def detect_brief_language(text: str) -> str:
-    """Best-effort output language: Vietnamese if the brief carries Vietnamese diacritics, else English."""
+    """Best-effort output language: English only when the brief is clearly English; otherwise Vietnamese."""
     if not text:
         return "vi"
-    vi_count = sum(1 for ch in text.lower() if ch in VI_DIACRITIC_CHARS)
-    return "vi" if vi_count >= 3 else "en"
+    lower = text.lower()
+    vi_count = sum(1 for ch in lower if ch in VI_DIACRITIC_CHARS)
+    if vi_count >= 3:
+        return "vi"
+    tokens = re.findall(r"[a-zA-Z]+", lower)
+    english_markers = {
+        "a", "an", "and", "are", "as", "for", "has", "have", "no", "not", "of",
+        "on", "should", "the", "this", "to", "untested", "with", "without",
+    }
+    english_hits = sum(1 for token in tokens if token in english_markers)
+    return "en" if english_hits >= 2 else "vi"
 
 
 # WS2: knowledge records are seeded with a leading [role=...] tag so each agent recalls its own slice.
@@ -3829,42 +3838,54 @@ def orchestrator_agent_summary(brief: str, result: dict[str, Any]) -> tuple[dict
     return None, _agent_trace("orchestrator", "orchestrator", "fallback", {**meta, "fallbackReason": reason, "schemaAccepted": False})
 
 
-def assistant_fallback_reply(message: str, context: dict[str, Any] | None = None, local_reply: str = "") -> str:
+def assistant_fallback_reply(message: str, context: dict[str, Any] | None = None, local_reply: str = "", language: str = "vi") -> str:
     text = str(message or "").strip()
     normalized = unicodedata.normalize("NFD", text.lower())
     normalized = normalized.encode("ascii", "ignore").decode("ascii")
     context = context or {}
     launch_name = context.get("launchName") or "launch hiện tại"
     launch_type = context.get("launchType") or "phân loại hiện tại"
+    english = language == "en"
 
     if re.search(r"thoi tiet|weather|gia vang|bitcoin|coin|bong da|phim|nau an|facebook|youtube|google|tin tuc", normalized):
+        if english:
+            return "I can only help inside LaunchOps Command Center: launch briefs, readiness, red-team review, checklist, lessons, and classification config."
         return "Tôi chỉ hỗ trợ trong phạm vi LaunchOps Command Center: launch brief, readiness, phản biện, checklist, bài học và cấu hình phân loại."
     if local_reply:
         return local_reply
     if "cau hinh" in normalized or "template" in normalized or "bo luat" in normalized:
+        if english:
+            return "Classification config is the shared rule set for each launch type: risk groups, red-team perspectives, checklist, and lessons."
         return "Cấu hình phân loại là bộ luật chung cho từng loại launch. Bản review public chỉ cho xem cấu hình để tránh người review sửa nhầm dữ liệu demo."
     if "diem" in normalized or "readiness" in normalized:
+        if english:
+            return f"The readiness score for {launch_name} is calculated from the rule set for {launch_type}. A lower score means the brief lacks data for a safe launch."
         return f"Mức sẵn sàng của {launch_name} được tính theo bộ luật của {launch_type}. Điểm càng thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn."
     if "checklist" in normalized or "viec can lam" in normalized:
+        if english:
+            return "The checklist tracks tasks by owner, deadline, status, and priority so the team can see what is still missing before launch."
         return "Checklist là danh sách việc cần làm theo owner, deadline, trạng thái và mức ưu tiên để team biết launch còn thiếu gì trước khi chạy."
+    if english:
+        return f"I can help in LaunchOps for {launch_name}: explain readiness, red-team review, checklist, lessons, or actions in this web app."
     return f"Tôi có thể hỗ trợ trong LaunchOps cho {launch_name}: giải thích readiness, phản biện, checklist, bài học hoặc thao tác trong web này."
 
 
-def call_assistant(message: str, context: dict[str, Any] | None = None, local_reply: str = "") -> dict[str, Any]:
+def call_assistant(message: str, context: dict[str, Any] | None = None, local_reply: str = "", language: str = "vi") -> dict[str, Any]:
     config = llm_config_for_step("assistant")
     api_key = config["apiKey"]
     base_url = config["baseUrl"]
     model = config["model"]
     timeout = int(config["timeoutSeconds"])
+    reply_language = "English" if language == "en" else "tiếng Việt"
 
     if not api_key or not base_url or not model:
-        return {"reply": assistant_fallback_reply(message, context, local_reply), "source": "fallback"}
+        return {"reply": assistant_fallback_reply(message, context, local_reply, language), "source": "fallback"}
 
     prompt = f"""
 Bạn là LaunchOps Assistant nằm bên trong LaunchOps Command Center.
 Chỉ trả lời trong phạm vi sản phẩm này: launch brief, readiness, phản biện, checklist, bài học, lịch sử phân tích, cấu hình phân loại và thao tác trong web.
 Không trả lời việc ngoài phạm vi. Không hướng dẫn chỉnh sửa cấu hình vì bản review public đang khóa cấu hình chỉ xem.
-Trả lời ngắn, tiếng Việt, dễ hiểu cho người non-code.
+Trả lời ngắn, bằng {reply_language}, dễ hiểu cho người non-code.
 Bạn chỉ tạo nội dung trả lời; frontend sẽ tự quyết định thao tác UI nếu cần.
 
 Context JSON:
@@ -3909,7 +3930,7 @@ Chỉ trả về JSON hợp lệ:
         parsed = extract_json(content)
         reply = str(parsed.get("reply") or "").strip()
         if not reply:
-            reply = assistant_fallback_reply(message, context, local_reply)
+            reply = assistant_fallback_reply(message, context, local_reply, language)
         return {"reply": reply, "source": "llm"}
 
     executor = ThreadPoolExecutor(max_workers=1)
@@ -3918,10 +3939,10 @@ Chỉ trả về JSON hợp lệ:
         return future.result(timeout=timeout + 5)
     except FutureTimeoutError:
         write_backend_log(f"Assistant LLM call failed: Timeout after {timeout + 5}s")
-        return {"reply": assistant_fallback_reply(message, context, local_reply), "source": "fallback_timeout"}
+        return {"reply": assistant_fallback_reply(message, context, local_reply, language), "source": "fallback_timeout"}
     except Exception as exc:
         write_backend_log(f"Assistant LLM call failed: {type(exc).__name__}")
-        return {"reply": assistant_fallback_reply(message, context, local_reply), "source": "fallback_error"}
+        return {"reply": assistant_fallback_reply(message, context, local_reply, language), "source": "fallback_error"}
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
@@ -4278,8 +4299,9 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 return
             context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
             local_reply = str(payload.get("localReply") or "").strip()
+            language = "en" if str(payload.get("language") or "").lower() == "en" else "vi"
             try:
-                result = call_assistant(message, context, local_reply)
+                result = call_assistant(message, context, local_reply, language)
                 json_response(self, 200, {"ok": True, **result})
             except Exception as exc:
                 write_backend_log(f"Assistant handler crashed: {type(exc).__name__}")
@@ -4288,7 +4310,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     200,
                     {
                         "ok": True,
-                        "reply": assistant_fallback_reply(message, context, local_reply),
+                        "reply": assistant_fallback_reply(message, context, local_reply, language),
                         "source": "fallback_exception",
                     },
                 )

@@ -31,9 +31,26 @@ class DetectBriefLanguageTests(unittest.TestCase):
     def test_empty_defaults_vi(self):
         self.assertEqual(app.detect_brief_language(""), "vi")
 
-    def test_ascii_vietnamese_without_diacritics_falls_back_en(self):
-        # Known limitation: Vietnamese typed without diacritics is treated as English.
-        self.assertEqual(app.detect_brief_language("Su kien quay thuong cuoi tuan"), "en")
+    def test_ascii_vietnamese_without_diacritics_defaults_vi(self):
+        self.assertEqual(app.detect_brief_language("Su kien quay thuong cuoi tuan"), "vi")
+
+    def test_english_prompt_requires_english_output(self):
+        prompt = app.build_prompt(
+            "Lucky Spin event. No owner, no rollback plan, no CS FAQ.",
+            {"name": "Lucky Spin", "type": "lucky_spin_event"},
+            "readiness",
+        )
+        self.assertIn("MUST be written in English", prompt)
+        self.assertNotIn("PHẢI viết bằng tiếng Việt", prompt)
+
+    def test_non_english_prompt_requires_vietnamese_output(self):
+        prompt = app.build_prompt(
+            "Campana de ruleta sin owner claro ni plan rollback.",
+            {"name": "Lucky Spin", "type": "lucky_spin_event"},
+            "readiness",
+        )
+        self.assertIn("PHẢI viết bằng tiếng Việt", prompt)
+        self.assertNotIn("MUST be written in English", prompt)
 
 
 class LegacyEncodingRepairTests(unittest.TestCase):

@@ -1,10 +1,18 @@
 # LaunchOps Command Center
 
 > Updated: 2026-06-16 — production runs on VNG AgentBase, image `v33`, runtime version 46, UI cache `fix-20260616f`, storage backend `cloud`, mode `remote_agents`.
+> Source `main` now includes UI polish `fix-20260616g`; production remains on `fix-20260616f` until the next rollout.
 
 LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launch brief, and the system scores readiness as Green/Yellow/Red, runs a 5-persona Red Team review, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for future launches.
 
 **Live demo:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
+
+## Judge Demo Flow
+
+1. Open a Golden Spin / Lucky Wheel brief that is missing operational details.
+2. Click **Run analysis** to see Yellow/Red readiness, 5 Red Team perspectives, and an owner/deadline checklist.
+3. Improve the brief or select a Green launch to show a full score with no open risks.
+4. After launch, enter **Post-launch results** and a new lesson; the next analysis can use that lesson as context.
 
 ## Current Status
 
@@ -84,6 +92,7 @@ LaunchOps has two protection layers:
 - **Platform Guardrail/Rate Limit:** created in Protect & Govern to protect MaaS/model access.
 
 Platform Policy Gateway is intentionally not enabled yet because an overly strict policy can block MCP/OpenClaw. It should be added last with broad allow rules first, then tightened.
+Policy Gateway/IAM is optional production hardening for MCP. It is not required to run the local demo or review the Web UI flow.
 
 ## MCP and OpenClaw
 
@@ -109,8 +118,8 @@ OpenClaw can connect through `npx mcp-remote <endpoint>/mcp`.
 
 ## Web UI
 
-- **Friendly mode:** default reviewer experience with guided flow and step visualization.
-- **Pro mode:** full operations dashboard with readiness, Red Team, checklist, post-mortem, RAG insight, and trace.
+- **Pro mode:** default experience, with the full operations dashboard for readiness, Red Team, checklist, post-mortem, RAG insight, and trace.
+- **Friendly mode:** guided step-by-step visualization for reviewers or demos.
 - **Admin log:** open with `?role=admin` to inspect client events and server trace per launch.
 - **VI/EN:** UI is bilingual; LLM output follows the brief language.
 - **Responsive:** mobile overflow is fixed while desktop UI/UX remains unchanged.
@@ -126,6 +135,11 @@ PORT=8788 python server/app.py
 ```
 
 Open `http://127.0.0.1:8788/`.
+
+### Two Local Modes
+
+- **Local demo mode:** runs immediately on a personal machine with no AgentBase, MaaS key, Memory, or vDB. The app uses deterministic rule fallback to generate readiness, Red Team cards, checklist, and post-mortem samples.
+- **Full AgentBase mode:** the user provisions their own MaaS key, AgentBase Memory, VNG vDB/PostgreSQL, 4 child runtimes, and MCP Gateway/IAM, then fills the matching `.env`. The local backend can then call real LLMs, save to cloud DB, and use memory/remote agents like production.
 
 ## Important Env Vars
 

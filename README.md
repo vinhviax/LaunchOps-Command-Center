@@ -1,10 +1,18 @@
 # LaunchOps Command Center
 
 > Cập nhật: 16/06/2026 — production đang chạy trên VNG AgentBase, image `v33`, runtime version 46, UI cache `fix-20260616f`, storage backend `cloud`, mode `remote_agents`.
+> Source `main` hiện có bản UI polish `fix-20260616g`; production vẫn ở `fix-20260616f` cho tới rollout tiếp theo.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**. Người dùng dán launch brief, hệ thống chấm readiness Green/Yellow/Red, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, viết post-mortem questions và lưu bài học cho các lần launch sau.
 
 **Demo live:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
+
+## Flow demo cho giám khảo
+
+1. Mở Golden Spin / Lucky Wheel brief còn thiếu dữ liệu.
+2. Bấm **Run analysis / Chạy phân tích** để xem readiness Yellow/Red, Red Team 5 góc nhìn và checklist có owner/deadline.
+3. Bổ sung brief hoặc chọn launch Green để thấy full score, không còn rủi ro mở.
+4. Sau launch, nhập **Post-launch results / Kết quả sau launch** và lesson mới; lần phân tích sau sẽ dùng lesson đó làm ngữ cảnh.
 
 ## Trạng thái hiện tại
 
@@ -84,6 +92,7 @@ LaunchOps có hai lớp bảo vệ:
 - **Platform Guardrail/Rate Limit:** đã tạo trên Protect & Govern để bảo vệ phía MaaS/model access.
 
 Platform Policy Gateway chưa bật vì rule sai có thể chặn nhầm MCP/OpenClaw. Phần này sẽ làm cuối với policy allow rộng trước rồi mới siết.
+Policy Gateway/IAM là lớp hardening tùy chọn cho MCP production, không phải điều kiện bắt buộc để chạy local demo hoặc xem flow Web UI.
 
 ## MCP và OpenClaw
 
@@ -109,8 +118,8 @@ OpenClaw có thể kết nối qua `npx mcp-remote <endpoint>/mcp`.
 
 ## Web UI
 
-- **Friendly mode:** trải nghiệm mặc định cho reviewer, có hướng dẫn và visualize theo từng bước.
-- **Pro mode:** dashboard đầy đủ cho người vận hành, có readiness, red team, checklist, postmortem, RAG insight và trace.
+- **Pro mode:** trải nghiệm mặc định, dashboard đầy đủ cho người vận hành, có readiness, red team, checklist, postmortem, RAG insight và trace.
+- **Friendly mode:** chế độ hướng dẫn/visualize theo từng bước cho reviewer hoặc demo.
 - **Admin log:** mở bằng `?role=admin`, dùng để xem client events và server trace theo từng launch.
 - **VI/EN:** UI có chuyển ngữ, output LLM theo ngôn ngữ của brief.
 - **Responsive:** mobile overflow đã xử lý; desktop UI/UX giữ nguyên.
@@ -126,6 +135,11 @@ PORT=8788 python server/app.py
 ```
 
 Mở `http://127.0.0.1:8788/`.
+
+### Hai chế độ local
+
+- **Local demo mode:** chạy được ngay trên máy cá nhân, không cần AgentBase, MaaS key, Memory hay vDB. App dùng rule fallback deterministic để tạo readiness, Red Team, checklist và post-mortem mẫu.
+- **Full AgentBase mode:** người dùng tự provision MaaS key, AgentBase Memory, VNG vDB/PostgreSQL, 4 child runtimes và MCP Gateway/IAM, rồi điền `.env` tương ứng. Khi đó local backend có thể gọi LLM thật, lưu cloud DB và dùng memory/remote agents giống production.
 
 ## Env quan trọng
 

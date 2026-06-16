@@ -87,6 +87,11 @@ const CLEAN_I18N_DICT = {
     faPostReview: "Phân tích sau launch",
     faLesson: "Thêm bài học",
     faSaveLesson: "Lưu kết quả / bài học",
+    friendlyChatPlaceholder: "Gõ câu trả lời hoặc dán brief ở đây",
+    friendlyLessonPlaceholder: "Nhập kết quả sau launch ở đây",
+    friendlySend: "Gửi",
+    friendlyLessonStatus: "Nhập kết quả sau launch trước, sau đó Agent mới đề xuất bài học.",
+    friendlyLessonGate: "Chưa sẵn sàng",
     kickerVerdict: "Kết luận",
     kickerNextActions: "Việc cần làm tiếp",
     scoreGuide0: "Chưa đủ dữ liệu",
@@ -190,6 +195,11 @@ const CLEAN_I18N_DICT = {
     faPostReview: "Post-launch analysis",
     faLesson: "Add a lesson",
     faSaveLesson: "Save results / lessons",
+    friendlyChatPlaceholder: "Type an answer or paste the brief here",
+    friendlyLessonPlaceholder: "Enter post-launch results here",
+    friendlySend: "Send",
+    friendlyLessonStatus: "Enter post-launch results first, then the Agent can suggest lessons.",
+    friendlyLessonGate: "Not ready",
     kickerVerdict: "Verdict",
     kickerNextActions: "Next actions",
     scoreGuide0: "Not enough data",
@@ -487,6 +497,20 @@ function applyCleanTranslations(lang) {
     const t = lessonActionText[b.dataset.friendlyAction];
     if (t) b.textContent = t;
   });
+  const friendlyChatInput = document.getElementById("friendlyChatInput");
+  if (friendlyChatInput) friendlyChatInput.setAttribute("placeholder", dict.friendlyChatPlaceholder);
+  const friendlyChatSend = document.getElementById("friendlyChatSend");
+  if (friendlyChatSend) friendlyChatSend.textContent = dict.friendlySend;
+  const friendlyLessonInput = document.getElementById("friendlyLessonChatInput");
+  if (friendlyLessonInput) friendlyLessonInput.setAttribute("placeholder", dict.friendlyLessonPlaceholder);
+  const friendlyLessonSend = document.querySelector("#friendlyLessonChatForm button[type='submit']");
+  if (friendlyLessonSend) friendlyLessonSend.textContent = dict.friendlySend;
+  const friendlyLessonStatus = document.getElementById("friendlyLessonStatusText");
+  if (friendlyLessonStatus) friendlyLessonStatus.textContent = dict.friendlyLessonStatus;
+  const friendlyLessonGate = document.getElementById("friendlyLessonGate");
+  if (friendlyLessonGate && /Chưa sẵn sàng|Not ready/.test(friendlyLessonGate.textContent.trim())) {
+    friendlyLessonGate.textContent = dict.friendlyLessonGate;
+  }
 
   // Analyze-tab static headings / kickers / risk guide.
   // Plain-text pass: only translate elements with no child nodes whose VI text is mapped.
