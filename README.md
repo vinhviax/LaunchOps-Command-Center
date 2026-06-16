@@ -6,7 +6,7 @@ LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**.
 
 **Demo live:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
-> ⚠️ **Đây là instance riêng của tác giả cho hackathon.** Endpoint, MaaS key, Memory store, vDB và child runtime ở trên là tài nguyên + credential **riêng của tác giả, không chia sẻ và không multi-tenant**. Người dùng ngoài muốn chạy bản đầy đủ phải **tự provision tài nguyên của mình** (xem [Hai cách chạy](#hai-cách-chạy-local-demo-vs-full-agentbase)). Để thử nhanh không cần cloud, dùng **Local demo mode**.
+> ⚠️ **Đây là instance riêng của tác giả cho ClawAThon VNG.** Endpoint, MaaS key, Memory store, vDB và child runtime ở trên là tài nguyên + credential **riêng của tác giả, không chia sẻ và không multi-tenant**. Người dùng ngoài muốn chạy bản đầy đủ phải **tự provision tài nguyên của mình** (xem [Hai cách chạy](#hai-cách-chạy-local-demo-vs-full-agentbase)). Để thử nhanh không cần cloud, dùng **Local demo mode**.
 
 ## Trạng thái hiện tại
 
@@ -240,6 +240,6 @@ README_EN.md
 
 - Không commit `.env`, `.greennode.json`, API key, DB URL thật, log hoặc file database.
 - Tài nguyên + credential production (endpoint, MaaS key, Memory, vDB, child runtime) là của riêng tác giả, **không chia sẻ**; người clone tự provision tài nguyên của mình.
-- Endpoint public intentionally mở cho demo hackathon.
+- Endpoint public intentionally mở cho demo ClawAThon VNG.
 - Đường MCP chính thức đi qua AgentBase MCP Gateway/IAM.
 - Guardrail xử lý secret/PII trước khi gọi LLM hoặc ghi memory.

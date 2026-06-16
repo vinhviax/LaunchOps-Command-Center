@@ -6,7 +6,7 @@ LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launc
 
 **Live demo:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
-> ⚠️ **This is the author's own hackathon instance.** The endpoint, MaaS key, Memory stores, vDB, and child runtimes above are the author's **private resources and credentials — not shared and not multi-tenant**. Outsiders who want the full mode must **provision their own resources** (see [Two ways to run](#two-ways-to-run-local-demo-vs-full-agentbase)). To try it instantly without cloud, use **Local demo mode**.
+> ⚠️ **This is the author's own ClawAThon VNG instance.** The endpoint, MaaS key, Memory stores, vDB, and child runtimes above are the author's **private resources and credentials — not shared and not multi-tenant**. Outsiders who want the full mode must **provision their own resources** (see [Two ways to run](#two-ways-to-run-local-demo-vs-full-agentbase)). To try it instantly without cloud, use **Local demo mode**.
 
 ## Current Status
 
@@ -240,6 +240,6 @@ README.md
 
 - Do not commit `.env`, `.greennode.json`, API keys, real DB URLs, logs, or database files.
 - Production resources + credentials (endpoint, MaaS key, Memory, vDB, child runtimes) are the author's own and are **not shared**; anyone cloning provisions their own.
-- The public endpoint is intentionally open for the hackathon demo.
+- The public endpoint is intentionally open for the ClawAThon VNG demo.
 - The official MCP path goes through AgentBase MCP Gateway/IAM.
 - Guardrail checks secrets/PII before LLM calls or memory writes.
