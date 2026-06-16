@@ -1,18 +1,12 @@
 # LaunchOps Command Center
 
 > Cập nhật: 16/06/2026 — production đang chạy trên VNG AgentBase, image `v33`, runtime version 46, UI cache `fix-20260616f`, storage backend `cloud`, mode `remote_agents`.
-> Source `main` hiện có bản UI polish `fix-20260616g`; production vẫn ở `fix-20260616f` cho tới rollout tiếp theo.
 
 LaunchOps Command Center là một **Super Agent kiểm soát rủi ro launch**. Người dùng dán launch brief, hệ thống chấm readiness Green/Yellow/Red, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, viết post-mortem questions và lưu bài học cho các lần launch sau.
 
 **Demo live:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
-## Flow demo cho giám khảo
-
-1. Mở Golden Spin / Lucky Wheel brief còn thiếu dữ liệu.
-2. Bấm **Run analysis / Chạy phân tích** để xem readiness Yellow/Red, Red Team 5 góc nhìn và checklist có owner/deadline.
-3. Bổ sung brief hoặc chọn launch Green để thấy full score, không còn rủi ro mở.
-4. Sau launch, nhập **Post-launch results / Kết quả sau launch** và lesson mới; lần phân tích sau sẽ dùng lesson đó làm ngữ cảnh.
+> ⚠️ **Đây là instance riêng của tác giả cho hackathon.** Endpoint, MaaS key, Memory store, vDB và child runtime ở trên là tài nguyên + credential **riêng của tác giả, không chia sẻ và không multi-tenant**. Người dùng ngoài muốn chạy bản đầy đủ phải **tự provision tài nguyên của mình** (xem [Hai cách chạy](#hai-cách-chạy-local-demo-vs-full-agentbase)). Để thử nhanh không cần cloud, dùng **Local demo mode**.
 
 ## Trạng thái hiện tại
 
@@ -91,8 +85,7 @@ LaunchOps có hai lớp bảo vệ:
 - **App-level rate limit:** giới hạn expensive analyze path, đang bật production ở mức 50 requests/phút và 1000 requests/ngày; MCP fast path được exempt.
 - **Platform Guardrail/Rate Limit:** đã tạo trên Protect & Govern để bảo vệ phía MaaS/model access.
 
-Platform Policy Gateway chưa bật vì rule sai có thể chặn nhầm MCP/OpenClaw. Phần này sẽ làm cuối với policy allow rộng trước rồi mới siết.
-Policy Gateway/IAM là lớp hardening tùy chọn cho MCP production, không phải điều kiện bắt buộc để chạy local demo hoặc xem flow Web UI.
+**Platform Policy Gateway là lớp gia cố tùy chọn (optional hardening), KHÔNG phải hạng mục bắt buộc còn thiếu.** Hai lớp guardrail + rate limit ở trên đã enforce thật trong app và đủ cho bảo mật demo. Policy Gateway chỉ thêm một tầng allow/deny ở MCP Gateway; chưa bật vì rule sai có thể chặn nhầm MCP/OpenClaw, nên nếu bật thì cấu hình allow rộng trước rồi mới siết.
 
 ## MCP và OpenClaw
 
@@ -116,30 +109,76 @@ Các tool chính:
 
 OpenClaw có thể kết nối qua `npx mcp-remote <endpoint>/mcp`.
 
+### Channel skill cho OpenClaw/Zalo/Telegram self-host
+
+Nếu bạn tự chạy LaunchOps trên server riêng, không cần AgentBase Gateway để thử tool. Backend tự expose một "channel skill" cho OpenClaw/Zalo/Telegram/Discord:
+
+- `GET /api/channel-skill` hoặc `GET /openclaw/skill`: manifest JSON gồm system prompt, endpoint MCP, endpoint direct tool call, danh sách tool và rule vận hành.
+- `GET /openclaw/system-prompt.txt`: system prompt có thể dán vào OpenClaw hoặc bot channel.
+- `GET /openclaw/mcp-remote.json`: cấu hình `npx mcp-remote <base>/mcp` cho OpenClaw.
+- `GET /discord/skill`, `GET /discord/system-prompt.txt`, `GET /discord/mcp-remote.json`: alias riêng cho Discord bot/self-host, cùng nội dung với channel skill chung.
+- `POST /tools/call`: adapter HTTP đơn giản cho bot không nói được MCP, body `{ "name": "lcc_docs", "arguments": {} }`.
+
+Ví dụ local:
+
+```bash
+curl http://127.0.0.1:8788/openclaw/skill
+curl http://127.0.0.1:8788/openclaw/system-prompt.txt
+```
+
+AgentBase/OpenClaw production vẫn có thể dùng MCP Gateway/IAM. Self-host mode chỉ cần trỏ bot của bạn về `/mcp` hoặc `/tools/call`.
+
 ## Web UI
 
-- **Pro mode:** trải nghiệm mặc định, dashboard đầy đủ cho người vận hành, có readiness, red team, checklist, postmortem, RAG insight và trace.
-- **Friendly mode:** chế độ hướng dẫn/visualize theo từng bước cho reviewer hoặc demo.
+- **Friendly mode:** trải nghiệm mặc định cho reviewer, có hướng dẫn và visualize theo từng bước.
+- **Pro mode:** dashboard đầy đủ cho người vận hành, có readiness, red team, checklist, postmortem, RAG insight và trace.
 - **Admin log:** mở bằng `?role=admin`, dùng để xem client events và server trace theo từng launch.
 - **VI/EN:** UI có chuyển ngữ, output LLM theo ngôn ngữ của brief.
 - **Responsive:** mobile overflow đã xử lý; desktop UI/UX giữ nguyên.
 
-## Chạy local
+## Hai cách chạy: Local demo vs Full AgentBase
+
+LaunchOps chạy được ở hai chế độ. **Không cần** tài khoản/khoá của tác giả cho cả hai.
+
+### 1. Local demo mode (chạy ngay, không cần cloud)
+
+Không cần MaaS key, không cần cloud, không cần `.env`. Dùng SQLite/JSON local + bộ dữ liệu mẫu Golden Spin sẵn có, scoring chạy bằng rubric deterministic local. Phù hợp để giám khảo/người ngoài thử ngay toàn bộ luồng.
 
 ```bash
-# Rule mode nhanh, không cần API key
 LAUNCHOPS_LLM_ENABLED=false PORT=8788 python server/app.py
+# mở http://127.0.0.1:8788/
+```
 
-# Full mode, cần .env có MaaS/AgentBase config
+Ở mode này: readiness/Red Team/checklist/post-mortem sinh bằng rule local (không gọi LLM), MCP `lcc` vẫn deterministic. Đủ để xem luồng demo Golden Spin bên dưới.
+
+### 2. Full AgentBase mode (multi-agent + LLM thật)
+
+Để có 6 LLM agent thật, RAG, Cloud DB và remote multi-agent, người dùng ngoài **phải tự provision tài nguyên của chính mình** rồi điền vào `.env` riêng (không dùng được tài nguyên của tác giả):
+
+- **VNG MaaS API key** của bạn (`LAUNCHOPS_AGENTBASE_BASE_URL` + key) — bắt buộc để gọi model.
+- **AgentBase Memory store(s)** của bạn cho lessons + knowledge/RAG (`LAUNCHOPS_MEMORY_ID`, `LAUNCHOPS_KNOWLEDGE_MEMORY_ID`); seed bằng `server/seed_knowledge.py`.
+- **VNG vDB/PostgreSQL** của bạn cho launch/template/history (`LAUNCHOPS_DB_URL`, `LAUNCHOPS_STORAGE_BACKEND=cloud`); migrate bằng `server/migrate_to_cloud_db.py`.
+- **4 child AgentBase runtimes** của bạn (readiness/redteam/checklist/postmortem) nếu muốn remote multi-agent (`LAUNCHOPS_USE_REMOTE_AGENTS=true` + 4 URL + `LAUNCHOPS_AGENT_INVOCATION_TOKEN`). Bỏ qua phần này thì app chạy monolith trong 1 runtime, vẫn đủ 6 agent.
+- **AgentBase MCP Gateway/IAM** của bạn nếu muốn expose MCP qua gateway có xác thực.
+- **`.env` riêng** chứa toàn bộ giá trị trên (xem [Env quan trọng](#env-quan-trọng)). Không có file `.env` của tác giả trong repo.
+
+```bash
+# Full mode: cần .env riêng đã provision như trên
 PORT=8788 python server/app.py
 ```
 
-Mở `http://127.0.0.1:8788/`.
+Nếu chưa provision đủ, app **tự fallback an toàn**: thiếu DB → `LAUNCHOPS_STORAGE_BACKEND=local`; thiếu Memory → `LAUNCHOPS_MEMORY_ENABLED=false`; thiếu child runtime → orchestrator chạy monolith; thiếu MaaS key → mỗi agent dùng rule local. Nhờ vậy bản clone vẫn chạy được dù chưa có hạ tầng cloud.
 
-### Hai chế độ local
+## Demo flow cho giám khảo (Golden Spin)
 
-- **Local demo mode:** chạy được ngay trên máy cá nhân, không cần AgentBase, MaaS key, Memory hay vDB. App dùng rule fallback deterministic để tạo readiness, Red Team, checklist và post-mortem mẫu.
-- **Full AgentBase mode:** người dùng tự provision MaaS key, AgentBase Memory, VNG vDB/PostgreSQL, 4 child runtimes và MCP Gateway/IAM, rồi điền `.env` tương ứng. Khi đó local backend có thể gọi LLM thật, lưu cloud DB và dùng memory/remote agents giống production.
+Bộ dữ liệu mẫu kể câu chuyện sự kiện quay thưởng **Golden Spin** để xem trọn vòng đời launch:
+
+1. **Brief rủi ro** — chọn `Golden Spin Weekend Risk` (hoặc brief nháp Risk) → readiness **Yellow/Red**, điểm thấp, hiện Red Team 5 persona + checklist việc cần sửa.
+2. **Học từ retro** — `Golden Spin ... Retro` chứa bài học đã lưu sau launch trước; lesson này được recall để ground phân tích lần sau.
+3. **Brief đã sẵn sàng** — `Golden Spin Weekend v2 Ready` đã áp lessons → readiness **Green 12/12**; khi full điểm thì không còn rủi ro mở/Red Team, rủi ro mới chỉ ghi ở phần Kết quả sau launch để thành lesson tiếp theo.
+4. **Bằng chứng multi-agent** — mở tab trace / console runtime để thấy `orchestration.mode=remote_agents`, 4 child `remote_runtime` và readiness/redteam/checklist/postmortem chạy độc lập.
+
+Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh kịch bản này.
 
 ## Env quan trọng
 
@@ -200,6 +239,7 @@ README_EN.md
 ## Bảo mật
 
 - Không commit `.env`, `.greennode.json`, API key, DB URL thật, log hoặc file database.
+- Tài nguyên + credential production (endpoint, MaaS key, Memory, vDB, child runtime) là của riêng tác giả, **không chia sẻ**; người clone tự provision tài nguyên của mình.
 - Endpoint public intentionally mở cho demo hackathon.
 - Đường MCP chính thức đi qua AgentBase MCP Gateway/IAM.
 - Guardrail xử lý secret/PII trước khi gọi LLM hoặc ghi memory.

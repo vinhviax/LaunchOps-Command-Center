@@ -316,12 +316,6 @@ const STATUS_HINTS = {
   upcoming: "Launch chưa chạy, còn thời gian sửa brief.",
   completed: "Launch đã chạy xong, cần lưu kết quả và bài học."
 };
-const STATUS_HINTS_EN = {
-  running: "Launch is active or close to go-live.",
-  upcoming: "Launch has not started yet, so the brief can still be fixed.",
-  completed: "Launch is complete; save results and lessons for future launches."
-};
-
 const COLOR_LABELS = {
   Green: "Xanh",
   Yellow: "Vàng",
@@ -350,16 +344,54 @@ function tr(vi, en) {
   return uiLang() === "en" ? en : vi;
 }
 
+function configTerm(key) {
+  const terms = {
+    delete: { vi: "Xóa", en: "Delete" },
+    newRiskGroup: { vi: "Nhóm rủi ro mới", en: "New risk group" },
+    groupName: { vi: "Tên nhóm", en: "Group name" },
+    maxScore: { vi: "Điểm tối đa", en: "Max score" },
+    maxScoreHelpLabel: { vi: "Giải thích điểm tối đa", en: "Explain max score" },
+    maxScoreTooltip: {
+      vi: "Đây là trọng số của nhóm rủi ro này. Tổng điểm readiness bằng tổng Điểm tối đa của tất cả nhóm. Agent chấm 0 đến mức này dựa trên tiêu chí đạt điểm và nội dung brief.",
+      en: "This is the weight of this risk group. Total readiness equals the sum of max scores across all groups. The Agent scores from 0 up to this value based on scoring criteria and the brief."
+    },
+    requirements: { vi: "Tiêu chí đạt điểm", en: "Scoring criteria" },
+    requirementsHelpLabel: { vi: "Giải thích tiêu chí đạt điểm", en: "Explain scoring criteria" },
+    requirementsTooltip: {
+      vi: "Đây là checklist điều kiện để nhóm này được điểm cao. AI thật sẽ đọc các tiêu chí này trong prompt; demo local dùng thêm từ khóa để chấm nhanh.",
+      en: "These are the conditions for this group to score well. The real AI reads these criteria in the prompt; the local demo also uses keywords for quick scoring."
+    },
+    localKeywords: { vi: "Từ khóa demo local", en: "Local demo keywords" },
+    localKeywordsHelpLabel: { vi: "Giải thích từ khóa demo local", en: "Explain local demo keywords" },
+    localKeywordsTooltip: {
+      vi: "Chỉ dùng cho chế độ fallback/rule-based local. Nếu brief có các từ khóa này, app có thêm bằng chứng để chấm điểm nhóm rủi ro. AI thật vẫn đọc toàn bộ tiêu chí và brief.",
+      en: "Only used for local fallback/rule-based mode. If the brief contains these keywords, the app has extra evidence for scoring this risk group. The real AI still reads the full criteria and brief."
+    },
+    missingMessage: { vi: "Khi thiếu thì nói gì?", en: "What to say when missing?" },
+    missingMessageHelpLabel: { vi: "Giải thích khi thiếu thì nói gì", en: "Explain missing-data message" },
+    missingMessageTooltip: {
+      vi: "Đây là câu Agent dùng để giải thích khi brief chưa đủ dữ liệu cho nhóm rủi ro này. Human sửa câu này rồi lưu cấu hình chung thì lần phân tích sau sẽ dùng câu mới.",
+      en: "This is what the Agent says when the brief lacks data for this risk group. If a human edits it and saves the shared config, future analyses will use the new message."
+    },
+    newPersona: { vi: "Người phản biện mới", en: "New red-team reviewer" },
+    personaRole: { vi: "Vai trò phản biện", en: "Red-team role" },
+    mainConcern: { vi: "Lo ngại chính", en: "Main concern" },
+    evidenceToFind: { vi: "Dấu hiệu cần tìm", en: "Evidence to look for" },
+    fix: { vi: "Cách xử lý", en: "Fix" },
+    task: { vi: "Việc cần làm", en: "Task" },
+    defaultTemplate: { vi: "Template mặc định", en: "Default template" },
+    customTemplate: { vi: "Template tùy chỉnh", en: "Custom template" },
+    classificationName: { vi: "Tên phân loại", en: "Classification name" },
+    templateForClassification: { vi: "Dùng bộ template", en: "Use template" }
+  };
+  const entry = terms[key];
+  return entry ? (entry[uiLang()] || entry.vi) : key;
+}
+
 function statusDisplayLabel(status) {
   return uiLang() === "en"
     ? (STATUS_LABELS_EN[status] || status || "")
     : (STATUS_LABELS[status] || status || "");
-}
-
-function statusHint(status) {
-  return uiLang() === "en"
-    ? (STATUS_HINTS_EN[status] || "")
-    : (STATUS_HINTS[status] || "");
 }
 
 function configButtonText(isConfigScreen = false) {
@@ -458,132 +490,6 @@ const RISK_REQUIREMENTS = {
     "Nơi lưu bài học cho lần sau"
   ]
 };
-const RISK_REQUIREMENTS_EN = {
-  scope: [
-    "Clear launch goal",
-    "Clear target segment",
-    "KPI or success criteria"
-  ],
-  owner: [
-    "Primary owner",
-    "Deadline for each task",
-    "Decision owner for pause/fix"
-  ],
-  tech: [
-    "Test plan",
-    "Error monitoring during launch",
-    "Rollback plan or stop threshold"
-  ],
-  user: [
-    "User-facing message",
-    "CS FAQ",
-    "Complaint handling path"
-  ],
-  business: [
-    "Rates/rewards/budget",
-    "Anti-abuse limits",
-    "Revenue or economy impact"
-  ],
-  learning: [
-    "Post-launch metrics",
-    "Retrospective questions",
-    "Place to save lessons for next time"
-  ]
-};
-
-const RISK_LABELS_EN = {
-  scope: "Goals and scope",
-  owner: "Owner and deadline",
-  tech: "Technical readiness",
-  user: "User impact",
-  business: "Business and rewards",
-  learning: "Post-launch learning",
-  spin_rule: "Spin rules and eligibility",
-  reward: "Reward cap and economy",
-  abuse: "Anti-abuse and logs",
-  cs: "CS and messaging",
-  operations: "Operations and rollback"
-};
-
-const STATIC_EN_TEXT = new Map([
-  ["Chưa chấm", "Not scored"],
-  ["Chưa có", "None"],
-  ["Chưa gán", "Unassigned"],
-  ["Kết quả từ AI", "AI result"],
-  ["Dữ liệu mẫu đã lưu", "Saved sample data"],
-  ["Kết quả dự phòng", "Fallback result"],
-  ["Bản local", "Local preview"],
-  ["Xem thử local: chưa lưu lịch sử", "Local preview: history not saved"],
-  ["Xem thử local: brief mẫu", "Local preview: sample brief"],
-  ["Chưa nên launch ngay", "Do not launch yet"],
-  ["Có thể launch sau khi chốt owner", "Launch after owner is confirmed"],
-  ["Có thể launch", "Ready to launch"],
-  ["Kết luận: Tạm giữ để sửa", "Verdict: Hold and fix"],
-  ["Kết luận: Có thể launch", "Verdict: Ready to launch"],
-  ["Không có launch phù hợp.", "No matching launch."],
-  ["Launch này chưa có lịch sử. Bấm Chạy phân tích để tạo bản ghi đầu tiên.", "This launch has no history yet. Run analysis to create the first record."],
-  ["Chưa có sự kiện nào trong phiên này cho launch đang chọn.", "No client events in this session for the selected launch."],
-  ["Launch này chưa có lần phân tích nào được lưu.", "This launch has no saved analysis runs yet."],
-  ["Mục tiêu và phạm vi", "Goals and scope"],
-  ["Mục tiêu và segment", "Goals and segment"],
-  ["Người phụ trách và hạn xử lý", "Owner and deadline"],
-  ["Sẵn sàng kỹ thuật", "Technical readiness"],
-  ["Ảnh hưởng tới người dùng", "User impact"],
-  ["Kinh doanh và phần thưởng", "Business and rewards"],
-  ["Phần thưởng và Economy Impact", "Rewards and economy impact"],
-  ["Bài học sau launch", "Post-launch learning"],
-  ["Cơ chế quay và eligibility", "Spin rules and eligibility"],
-  ["Reward cap và economy", "Reward cap and economy"],
-  ["Anti-abuse và log", "Anti-abuse and logs"],
-  ["CS và thông điệp", "CS and messaging"],
-  ["Operation và rollback", "Operations and rollback"],
-  ["Chưa rõ KPI, segment người chơi hoặc phạm vi áp dụng.", "KPI, player segment, or launch scope is still unclear."],
-  ["Chưa thấy người phụ trách/hạn xử lý rõ cho các nhóm.", "Owner or deadline is not clear enough for the teams."],
-  ["phần thưởng, tỷ lệ hoặc ngân sách chưa đủ điều kiện kiểm soát.", "Reward, rate, or budget controls are not clear enough."],
-  ["Chưa có kế hoạch test, giám sát lỗi hoặc rollback.", "Test plan, error monitoring, or rollback is still missing."],
-  ["Cần bổ sung: Mục tiêu, đối tượng hoặc phạm vi còn mơ hồ.", "Need more detail: goals, audience, or scope is still vague."],
-  ["Tạo CS FAQ, thông điệp in-game, và quy định bồi thường nếu hệ thống lỗi.", "Create CS FAQ, in-game messaging, and compensation rules for system failures."],
-  ["Chốt điều kiện tham gia, giới hạn lượt mỗi ngày, và log bất thường.", "Lock participation rules, daily spin limits, and anomaly logs."],
-  ["Gắn người phụ trách CS, ca trực, mẫu trả lời, và đường xử lý leo thang.", "Assign CS owner, on-call window, reply macros, and escalation path."],
-  ["Đặt ngưỡng pause, theo dõi hệ thống bằng theo dõi, phương án quay lại script, và người có quyền quyết định.", "Set pause thresholds, monitoring, rollback script, and decision owner."],
-  ["Chốt tỷ lệ, ngân sách tối đa, và review tác động economy trước launch.", "Lock rates, maximum budget, and economy impact review before launch."]
-  ,["Người chơi quay trúng hoặc mất lượt nhưng không nhận quà sẽ tạo ticket nhanh.", "Players who win or lose spins without receiving rewards will create tickets quickly."]
-  ,["Brief cần nói rõ reward delivery, case mất kết nối và rule bồi thường.", "The brief must clarify reward delivery, disconnect cases, and compensation rules."]
-  ,["Viết CS FAQ, thông điệp in-game và rule bồi thường trước khi mở event.", "Write CS FAQ, in-game messaging, and compensation rules before opening the event."]
-  ,["Người chơi có thể farm lượt quay bằng tài khoản phụ hoặc reset điều kiện.", "Players may farm spins with secondary accounts or reset eligibility conditions."]
-  ,["Brief cần eligibility, giới hạn lượt/ngày và log hành vi bất thường.", "The brief must include eligibility, daily spin limits, and anomaly logs."]
-  ,["Chốt rule chống farm, giới hạn lượt và dashboard abuse trước launch.", "Lock anti-farm rules, spin limits, and abuse dashboard before launch."]
-  ,["Ticket cuối tuần sẽ dồn nếu macro chưa đủ case.", "Weekend tickets will pile up if macros do not cover enough cases."]
-  ,["Brief cần macro cho hết quà, không nhận reward, mất kết nối và điều kiện tham gia.", "The brief needs macros for rewards running out, missing rewards, disconnects, and eligibility."]
-  ,["Chuẩn bị FAQ, macro theo case và lịch trực CS theo ca.", "Prepare FAQ, case-based macros, and CS shift schedule."]
-  ,["Nếu spin service lỗi, team cần biết khi nào pause và rollback.", "If the spin service fails, the team must know when to pause and rollback."]
-  ,["Brief cần dashboard realtime, ngưỡng pause và kill switch.", "The brief needs a realtime dashboard, pause threshold, and kill switch."]
-  ,["Chốt alert, kill switch, rollback script và người quyết định pause.", "Lock alerts, kill switch, rollback script, and pause decision owner."]
-  ,["Item hiếm và coupon có thể vượt cap hoặc làm lệch economy.", "Rare items and coupons may exceed caps or distort the economy."]
-  ,["Brief cần reward cap, tỷ lệ trúng và ngân sách tối đa.", "The brief needs reward caps, drop rates, and maximum budget."]
-  ,["Chốt reward pool, cap cuối tuần và review tác động economy trước T-1.", "Lock reward pool, weekend cap, and economy impact review before T-1."]
-  ,["Chốt KPI, segment người chơi và giờ bật/tắt event", "Lock KPI, player segment, and event start/end time"]
-  ,["Chốt reward pool, tỷ lệ trúng và cap ngân sách cuối tuần", "Lock reward pool, drop rates, and weekend budget cap"]
-  ,["Hoàn tất rule chống farm tài khoản phụ và log bất thường", "Finalize anti-farm rules for secondary accounts and anomaly logs"]
-  ,["Viết CS FAQ cho case mất lượt, hết quà, phát quà chậm", "Write CS FAQ for lost spins, rewards running out, and delayed rewards"]
-  ,["Chuẩn bị dashboard realtime, ngưỡng pause và kill switch", "Prepare realtime dashboard, pause threshold, and kill switch"]
-  ,["Tổng kết ticket, reward cost và lesson cho Golden Spin sau", "Summarize tickets, reward cost, and lessons for the next Golden Spin"]
-]);
-
-function fixedTextForUi(value) {
-  const text = String(value ?? "");
-  if (uiLang() !== "en") return friendlyText(text);
-  return STATIC_EN_TEXT.get(text.trim()) || text;
-}
-
-function fixedTextForLang(value, lang) {
-  const text = String(value ?? "");
-  return lang === "en" ? (STATIC_EN_TEXT.get(text.trim()) || text) : friendlyText(text);
-}
-
-function fixedListForUi(items = []) {
-  return (items || []).map((item) => fixedTextForUi(item));
-}
 GAME_EVENT_TEMPLATE.riskGroups = GAME_EVENT_TEMPLATE.riskGroups.map((group) => ({
   ...group,
   requirements: RISK_REQUIREMENTS[group.key] || []
@@ -705,6 +611,20 @@ const EN_LUCKY_SPIN_POSTMORTEM = [
   }
 ];
 
+function englishBriefGuideForTemplate(template = {}) {
+  if (EN_BRIEF_GUIDES_BY_TEMPLATE[template.name]) return EN_BRIEF_GUIDES_BY_TEMPLATE[template.name];
+  const name = String(template.name || "").toLowerCase();
+  const description = String(template.description || "").toLowerCase();
+  const riskKeys = (template.riskGroups || []).map((group) => group.key).join(" ").toLowerCase();
+  if (name.includes("lucky spin") || name.includes("sự kiện lucky spin") || description.includes("quay thưởng") || riskKeys.includes("spin_rule")) {
+    return EN_BRIEF_GUIDES_BY_TEMPLATE["Lucky Spin Event Playbook"];
+  }
+  if (name.includes("production") || name.includes("release hệ thống") || riskKeys.includes("rollback")) {
+    return EN_BRIEF_GUIDES_BY_TEMPLATE["Production System Release"];
+  }
+  return EN_BRIEF_GUIDES_BY_TEMPLATE["Generic Launch"];
+}
+
 const OWNER_LABELS = {
   "Business owner": "Phụ trách kinh doanh",
   "Business Owner": "Phụ trách kinh doanh",
@@ -727,15 +647,17 @@ const TYPE_LABELS = {
   "Partnership/commercial launch": "Hợp tác / thương mại",
   "Emergency hotfix": "Hotfix khẩn cấp"
 };
+
+// Nhãn phân loại tiếng Anh — dùng khi UI là EN (kể cả type có tên VI mặc định).
 const TYPE_LABELS_EN = {
-  "lucky_spin_event": "Lucky Spin event",
+  "lucky_spin_event": "Lucky Spin Event",
   "Game event": "Game event",
   "Campaign marketing": "Marketing campaign",
   "Feature release": "Feature release",
   "Production system release": "Production system release",
   "Internal tool": "Internal tool",
   "Ops/process change": "Ops/process change",
-  "Partnership/commercial launch": "Partnership / commercial",
+  "Partnership/commercial launch": "Partnership/commercial launch",
   "Emergency hotfix": "Emergency hotfix"
 };
 
@@ -748,8 +670,8 @@ const TEMPLATE_NAME_LABELS = {
 const TEMPLATE_NAME_LABELS_EN = {
   "Lucky Spin Event Playbook": "Lucky Spin event template",
   "Game Event Launch": "Game event template",
-  "Production System Release": "Production system template",
-  "Generic Launch": "Generic launch template"
+  "Production System Release": "Production release template",
+  "Generic Launch": "Shared launch template"
 };
 const BASE_TEMPLATE_OPTIONS = [
   { id: "luckySpin", template: LUCKY_SPIN_EVENT_TEMPLATE },
@@ -1324,6 +1246,13 @@ const assistantPanel = document.getElementById("assistantPanel");
 const assistantMessages = document.getElementById("assistantMessages");
 const assistantForm = document.getElementById("assistantForm");
 const assistantInput = document.getElementById("assistantInput");
+const openCommunicationAppsButton = document.getElementById("openCommunicationApps");
+const closeCommunicationAppsButton = document.getElementById("closeCommunicationApps");
+const communicationAppsModal = document.getElementById("communicationAppsModal");
+const copyZaloGroupLinkButton = document.getElementById("copyZaloGroupLink");
+const copyCommStarterPromptButton = document.getElementById("copyCommStarterPrompt");
+const commStarterPrompt = document.getElementById("commStarterPrompt");
+const commAppsToast = document.getElementById("commAppsToast");
 const introModal = document.getElementById("introModal");
 const closeIntroModalButton = document.getElementById("closeIntroModal");
 const enterDemoFromIntroButton = document.getElementById("enterDemoFromIntro");
@@ -1334,7 +1263,6 @@ const traceConsoleBody = document.getElementById("traceConsoleBody");
 const traceCopyButton = document.getElementById("traceCopyBtn");
 
 let lastRagTraceResult = null;
-let activeAnalysisOutputLang = "vi";
 let redTeamBriefSupplements = {};
 let checklistProgress = {};
 
@@ -1348,6 +1276,7 @@ let launchStatusFilter = "all";
 let selectedConfigType = "Game event";
 let previousLaunchView = "briefView";
 let templateConfigVersions = {};
+let controlledLearningBusy = "";
 let assistantWizard = null;
 
 function activeLaunchRole() {
@@ -1433,6 +1362,14 @@ function normalizeStatus(status) {
   return STATUS_ORDER.includes(status) ? status : "upcoming";
 }
 
+function statusValueFromText(text) {
+  const normalized = normalizeText(text || "");
+  if (normalized.includes("da chay") || normalized.includes("completed") || normalized.includes("done")) return "completed";
+  if (normalized.includes("dang chay") || normalized.includes("running") || normalized.includes("active")) return "running";
+  if (normalized.includes("sap chay") || normalized.includes("upcoming") || normalized.includes("future")) return "upcoming";
+  return normalizeStatus(text);
+}
+
 function defaultTemplateForType(type) {
   return cloneData(LAUNCH_TEMPLATES[type] || GENERIC_LAUNCH_TEMPLATE);
 }
@@ -1454,7 +1391,7 @@ function normalizeTemplate(template, type = "Game event") {
 
 function activeTemplate() {
   const launch = currentLaunch || collectLaunchFromForm();
-  return defaultTemplateForType(launch?.type || launchType?.value || "Game event");
+  return normalizeTemplate(launch?.template, launch?.type || launchType?.value || "Game event");
 }
 
 function configTemplateType() {
@@ -1521,7 +1458,7 @@ function syncLaunchTypeOptionLabels() {
 function syncTemplateDisplayLabels() {
   if (templateName) {
     const template = activeTemplate();
-    templateName.textContent = `${tr("Bộ luật", "Ruleset")}: ${templateDisplayName(template)}${template.customized ? " · " + tr("Đã tùy chỉnh", "Customised") : ""}`;
+    templateName.textContent = `${tr("Bộ luật", "Rule set")}: ${templateDisplayName(template)}${template.customized ? tr(" · Đã tùy chỉnh", " · Customized") : ""}`;
   }
   classificationEditor?.querySelectorAll("[data-type-template] option").forEach((option) => {
     option.textContent = templateDisplayName(baseTemplateById(option.value));
@@ -1541,8 +1478,8 @@ function renderTemplateSelectorOptions(template = activeTemplate(), editable = c
   templateSelector.value = selectedTemplateType(template);
   templateSelector.disabled = false;
   templateSelector.title = editable
-    ? "Chọn phân loại để cấu hình."
-    : "Bản review public chỉ cho xem cấu hình; vẫn có thể đổi phân loại để đọc bộ luật.";
+    ? tr("Chọn phân loại để cấu hình.", "Choose the classification to configure.")
+    : tr("Bản review public chỉ cho xem cấu hình; vẫn có thể đổi phân loại để đọc bộ luật.", "Public review mode is read-only; you can still switch classification to inspect its rule set.");
 }
 
 function renderTemplateNameEditor(editable = canEditTemplate()) {
@@ -1554,10 +1491,10 @@ function renderTemplateNameEditor(editable = canEditTemplate()) {
     return `
       <article class="catalog-row template-row" data-base-template="${escapeHTML(id)}">
         <label>
-          <span>${escapeHTML(protectedTemplate ? "Template mặc định" : "Template tùy chỉnh")}</span>
+          <span>${escapeHTML(protectedTemplate ? configTerm("defaultTemplate") : configTerm("customTemplate"))}</span>
           <input type="text" value="${escapeHTML(templateDisplayName(template))}" data-template-label="${escapeHTML(template.name)}"${disabledAttr(editable)}>
         </label>
-        <button type="button" data-remove-base-template="${escapeHTML(id)}"${removable ? "" : " disabled"}>Xóa</button>
+        <button type="button" data-remove-base-template="${escapeHTML(id)}"${removable ? "" : " disabled"}>${configTerm("delete")}</button>
       </article>
     `;
   }).join("");
@@ -1575,14 +1512,14 @@ function renderClassificationEditor(editable = canEditTemplate()) {
     return `
       <article class="catalog-row classification-row" data-launch-type="${escapeHTML(type)}">
         <label>
-          <span>Tên phân loại</span>
+          <span>${configTerm("classificationName")}</span>
           <input type="text" value="${escapeHTML(typeLabel(type))}" data-type-label${disabledAttr(editable)}>
         </label>
         <label>
-          <span>Dùng bộ template</span>
+          <span>${configTerm("templateForClassification")}</span>
           <select data-type-template${disabledAttr(editable)}>${baseOptions}</select>
         </label>
-        <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>Xóa</button>
+        <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>${configTerm("delete")}</button>
       </article>
     `;
   }).join("");
@@ -1707,12 +1644,35 @@ function activeTemplateOperator() {
   return TEMPLATE_OPERATORS.find((item) => item.id === templateOperatorId) || TEMPLATE_OPERATORS[0];
 }
 
+function templateOperatorScope(item = {}) {
+  const scopes = {
+    "vinhvnn": {
+      vi: "Duyệt cấu hình, chỉnh tiêu chí, khôi phục mẫu chuẩn.",
+      en: "Approve config, edit criteria, and restore standard templates."
+    },
+    "backend-pic": {
+      vi: "Chỉnh khung rủi ro, nhóm phản biện, checklist và format output AI.",
+      en: "Edit risk rubric, red-team reviewers, checklist, and AI output format."
+    },
+    "frontend-pic": {
+      vi: "Xem cấu hình để làm UI/UX, không đổi luật chấm.",
+      en: "View config for UI/UX work without changing scoring rules."
+    },
+    "launch-reviewer": {
+      vi: "Xem template và góp ý trong buổi review.",
+      en: "View templates and leave feedback during review."
+    }
+  };
+  const entry = scopes[item.id];
+  return entry ? (entry[uiLang()] || entry.vi) : (item.scope || "");
+}
+
 function canEditTemplate() {
-  return true;
+  return isLaunchAdmin();
 }
 
 function canApproveTemplateSuggestion() {
-  return true;
+  return isLaunchAdmin();
 }
 
 function disabledAttr(editable = canEditTemplate()) {
@@ -1808,7 +1768,7 @@ function parseDateOnly(value) {
   const text = String(value || "").trim();
   if (!text) return null;
 
-  // ISO: YYYY-MM-DD hoặc YYYY-MM-DDTHH:mm (giờ phút tùy chọn)
+  // ISO: YYYY-MM-DD hoặc YYYY-MM-DDTHH:mm.
   const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{2}))?/);
   if (iso) {
     return {
@@ -1820,7 +1780,7 @@ function parseDateOnly(value) {
     };
   }
 
-  // Hiển thị: dd/mm/yyyy hoặc dd/mm/yyyy HH:mm
+  // Hiển thị: dd/mm/yyyy hoặc dd/mm/yyyy HH:mm.
   const display = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s,]+(\d{1,2}):(\d{2}))?/);
   if (display) {
     return {
@@ -1868,6 +1828,66 @@ function normalizeDateForStorage(value) {
   if (!parts) return text;
   const time = parts.hour !== "" && parts.minute !== "" ? `T${parts.hour}:${parts.minute}` : "";
   return `${parts.year}-${parts.month}-${parts.day}${time}`;
+}
+
+function datePartsToLocalDate(parts) {
+  if (!parts) return null;
+  const date = new Date(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    parts.hour !== "" ? Number(parts.hour) : 0,
+    parts.minute !== "" ? Number(parts.minute) : 0,
+    0,
+    0
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function launchDateForRule(value) {
+  return datePartsToLocalDate(parseDateOnly(value));
+}
+
+function inferStatusFromSchedule(launch, now = new Date()) {
+  const start = launchDateForRule(launch?.targetDate);
+  const end = launchDateForRule(launch?.endDate);
+  if (end && end < now) return "completed";
+  if (start && start < now) return "running";
+  return "upcoming";
+}
+
+function validateLaunchScheduleRules(launch, now = new Date()) {
+  const status = normalizeStatus(launch?.status);
+  const start = launchDateForRule(launch?.targetDate);
+  const end = launchDateForRule(launch?.endDate);
+  if (start && end && end < start) {
+    return {
+      ok: false,
+      error: "end_before_start",
+      message: tr("End Launch không được sớm hơn Start Launch. Hãy sửa lại thời gian trước khi lưu hoặc phân tích.", "End Launch cannot be earlier than Start Launch. Fix the schedule before saving or analyzing.")
+    };
+  }
+  if (end && end < now && (status === "running" || status === "upcoming")) {
+    return {
+      ok: false,
+      error: "end_in_past_status",
+      message: tr("End Launch đã ở quá khứ, nên launch không thể để trạng thái Đang chạy hoặc Sắp chạy. Hãy đổi sang Đã chạy hoặc sửa End Launch.", "End Launch is in the past, so the launch cannot be Running or Upcoming. Change it to Completed or update End Launch.")
+    };
+  }
+  if (start && start < now && status === "upcoming") {
+    return {
+      ok: false,
+      error: "start_in_past_upcoming",
+      message: tr("Start Launch đã ở quá khứ, nên launch không thể để trạng thái Sắp chạy. Hãy đổi sang Đang chạy/Đã chạy hoặc sửa Start Launch.", "Start Launch is in the past, so the launch cannot be Upcoming. Change it to Running/Completed or update Start Launch.")
+    };
+  }
+  return { ok: true };
+}
+
+function showLaunchScheduleError(validation) {
+  if (!validation || validation.ok) return;
+  if (analysisSource) analysisSource.textContent = validation.message;
+  setAnalysisRunStatus("error", validation.message);
 }
 
 function setVisibleDateValue(textInput, nativeInput, value) {
@@ -2000,11 +2020,11 @@ function getInitials(text) {
 }
 
 function sourceLabelFor(result, override) {
-  if (override) return fixedTextForUi(override);
+  if (override) return override;
   if (result?.source === "llm") return tr("Kết quả từ AI", "AI result");
   if (result?.source === "memory_sample") return tr("Dữ liệu mẫu đã lưu", "Saved sample data");
   if (result?.source === "fallback") return tr("Kết quả dự phòng", "Fallback result");
-  return tr("Bản local", "Local preview");
+  return tr("Bản local", "Local build");
 }
 
 function colorLabel(color) {
@@ -2053,24 +2073,7 @@ function statusClassName(status) {
 }
 
 function riskLabel(label) {
-  const key = riskKeyRaw(label);
-  if (uiLang() === "en") return RISK_LABELS_EN[key] || STATIC_EN_TEXT.get(String(label || "").trim()) || label || "Risk group";
   return RISK_LABELS[label] || label || "Nhóm rủi ro";
-}
-
-function riskKeyRaw(label) {
-  const raw = normalizeText(label);
-  if (raw.includes("spin") || raw.includes("eligibility") || raw.includes("luot quay") || raw.includes("co che quay")) return "spin_rule";
-  if (raw.includes("abuse") || raw.includes("farm") || raw.includes("log")) return "abuse";
-  if (raw.includes("cs") || raw.includes("thong diep") || raw.includes("faq")) return "cs";
-  if (raw.includes("rollback") || raw.includes("operation") || raw.includes("pause")) return "operations";
-  if (raw.includes("muc tieu") || raw.includes("pham vi") || raw.includes("scope") || raw.includes("segment") || raw.includes("goal")) return "scope";
-  if (raw.includes("phu trach") || raw.includes("owner") || raw.includes("deadline") || raw.includes("han xu ly")) return "owner";
-  if (raw.includes("ky thuat") || raw.includes("tech") || raw.includes("stability")) return "tech";
-  if (raw.includes("nguoi dung") || raw.includes("user")) return "user";
-  if (raw.includes("kinh doanh") || raw.includes("business") || raw.includes("reward") || raw.includes("economy") || raw.includes("phan thuong")) return "business";
-  if (raw.includes("bai hoc") || raw.includes("learning") || raw.includes("post")) return "learning";
-  return "scope";
 }
 
 function riskKey(label) {
@@ -2085,33 +2088,40 @@ function riskKey(label) {
 }
 
 function riskScoreMeaning(score, maxScore = 2) {
-  if (uiLang() === "en") {
-    if (score >= maxScore) return `${maxScore}/${maxScore}: Clear enough to assign and own.`;
-    if (score > 0) return `${score}/${maxScore}: Mentioned, but not actionable yet.`;
-    return `0/${maxScore}: Not enough evidence in the brief.`;
-  }
-  if (score >= maxScore) return `${maxScore}/${maxScore}: Đủ rõ để giao việc và chịu trách nhiệm.`;
-  if (score > 0) return `${score}/${maxScore}: Có nhắc tới, nhưng còn thiếu chi tiết để team làm ngay.`;
-  return `0/${maxScore}: Chưa thấy đủ bằng chứng trong brief.`;
+  if (score >= maxScore) return tr(`${maxScore}/${maxScore}: Đủ rõ để giao việc và chịu trách nhiệm.`, `${maxScore}/${maxScore}: Clear enough to assign and own.`);
+  if (score > 0) return tr(`${score}/${maxScore}: Có nhắc tới, nhưng còn thiếu chi tiết để team làm ngay.`, `${score}/${maxScore}: Mentioned, but missing detail for the team to act on now.`);
+  return tr(`0/${maxScore}: Chưa thấy đủ bằng chứng trong brief.`, `0/${maxScore}: Not enough evidence in the brief yet.`);
+}
+
+// Phát hiện ngôn ngữ NỘI DUNG của brief hiện tại (cho output lesson/suggestion bám theo brief,
+// không bám UI). Mặc định tiếng Việt; chỉ coi là English khi không có dấu tiếng Việt và có đủ
+// từ chức năng tiếng Anh (nên "Su kien quay thuong cuoi tuan" không dấu vẫn là VI).
+function briefContentIsEnglish(text) {
+  const source = text != null ? text : (currentLaunch?.brief || (typeof briefInput !== "undefined" && briefInput ? briefInput.value : "") || "");
+  const t = String(source).trim();
+  if (!t) return false;
+  if (/[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/i.test(t)) return false;
+  const matches = (t.toLowerCase().match(/\b(the|and|to|for|with|is|are|of|this|that|will|be|on|in|we|our|your|by|from|should|must|when|after|before)\b/g) || []).length;
+  const words = t.split(/\s+/).filter(Boolean).length || 1;
+  return matches >= 3 && (matches / words) >= 0.04;
 }
 
 function riskRequirements(label) {
   const normalizedLabel = normalizeText(riskLabel(label));
   const group = (activeTemplate().riskGroups || []).find((item) => normalizeText(item.label) === normalizedLabel);
-  if (uiLang() === "en") return RISK_REQUIREMENTS_EN[riskKeyRaw(label)] || RISK_REQUIREMENTS_EN[riskKey(label)] || RISK_REQUIREMENTS_EN.scope;
   if (group?.requirements?.length) return group.requirements;
   return RISK_REQUIREMENTS[riskKey(label)] || RISK_REQUIREMENTS.scope;
 }
 
 function typeLabel(type) {
-  const labels = uiLang() === "en" ? TYPE_LABELS_EN : TYPE_LABELS;
-  return labels[type] || type || tr("Chưa phân loại", "Unclassified");
+  if (uiLang() === "en") return TYPE_LABELS_EN[type] || TYPE_LABELS[type] || type || "Uncategorized";
+  return TYPE_LABELS[type] || type || "Chưa phân loại";
 }
 
 function templateDisplayName(templateOrName) {
   const name = typeof templateOrName === "string" ? templateOrName : templateOrName?.name;
-  const labels = uiLang() === "en" ? TEMPLATE_NAME_LABELS_EN : TEMPLATE_NAME_LABELS;
-  return labels[name] || name || tr("Template mặc định", "Default template");
+  if (uiLang() === "en") return TEMPLATE_NAME_LABELS_EN[name] || TEMPLATE_NAME_LABELS[name] || name || "Default template";
+  return TEMPLATE_NAME_LABELS[name] || name || "Template mặc định";
 }
 
 function ownerLabel(owner) {
@@ -2167,6 +2177,7 @@ function friendlyText(value) {
     .replace(/monitoring/gi, "theo dõi hệ thống")
     .replace(/on-call/gi, "trực sự cố")
     .replace(/fallback/gi, "phương án dự phòng")
+    .replace(/macro trả lời/gi, "mẫu trả lời")
     .replace(/macro/gi, "mẫu trả lời")
     .replace(/escalation path/gi, "đường xử lý leo thang")
     .replace(/Launch bản tóm tắt/gi, "Bản tóm tắt launch")
@@ -2204,24 +2215,24 @@ function renderDecision({ color, score, maxScore = 12, title, reason, sourceLabe
   scoreColor.textContent = colorLabel(safeColor);
   scoreValue.textContent = `${numericScore}/${numericMax}`;
   if (scoreDialValue) scoreDialValue.textContent = `${numericScore}/${numericMax}`;
-  const reasonText = fixedTextForLang(reason || (safeColor === "Green"
-    ? tr("Có thể launch nếu không có blocker nghiêm trọng.", "Can launch if there are no critical blockers.")
+  const reasonText = friendlyText(reason || (safeColor === "Green"
+    ? tr("Có thể launch nếu không có blocker nghiêm trọng.", "Can launch if there is no serious blocker.")
     : safeColor === "Yellow"
-      ? tr("Chưa nên launch ngay. Cần sửa các mục thiếu trước.", "Do not launch yet. Fix the missing items first.")
-      : tr("Dừng launch. Cần làm lại brief hoặc giảm scope.", "Stop the launch. Rewrite the brief or reduce scope.")), activeAnalysisOutputLang);
+      ? tr("Chưa nên launch ngay. Cần sửa các mục thiếu trước.", "Not ready to launch yet. Fix the missing items first.")
+      : tr("Dừng launch. Cần làm lại brief hoặc giảm scope.", "Stop the launch. Rework the brief or reduce scope.")));
   scoreReason.innerHTML = renderDecisionReason(reasonText);
-  decisionTitle.textContent = fixedTextForLang(title || (safeColor === "Green"
-    ? tr("Có thể chuẩn bị launch", "Ready to prepare launch")
+  decisionTitle.textContent = friendlyText(title || (safeColor === "Green"
+    ? tr("Có thể chuẩn bị launch", "Ready to prepare the launch")
     : safeColor === "Yellow"
-      ? tr("Chưa nên launch ngay", "Do not launch yet")
-      : tr("Dừng launch", "Stop launch")), activeAnalysisOutputLang);
+      ? tr("Chưa nên launch ngay", "Not ready to launch yet")
+      : tr("Dừng launch", "Stop the launch")));
   launchGate.className = `gate-pill ${className}`;
   launchGate.textContent = safeColor === "Green"
     ? tr("Kết luận: Có thể chạy có điều kiện", "Verdict: Can run with conditions")
     : safeColor === "Yellow"
-      ? tr("Kết luận: Tạm giữ để sửa", "Verdict: Hold and fix")
-      : tr("Kết luận: Dừng launch", "Verdict: Stop launch");
-  analysisSource.textContent = sourceLabel || tr("Bản local", "Local preview");
+      ? tr("Kết luận: Tạm giữ để sửa", "Verdict: Hold to fix")
+      : tr("Kết luận: Dừng launch", "Verdict: Stop the launch");
+  analysisSource.textContent = sourceLabel || tr("Bản local", "Local build");
 }
 
 function renderDecisionReason(text) {
@@ -2234,17 +2245,15 @@ function renderDecisionReason(text) {
 
 function renderRiskBreakdown(items) {
   if (!items?.length) {
-    riskBreakdown.innerHTML = `<div class="empty-state">${tr("Chưa có điểm rủi ro. Bấm Chạy phân tích để tạo.", "No risk score yet. Run analysis to generate one.")}</div>`;
+    riskBreakdown.innerHTML = `<div class="empty-state">${tr("Chưa có điểm rủi ro. Bấm Chạy phân tích để tạo.", "No risk score yet. Click Run analysis to generate one.")}</div>`;
     return;
   }
 
   riskBreakdown.innerHTML = items.map((item) => {
     const score = Number(item.score) || 0;
     const maxScore = Number(item.maxScore) || 2;
-    const label = escapeHTML(fixedTextForUi(riskLabel(item.label)));
-    const detail = score >= maxScore
-      ? escapeHTML(tr("Ổn cho bản tóm tắt launch này.", "Clear enough for this launch brief."))
-      : escapeHTML(fixedTextForLang(item.missing, activeAnalysisOutputLang));
+    const label = escapeHTML(friendlyText(riskLabel(item.label)));
+    const detail = score >= maxScore ? tr("Ổn cho bản tóm tắt launch này.", "Fine for this launch summary.") : escapeHTML(friendlyText(item.missing));
     const requirements = riskRequirements(item.label);
 
     return `
@@ -2254,9 +2263,9 @@ function renderRiskBreakdown(items) {
         <p class="risk-meaning">${escapeHTML(riskScoreMeaning(score, maxScore))}</p>
         <small>${detail}</small>
         <div class="risk-requirements">
-          <b>${tr("Muốn đạt 2/2 cần có:", "To reach 2/2, include:")}</b>
+          <b>${tr("Muốn đạt 2/2 cần có:", "To reach 2/2 you need:")}</b>
           <ul>
-            ${requirements.map((requirement) => `<li>${escapeHTML(fixedTextForUi(requirement))}</li>`).join("")}
+            ${requirements.map((requirement) => `<li>${escapeHTML(requirement)}</li>`).join("")}
           </ul>
         </div>
       </div>
@@ -2272,11 +2281,11 @@ function renderTopRisks(items, noOpenRisks = false) {
   }
   if (!items?.length) {
     topRisks.innerHTML = noOpenRisks
-      ? `<li>${tr("Không còn rủi ro mở trước launch. Nếu sau launch phát sinh vấn đề, ghi ở Kết quả sau launch để lưu bài học cho lần sau.", "No open pre-launch risks. If a new issue appears after launch, record it in post-launch results so it becomes a lesson for next time.")}</li>`
-      : `<li>${tr("Chưa có rủi ro. Bấm Chạy phân tích để tạo.", "No risks yet. Run analysis to generate them.")}</li>`;
+      ? `<li>${tr("Không còn rủi ro mở trước launch. Nếu sau launch phát sinh vấn đề, ghi ở Kết quả sau launch để lưu bài học cho lần sau.", "No open risks before launch. If issues arise after launch, record them under Post-launch results to save lessons for next time.")}</li>`
+      : `<li>${tr("Chưa có rủi ro. Bấm Chạy phân tích để tạo.", "No risks yet. Click Run analysis to generate them.")}</li>`;
     return;
   }
-  topRisks.innerHTML = items.map((item) => `<li>${escapeHTML(fixedTextForLang(item, activeAnalysisOutputLang))}</li>`).join("");
+  topRisks.innerHTML = items.map((item) => `<li>${escapeHTML(friendlyText(item))}</li>`).join("");
 }
 
 function renderScore(results, sourceLabel = "Rule-based local preview") {
@@ -2301,44 +2310,34 @@ function renderScore(results, sourceLabel = "Rule-based local preview") {
   renderTopRisks(missing.map((item) => item.missing), color === "Green" && !missing.length);
 }
 
-function detectBriefOutputLang(text = "") {
-  const lower = String(text || "").toLowerCase();
-  const viChars = "ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ";
-  const viCount = Array.from(lower).filter((char) => viChars.includes(char)).length;
-  if (viCount >= 3) return "vi";
-  const tokens = lower.match(/[a-zA-Z]+/g) || [];
-  const englishMarkers = new Set(["a", "an", "and", "are", "as", "for", "has", "have", "no", "not", "of", "on", "should", "the", "this", "to", "untested", "with", "without"]);
-  const englishHits = tokens.filter((token) => englishMarkers.has(token)).length;
-  return englishHits >= 2 ? "en" : "vi";
-}
-
 function buildLocalAnalysisResult(text = briefInput.value.trim(), source = "local_fallback") {
   const template = activeTemplate();
-  const outputLang = detectBriefOutputLang(text);
   const results = scoreBrief(text, template);
   const total = results.reduce((sum, item) => sum + item.score, 0);
   const maxScore = results.reduce((sum, item) => sum + (Number(item.maxScore) || 2), 0) || 12;
   const color = getColor(total, maxScore);
+  const outputEnglish = briefContentIsEnglish(text);
   const missing = results
     .filter((item) => item.score < (Number(item.maxScore) || 2))
     .sort((a, b) => a.score - b.score)
     .slice(0, 3);
+  const title = outputEnglish
+    ? (color === "Green" ? "Ready to prepare the launch" : color === "Yellow" ? "Not ready to launch yet" : "Stop the launch")
+    : (color === "Green" ? "Có thể chuẩn bị launch" : color === "Yellow" ? "Chưa nên launch ngay" : "Dừng launch");
+  const reason = missing.length
+    ? (outputEnglish
+      ? `Need to add: ${missing.map((item) => item.missing).join("; ")}.`
+      : `Cần bổ sung: ${missing.map((item) => friendlyText(item.missing)).join("; ")}.`)
+    : (outputEnglish ? "The brief is clear enough for the local demo." : "Brief đủ rõ cho bản demo local.");
 
   return {
     source,
-    language: outputLang,
     decision: {
       color,
       score: total,
       maxScore,
-      title: outputLang === "en"
-        ? (color === "Green" ? "Ready to prepare launch" : color === "Yellow" ? "Do not launch yet" : "Stop launch")
-        : (color === "Green" ? "Có thể chuẩn bị launch" : color === "Yellow" ? "Chưa nên launch ngay" : "Dừng launch"),
-      reason: missing.length
-        ? (outputLang === "en"
-          ? `Need more detail: ${missing.map((item) => fixedTextForLang(item.missing, outputLang)).join("; ")}.`
-          : `Cần bổ sung: ${missing.map((item) => friendlyText(item.missing)).join("; ")}.`)
-        : (outputLang === "en" ? "The brief is clear enough for the local demo." : "Brief đủ rõ cho bản demo local.")
+      title,
+      reason
     },
     riskBreakdown: results,
     topRisks: missing.map((item) => item.missing),
@@ -2366,7 +2365,7 @@ function redTeamFieldLabel(field) {
 }
 
 function splitReadableBullets(text) {
-  const cleaned = (uiLang() === "en" ? String(text ?? "") : friendlyText(text)).replace(/\r/g, "\n").trim();
+  const cleaned = friendlyText(text).replace(/\r/g, "\n").trim();
   if (!cleaned) return [];
   const explicit = cleaned
     .split(/\n+/)
@@ -2393,11 +2392,11 @@ function sentenceCaseBullet(text) {
 function renderReadableBullets(text) {
   const items = splitReadableBullets(text);
   if (!items.length) return `<p>${escapeHTML(traceNoData())}</p>`;
-  return `<ul>${items.map((item) => `<li>${escapeHTML(sentenceCaseBullet(fixedTextForLang(item, activeAnalysisOutputLang)))}</li>`).join("")}</ul>`;
+  return `<ul>${items.map((item) => `<li>${escapeHTML(sentenceCaseBullet(item))}</li>`).join("")}</ul>`;
 }
 
 function redTeamBriefPlaceholder(card) {
-  const fix = fixedTextForLang(card?.fix, activeAnalysisOutputLang).trim();
+  const fix = friendlyText(card?.fix).trim();
   const fallback = tr(
     "Bổ sung owner, FAQ, escalation, ngưỡng pause, metric theo dõi hoặc rollback cụ thể cho góc nhìn này.",
     "Add owner, FAQ, escalation, pause threshold, tracking metric, or rollback detail for this perspective."
@@ -2454,7 +2453,7 @@ async function saveLaunchWithRedTeamSupplements() {
 function renderRedTeam(cards = activeTemplate().redTeam, options = {}) {
   collectRedTeamSupplements();
   if (options.noOpenRisks) {
-    redTeamCards.innerHTML = `<div class="empty-state">${tr("Không còn rủi ro mở trước launch. Sau khi launch chạy xong, nếu có vấn đề mới thì ghi vào Kết quả sau launch để lưu thành bài học cho lần sau.", "No open pre-launch risks. After the launch runs, record any new issue in post-launch results so it becomes a lesson for next time.")}</div>`;
+    redTeamCards.innerHTML = `<div class="empty-state">${tr("Không còn rủi ro mở trước launch. Sau khi launch chạy xong, nếu có vấn đề mới thì ghi vào Kết quả sau launch để lưu thành bài học cho lần sau.", "No open risks before launch. After the launch runs, if new issues appear, record them under Post-launch results to save lessons for next time.")}</div>`;
     return;
   }
   if (!cards?.length) {
@@ -2521,7 +2520,7 @@ function collectChecklistProgress() {
 function renderChecklist(items = activeTemplate().checklist) {
   collectChecklistProgress();
   if (!items?.length) {
-    checklistRows.innerHTML = `<div class="empty-state">${tr("Chưa có danh sách việc cần làm.", "No to-do items yet.")}</div>`;
+    checklistRows.innerHTML = `<div class="empty-state">${tr("Chưa có danh sách việc cần làm.", "No to-do list yet.")}</div>`;
     return;
   }
 
@@ -2540,8 +2539,8 @@ function renderChecklist(items = activeTemplate().checklist) {
           <span>${tr("Đã xong", "Done")}</span>
         </label>
         <div class="timeline-content">
-          <span class="timeline-date">${escapeHTML(fixedTextForLang(formatDeadline(deadline), activeAnalysisOutputLang))}</span>
-          <h4>${escapeHTML(fixedTextForLang(task, activeAnalysisOutputLang))}</h4>
+          <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
+          <h4>${escapeHTML(friendlyText(task))}</h4>
           <div class="timeline-meta">
             <span class="meta-chip owner-chip"><em>${tr("Phụ trách", "Owner")}</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
             <span class="meta-chip status-chip ${statusClass}"><em>${tr("Trạng thái", "Status")}</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
@@ -2555,7 +2554,7 @@ function renderChecklist(items = activeTemplate().checklist) {
 
 function renderPostmortem(blocks) {
   if (Array.isArray(blocks) && blocks.length) {
-    const useEnglishBlocks = activeAnalysisOutputLang === "en" && activeTemplate().name === "Lucky Spin Event Playbook" && blocks.length === EN_LUCKY_SPIN_POSTMORTEM.length;
+    const useEnglishBlocks = uiLang() === "en" && activeTemplate().name === "Lucky Spin Event Playbook" && blocks.length === EN_LUCKY_SPIN_POSTMORTEM.length;
     const displayBlocks = useEnglishBlocks ? EN_LUCKY_SPIN_POSTMORTEM : blocks;
     postmortemDraft.innerHTML = displayBlocks.map((block) => `
       <section class="draft-block">
@@ -2900,7 +2899,7 @@ if (traceCopyButton) {
 function renderLocalAnalysis(sourceLabel = "Rule-based local preview") {
   const briefText = briefInput.value.trim();
   if (!briefText) {
-    renderEmptyAnalysis(tr("Chưa có brief để phân tích.", "There is no brief to analyze yet."));
+    renderEmptyAnalysis(tr("Chưa có brief để phân tích.", "No brief to analyze yet."));
     return;
   }
   renderApiAnalysis(buildLocalAnalysisResult(briefText), sourceLabel);
@@ -2908,7 +2907,6 @@ function renderLocalAnalysis(sourceLabel = "Rule-based local preview") {
 
 function renderApiAnalysis(result, sourceOverride) {
   result = sanitizeAnalysisResult(result);
-  activeAnalysisOutputLang = result?.language || result?.outputLanguage || activeAnalysisOutputLang || "vi";
   const decision = result?.decision || {};
   const color = decision.color || "Yellow";
   const score = Number(decision.score) || 0;
@@ -2933,19 +2931,14 @@ function renderApiAnalysis(result, sourceOverride) {
 }
 
 function renderEmptyAnalysis(reason) {
-  activeAnalysisOutputLang = uiLang();
-  const maxScore = templateMax(activeTemplate());
-  scoreCard.className = "decision-card unknown";
-  if (readinessMetric) readinessMetric.className = "metric score-metric unknown";
-  scoreDial.style.setProperty("--score-percent", "0%");
-  scoreColor.textContent = tr("Chưa chấm", "Not scored");
-  scoreValue.textContent = `--/${maxScore}`;
-  if (scoreDialValue) scoreDialValue.textContent = `--/${maxScore}`;
-  decisionTitle.textContent = tr("Chưa có phân tích", "No analysis yet");
-  scoreReason.innerHTML = renderDecisionReason(reason || tr("Bấm Chạy phân tích để tạo kết quả readiness đầu tiên.", "Run analysis to create the first readiness result."));
-  launchGate.className = "gate-pill";
-  launchGate.textContent = tr("Kết luận: Chưa có phân tích", "Verdict: No analysis yet");
-  analysisSource.textContent = tr("Đang chờ brief", "Waiting for brief");
+  renderDecision({
+    color: "Yellow",
+    score: 0,
+    maxScore: 12,
+    title: tr("Chưa có phân tích", "No analysis yet"),
+    reason,
+    sourceLabel: tr("Đang chờ brief", "Waiting for a brief")
+  });
   renderRiskBreakdown([]);
   renderTopRisks([]);
   renderRedTeam([]);
@@ -2990,9 +2983,6 @@ function summarizeClientLaunch(launch) {
 function upsertLaunchSummary(launchOrSummary) {
   const cleanLaunch = sanitizeLaunchData(launchOrSummary);
   const summary = cleanLaunch.analyses ? summarizeClientLaunch(cleanLaunch) : cleanLaunch;
-  if (!(Number(summary.analysisCount) > 0)) {
-    delete summary.decision;
-  }
   const index = launches.findIndex((item) => item.id === summary.id);
   if (index >= 0) launches[index] = { ...launches[index], ...summary };
   else launches.push(summary);
@@ -3028,24 +3018,52 @@ function renderLaunchGroups() {
     : STATUS_ORDER.filter((status) => status === launchStatusFilter);
   const isFiltering = Boolean(launchSearchQuery.trim()) || launchStatusFilter !== "all";
 
+  // Card nháp cho launch mới chưa lưu (Pro mode) — Friendly có hệ draft riêng nên bỏ qua.
+  const proDraft = (!document.body.classList.contains("ui-mode-friendly") && draftMode && currentLaunch && !currentLaunch.id)
+    ? {
+        status: normalizeStatus(currentLaunch.status),
+        name: currentLaunch.name || "Launch mới",
+        type: currentLaunch.type || "Game event",
+        owner: currentLaunch.owner || ""
+      }
+    : null;
+
   launchGroups.innerHTML = visibleStatuses.map((status) => {
     const items = launches.filter((launch) => normalizeStatus(launch.status) === status && launchMatchesBoardFilter(launch));
-    const cards = items.length
+    const draftCardHtml = (proDraft && proDraft.status === status && (!isFiltering || launchMatchesBoardFilter({ name: proDraft.name, type: proDraft.type, owner: proDraft.owner, status })))
+      ? `
+          <button class="launch-card active readiness-unknown pro-session-draft" type="button" data-launch-id="" aria-label="${tr("Launch mới chưa lưu", "New unsaved launch")}" title="${tr("Chưa lưu trong phiên này", "Not saved in this session")}">
+            <span class="launch-card-badge readiness-unknown">${tr("Chưa lưu", "Not saved")}</span>
+            <strong>${escapeHTML(proDraft.name)}</strong>
+            <small class="launch-card-meta-line">${escapeHTML(typeLabel(proDraft.type))} · ${tr("Nháp", "Draft")}</small>
+            <small class="launch-card-owner-line">${escapeHTML(proDraft.owner ? ownerLabel(proDraft.owner) : tr("Chưa có owner", "No owner yet"))} · ${tr("Chưa lưu", "Not saved")}</small>
+            <span class="launch-card-history empty">
+              <span>${tr("Lịch sử đã lưu", "Saved history")}</span>
+              <strong>0 ${tr("phân tích", "analyses")} · 0 ${tr("bài học", "lessons")}</strong>
+              <small>${tr("Chưa lưu", "Not saved")}</small>
+            </span>
+          </button>
+        `
+      : "";
+    const itemCards = items.length
       ? items.map((launch) => {
         const isActive = currentLaunch?.id === launch.id && !draftMode;
         const launchNameText = launch.name || "Launch chưa đặt tên";
         const analysisCount = Number(launch.analysisCount) || 0;
-        const savedDecision = analysisCount > 0 ? launch.decision : null;
         const lessonCount = Number(launch.lessonCount) || 0;
         const lastSavedAt = launch.latestHistoryAt || launch.updatedAt || "";
-        const lastSavedLabel = lastSavedAt ? formatDate(lastSavedAt) : tr("Chưa có", "None");
+        const lastSavedLabel = lastSavedAt ? formatDate(lastSavedAt) : "Chưa có";
         const templateNameText = launch.templateName || templateDisplayName(defaultTemplateForType(launch.type || "Game event"));
-        const readinessClass = statusClassFromDecision(savedDecision) || "unknown";
-        const readinessLabel = savedDecision
-          ? `${colorLabel(savedDecision.color || "Yellow")} ${savedDecision.score ?? 0}/${savedDecision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
+        const readinessClass = statusClassFromDecision(launch.decision) || "unknown";
+        const readinessLabel = launch.decision
+          ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
           : tr("Chưa có điểm readiness", "No readiness score yet");
+        const badgeLabel = launch.decision
+          ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
+          : tr("Chưa chấm", "Not scored");
         return `
           <button class="launch-card ${isActive ? "active" : ""} readiness-${escapeHTML(readinessClass)}" type="button" data-launch-id="${escapeHTML(launch.id)}" aria-label="Mở chi tiết ${escapeHTML(launchNameText)}. ${escapeHTML(readinessLabel)}" title="${escapeHTML(readinessLabel)}">
+            <span class="launch-card-badge readiness-${escapeHTML(readinessClass)}">${escapeHTML(badgeLabel)}</span>
             <strong>${escapeHTML(launchNameText)}</strong>
             <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(templateNameText)}</small>
             <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : tr("Chưa có owner", "No owner yet"))} · ${escapeHTML(lastSavedLabel)}</small>
@@ -3057,11 +3075,15 @@ function renderLaunchGroups() {
           </button>
         `;
       }).join("")
-      : `<div class="empty-state">${isFiltering ? tr("Không có launch phù hợp.", "No matching launch.") : statusHint(status)}</div>`;
+      : "";
+    const cards = (draftCardHtml || itemCards)
+      ? `${draftCardHtml}${itemCards}`
+      : `<div class="empty-state">${isFiltering ? "Không có launch phù hợp." : STATUS_HINTS[status]}</div>`;
+    const groupCount = items.length + (draftCardHtml ? 1 : 0);
 
     return `
       <section class="launch-group">
-        <h3>${statusDisplayLabel(status)} <span class="launch-count">${items.length}</span></h3>
+        <h3>${statusDisplayLabel(status)} <span class="launch-count">${groupCount}</span></h3>
         <div class="launch-list">${cards}</div>
       </section>
     `;
@@ -3095,7 +3117,7 @@ function collectLaunchFromForm() {
     targetDate: normalizeDateForStorage(launchTargetDate.value),
     endDate: normalizeDateForStorage(launchEndDate.value),
     brief: briefInput.value.trim(),
-    template: defaultTemplateForType(selectedType),
+    template: currentLaunch?.template || defaultTemplateForType(selectedType),
     templateVersions: currentLaunch?.templateVersions || [],
     lessonSuggestions: currentLaunch?.lessonSuggestions || [],
     redTeamBriefSupplements: stringMap(redTeamBriefSupplements),
@@ -3122,35 +3144,35 @@ function renderLaunchSnapshot() {
   launchSnapshot.innerHTML = `
     <div class="snapshot-item">
       <span>${tr("Trạng thái", "Status")}</span>
-      <strong>${escapeHTML(statusDisplayLabel(normalizeStatus(launch?.status)))}</strong>
-      <small>${escapeHTML(statusHint(normalizeStatus(launch?.status)))}</small>
+      <strong>${escapeHTML(STATUS_LABELS[normalizeStatus(launch?.status)])}</strong>
+      <small>${escapeHTML(STATUS_HINTS[normalizeStatus(launch?.status)])}</small>
     </div>
     <div class="snapshot-item">
       <span>${tr("Kết luận mới nhất", "Latest verdict")}</span>
-      <strong>${escapeHTML(latest ? `${colorLabel(latest.color)} ${latest.score}/${latest.maxScore || 12}` : tr("Chưa có", "None"))}</strong>
-      <small>${analyses.length ? `${tr("Cập nhật", "Updated")}: ${escapeHTML(formatDate(analyses[analyses.length - 1].createdAt))}` : tr("Bấm Chạy phân tích để lưu kết quả đầu tiên.", "Run analysis to save the first result.")}</small>
+      <strong>${escapeHTML(latest ? `${colorLabel(latest.color)} ${latest.score}/${latest.maxScore || 12}` : tr("Chưa có", "None yet"))}</strong>
+      <small>${analyses.length ? `${tr("Cập nhật", "Updated")}: ${escapeHTML(formatDate(analyses[analyses.length - 1].createdAt))}` : tr("Bấm Chạy phân tích để lưu kết quả đầu tiên.", "Click Run analysis to save the first result.")}</small>
     </div>
     <div class="snapshot-item">
       <span>${tr("Người phụ trách", "Owner")}</span>
-      <strong>${escapeHTML(launch?.owner || tr("Chưa có", "None"))}</strong>
-      <small>${tr("Người hoặc team chịu trách nhiệm chính.", "Person or team with primary ownership.")}</small>
+      <strong>${escapeHTML(launch?.owner || tr("Chưa có", "None yet"))}</strong>
+      <small>${tr("Người hoặc team chịu trách nhiệm chính.", "The person or team mainly responsible.")}</small>
     </div>
     <div class="snapshot-item">
       <span>Start Launch</span>
-      <strong>${escapeHTML(formatDateOnly(launch?.targetDate, tr("Chưa có", "None")))}</strong>
-      <small>${tr("Ngày bắt đầu chạy launch.", "Launch start date.")}</small>
+      <strong>${escapeHTML(formatDateOnly(launch?.targetDate, tr("Chưa có", "None yet")))}</strong>
+      <small>${tr("Ngày bắt đầu chạy launch.", "The launch start date.")}</small>
     </div>
     <div class="snapshot-item">
       <span>End Launch</span>
-      <strong>${escapeHTML(formatDateOnly(launch?.endDate, tr("Chưa có", "None")))}</strong>
-      <small>${tr("Ngày kết thúc hoặc ngày cần tổng kết.", "End date or retrospective date.")}</small>
+      <strong>${escapeHTML(formatDateOnly(launch?.endDate, tr("Chưa có", "None yet")))}</strong>
+      <small>${tr("Ngày kết thúc hoặc ngày cần tổng kết.", "The end or wrap-up date.")}</small>
     </div>
   `;
 }
 
 function renderBriefGuide() {
   const template = activeTemplate();
-  const enGuide = uiLang() === "en" ? EN_BRIEF_GUIDES_BY_TEMPLATE[template.name] : null;
+  const enGuide = uiLang() === "en" ? englishBriefGuideForTemplate(template) : null;
   if (briefGuideDescription) {
     briefGuideDescription.textContent = enGuide?.description || template.description || tr(
       "Viết như một bản mô tả launch thật. Không cần văn hay, nhưng cần đủ dữ liệu để Agent chấm rủi ro.",
@@ -3163,6 +3185,7 @@ function renderBriefGuide() {
       .join("");
   }
 }
+window.renderBriefGuide = renderBriefGuide;
 
 function renderTemplateOperatorOptions() {
   if (!templateOperator) return;
@@ -3178,8 +3201,11 @@ function renderTemplatePermissionState() {
   if (!templatePermissionState) return;
   const operator = activeTemplateOperator();
   const stateClass = "allowed";
-  const title = "Full quyền chỉnh cấu hình";
-  const detail = "Mọi vai trò trong bản demo hiện đều có thể sửa, lưu và duyệt đề xuất template. Thay đổi vẫn lưu theo cơ chế hiện tại của app.";
+  const title = tr("Full quyền chỉnh cấu hình", "Full config access");
+  const detail = tr(
+    "Mọi vai trò trong bản demo hiện đều có thể sửa, lưu và duyệt đề xuất template. Thay đổi vẫn lưu theo cơ chế hiện tại của app.",
+    "In this demo, every role can edit, save, and approve template proposals. Changes are still saved through the app's current flow."
+  );
 
   templatePermissionState.className = `permission-state ${stateClass}`;
   templatePermissionState.innerHTML = `
@@ -3195,7 +3221,7 @@ function renderTemplateAdminList() {
     <article class="admin-row ${item.canEdit ? "can-edit" : "read-only"}">
       <div>
         <strong>${escapeHTML(item.name)}</strong>
-        <small>${escapeHTML(item.role)} · ${escapeHTML(item.scope)}</small>
+        <small>${escapeHTML(item.role)} · ${escapeHTML(templateOperatorScope(item))}</small>
       </div>
       <span>${escapeHTML(item.access)}</span>
     </article>
@@ -3204,7 +3230,7 @@ function renderTemplateAdminList() {
 
 function renderEditorActions(type, editable) {
   return `
-    <button type="button" class="danger-button" data-template-remove="${escapeHTML(type)}"${disabledAttr(editable)}>Xóa</button>
+    <button type="button" class="danger-button" data-template-remove="${escapeHTML(type)}"${disabledAttr(editable)}>${configTerm("delete")}</button>
   `;
 }
 
@@ -3214,29 +3240,29 @@ function renderRiskGroupCard(group = {}, index = 0, editable = true) {
       <div class="editor-card-head">
         <div>
           <span class="config-index" data-index-label>R${index + 1}</span>
-          <strong>${escapeHTML(group.label || "Nhóm rủi ro mới")}</strong>
+          <strong>${escapeHTML(group.label || configTerm("newRiskGroup"))}</strong>
         </div>
         ${renderEditorActions("risk", editable)}
       </div>
       <div class="editor-grid risk-editor-grid">
         <label class="field">
-          <span>Tên nhóm</span>
+          <span>${configTerm("groupName")}</span>
           <input data-field="label" type="text" value="${escapeHTML(group.label || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field score-input">
-          <span>Điểm tối đa <button class="help-button inline" type="button" aria-label="Giải thích điểm tối đa" data-tooltip="Đây là trọng số của nhóm rủi ro này. Tổng điểm readiness bằng tổng Điểm tối đa của tất cả nhóm. Agent chấm 0 đến mức này dựa trên tiêu chí đạt điểm và nội dung brief.">?</button></span>
+          <span>${configTerm("maxScore")} <button class="help-button inline" type="button" aria-label="${configTerm("maxScoreHelpLabel")}" data-tooltip="${configTerm("maxScoreTooltip")}">?</button></span>
           <input data-field="maxScore" type="number" min="1" max="5" value="${escapeHTML(group.maxScore || 2)}"${disabledAttr(editable)}>
         </label>
         <label class="field wide">
-          <span>Tiêu chí đạt điểm <button class="help-button inline" type="button" aria-label="Giải thích tiêu chí đạt điểm" data-tooltip="Đây là checklist điều kiện để nhóm này được điểm cao. AI thật sẽ đọc các tiêu chí này trong prompt; demo local dùng thêm từ khóa để chấm nhanh.">?</button></span>
+          <span>${configTerm("requirements")} <button class="help-button inline" type="button" aria-label="${configTerm("requirementsHelpLabel")}" data-tooltip="${configTerm("requirementsTooltip")}">?</button></span>
           <textarea data-field="requirements" spellcheck="false"${disabledAttr(editable)}>${escapeHTML((group.requirements || []).join("\n"))}</textarea>
         </label>
         <label class="field wide">
-          <span>Từ khóa demo local <button class="help-button inline" type="button" aria-label="Giải thích từ khóa demo local" data-tooltip="Chỉ dùng cho chế độ fallback/rule-based local. Nếu brief có các từ khóa này, app có thêm bằng chứng để chấm điểm nhóm rủi ro. AI thật vẫn đọc toàn bộ tiêu chí và brief.">?</button></span>
+          <span>${configTerm("localKeywords")} <button class="help-button inline" type="button" aria-label="${configTerm("localKeywordsHelpLabel")}" data-tooltip="${configTerm("localKeywordsTooltip")}">?</button></span>
           <textarea data-field="checks" spellcheck="false"${disabledAttr(editable)}>${escapeHTML((group.checks || []).join(", "))}</textarea>
         </label>
         <label class="field wide">
-          <span>Khi thiếu thì nói gì? <button class="help-button inline" type="button" aria-label="Giải thích khi thiếu thì nói gì" data-tooltip="Đây là câu Agent dùng để giải thích khi brief chưa đủ dữ liệu cho nhóm rủi ro này. Human sửa câu này rồi lưu cấu hình chung thì lần phân tích sau sẽ dùng câu mới.">?</button></span>
+          <span>${configTerm("missingMessage")} <button class="help-button inline" type="button" aria-label="${configTerm("missingMessageHelpLabel")}" data-tooltip="${configTerm("missingMessageTooltip")}">?</button></span>
           <textarea data-field="missing" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(group.missing || "")}</textarea>
         </label>
       </div>
@@ -3251,25 +3277,25 @@ function renderPersonaCard(item = {}, index = 0, editable = true) {
       <div class="editor-card-head">
         <div>
           <span class="config-index" data-index-label>P${index + 1}</span>
-          <strong>${escapeHTML(displayPersona || "Người phản biện mới")}</strong>
+          <strong>${escapeHTML(displayPersona || configTerm("newPersona"))}</strong>
         </div>
         ${renderEditorActions("persona", editable)}
       </div>
       <div class="editor-grid">
         <label class="field">
-          <span>Vai trò phản biện</span>
+          <span>${configTerm("personaRole")}</span>
           <input data-field="persona" type="text" value="${escapeHTML(displayPersona || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
-          <span>Lo ngại chính</span>
+          <span>${configTerm("mainConcern")}</span>
           <textarea data-field="worry" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(item.worry || "")}</textarea>
         </label>
         <label class="field">
-          <span>Dấu hiệu cần tìm</span>
+          <span>${configTerm("evidenceToFind")}</span>
           <textarea data-field="evidence" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(item.evidence || "")}</textarea>
         </label>
         <label class="field">
-          <span>Cách xử lý</span>
+          <span>${configTerm("fix")}</span>
           <textarea data-field="fix" spellcheck="false"${disabledAttr(editable)}>${escapeHTML(item.fix || "")}</textarea>
         </label>
       </div>
@@ -3289,7 +3315,7 @@ function renderChecklistCard(item = {}, index = 0, editable = true) {
       <div class="checklist-topline">
         <span class="config-index" data-index-label>C${index + 1}</span>
         <label class="field task-field">
-          <span>Việc cần làm</span>
+          <span>${configTerm("task")}</span>
           <input data-field="task" type="text" value="${escapeHTML(item.task || "")}"${disabledAttr(editable)}>
         </label>
       </div>
@@ -3300,7 +3326,7 @@ function renderChecklistCard(item = {}, index = 0, editable = true) {
         </label>
         <label class="field">
           <span>Deadline</span>
-          <input data-field="deadline" type="text" value="${escapeHTML(item.deadline || "T-1 ngày")}"${disabledAttr(editable)}>
+          <input data-field="deadline" type="text" value="${escapeHTML(item.deadline || tr("T-1 ngày", "T-1 day"))}"${disabledAttr(editable)}>
         </label>
         <label class="field">
           <span>${tr("Trạng thái", "Status")}</span>
@@ -3326,17 +3352,17 @@ function renderLessonCard(block = {}, index = 0, editable = true) {
       <div class="editor-card-head">
         <div>
           <span class="config-index" data-index-label>L${index + 1}</span>
-          <strong>${escapeHTML(block.title || "Block bài học mới")}</strong>
+          <strong>${escapeHTML(block.title || tr("Block bài học mới", "New lesson block"))}</strong>
         </div>
         ${renderEditorActions("lesson", editable)}
       </div>
       <div class="editor-grid">
         <label class="field">
-          <span>Tiêu đề block</span>
+          <span>${tr("Tiêu đề block", "Block title")}</span>
           <input data-field="title" type="text" value="${escapeHTML(block.title || "")}"${disabledAttr(editable)}>
         </label>
         <label class="field">
-          <span>Câu hỏi, mỗi dòng một câu</span>
+          <span>${tr("Câu hỏi, mỗi dòng một câu", "Questions, one per line")}</span>
           <textarea data-field="items" spellcheck="false"${disabledAttr(editable)}>${escapeHTML((block.items || []).join("\n"))}</textarea>
         </label>
       </div>
@@ -3376,37 +3402,37 @@ function blankTemplateItem(type) {
     return {
       label: `Nhóm rủi ro mới ${next}`,
       maxScore: 2,
-      requirements: ["Tiêu chí cần có"],
+      requirements: [tr("Tiêu chí cần có", "Required criterion")],
       checks: ["tu khoa"],
-      missing: "Chưa đủ thông tin cho nhóm rủi ro này."
+      missing: tr("Chưa đủ thông tin cho nhóm rủi ro này.", "Not enough information for this risk group.")
     };
   }
   if (type === "persona") {
     return {
-      persona: `Người phản biện mới ${next}`,
-      worry: "Điểm đáng lo nhất là gì?",
-      evidence: "Dấu hiệu nào trong brief cho thấy rủi ro này?",
-      fix: "Team cần làm gì để giảm rủi ro?"
+      persona: `${configTerm("newPersona")} ${next}`,
+      worry: tr("Điểm đáng lo nhất là gì?", "What is the biggest concern?"),
+      evidence: tr("Dấu hiệu nào trong brief cho thấy rủi ro này?", "Which signal in the brief points to this risk?"),
+      fix: tr("Team cần làm gì để giảm rủi ro?", "What should the team do to reduce the risk?")
     };
   }
   if (type === "checklist") {
     return {
-      task: `Việc cần làm mới ${next}`,
+      task: `${configTerm("task")} ${next}`,
       owner: "Launch Owner",
-      deadline: "T-1 ngày",
+      deadline: tr("T-1 ngày", "T-1 day"),
       status: "Todo",
       priority: "Medium"
     };
   }
   return {
     title: `Block bài học mới ${next}`,
-    items: ["Câu hỏi cần trả lời sau launch"]
+    items: [tr("Câu hỏi cần trả lời sau launch", "Question to answer after launch")]
   };
 }
 
 function addTemplateEditorItem(type) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền chỉnh cấu hình trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền chỉnh cấu hình trong bản demo này.", "You have full config access in this demo.");
     return;
   }
   const editable = true;
@@ -3431,7 +3457,7 @@ function addTemplateEditorItem(type) {
 
 function removeTemplateEditorItem(button) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền chỉnh cấu hình trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền chỉnh cấu hình trong bản demo này.", "You have full config access in this demo.");
     return;
   }
   const card = button.closest("[data-template-item]");
@@ -3460,7 +3486,7 @@ function renderTemplateConfig() {
   renderTemplateCatalog(editable);
 
   templateName.dataset.baseName = template.name;
-  templateName.textContent = `${tr("Bộ luật", "Ruleset")}: ${templateDisplayName(template)}${template.customized ? " · " + tr("Đã tùy chỉnh", "Customised") : ""}`;
+  templateName.textContent = `${tr("Bộ luật", "Rule set")}: ${templateDisplayName(template)}${template.customized ? tr(" · Đã tùy chỉnh", " · Customized") : ""}`;
   templateMaxScore.textContent = String(maxScore);
   templateRiskCount.textContent = String((template.riskGroups || []).length);
   templatePersonaCount.textContent = String((template.redTeam || []).length);
@@ -3490,7 +3516,7 @@ function renderTemplateConfig() {
 function renderHistory() {
   const analyses = currentLaunch?.analyses || [];
   if (!analyses.length) {
-    analysisHistory.innerHTML = `<div class="empty-state">${tr("Launch này chưa có lịch sử. Bấm Chạy phân tích để tạo bản ghi đầu tiên.", "This launch has no history yet. Run analysis to create the first record.")}</div>`;
+    analysisHistory.innerHTML = `<div class="empty-state">${tr("Launch này chưa có lịch sử. Bấm Chạy phân tích để tạo bản ghi đầu tiên.", "This launch has no history yet. Click Run analysis to create the first record.")}</div>`;
     return;
   }
 
@@ -3503,7 +3529,7 @@ function renderHistory() {
           <strong>#${analyses.length - index} · ${escapeHTML(label)}</strong>
           <small>${escapeHTML(formatDate(analysis.createdAt))} · ${escapeHTML(sourceLabelFor(analysis.result))}</small>
         </div>
-        <button type="button" data-analysis-id="${escapeHTML(analysis.id)}">${tr("Mở lại", "Open")}</button>
+        <button type="button" data-analysis-id="${escapeHTML(analysis.id)}">${tr("Mở lại", "Reopen")}</button>
       </article>
     `;
   }).join("");
@@ -3607,9 +3633,9 @@ async function exportLaunchReport() {
   downloadTextFile(filename, markdown);
   try {
     await navigator.clipboard.writeText(markdown);
-    analysisSource.textContent = "Đã export report và copy Markdown vào clipboard";
+    analysisSource.textContent = tr("Đã export report và copy Markdown vào clipboard", "Report exported and Markdown copied to clipboard");
   } catch {
-    analysisSource.textContent = "Đã export report Markdown";
+    analysisSource.textContent = tr("Đã export report Markdown", "Markdown report exported");
   }
 }
 
@@ -3623,8 +3649,10 @@ function ensureTemplateVersionHistory() {
     version: 1,
     createdAt: new Date().toISOString(),
     author: "System",
-    note: `Template gốc cho ${typeLabel(type)}`,
-    summary: `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
+    note: uiLang() === "en" ? `Base template for ${typeLabel(type)}` : `Template gốc cho ${typeLabel(type)}`,
+    summary: uiLang() === "en"
+      ? `${(template.riskGroups || []).length} risk groups · ${(template.redTeam || []).length} red-team perspectives · ${templateMax(template)} pts`
+      : `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
     template: cloneData(template)
   });
 }
@@ -3640,7 +3668,9 @@ function addTemplateVersion(note, source = "manual") {
     author: activeTemplateOperator().name,
     note,
     source,
-    summary: `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
+    summary: uiLang() === "en"
+      ? `${(template.riskGroups || []).length} risk groups · ${(template.redTeam || []).length} red-team perspectives · ${templateMax(template)} pts`
+      : `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
     template: cloneData(template)
   });
 }
@@ -3653,13 +3683,13 @@ function renderTemplateVersionHistory() {
     ? versions.slice().reverse().map((item) => `
       <article class="version-row">
         <div>
-          <strong>v${escapeHTML(item.version)} · ${escapeHTML(item.note || "Snapshot template")}</strong>
+          <strong>v${escapeHTML(item.version)} · ${escapeHTML(item.note || tr("Snapshot template", "Template snapshot"))}</strong>
           <small>${escapeHTML(item.summary || "")}</small>
         </div>
         <span>${escapeHTML(item.author || "Admin")} · ${escapeHTML(formatDate(item.createdAt))}</span>
       </article>
     `).join("")
-    : `<div class="empty-state">Chưa có version template.</div>`;
+    : `<div class="empty-state">${tr("Chưa có version template.", "No template versions yet.")}</div>`;
 }
 
 function suggestionExists(id) {
@@ -3737,21 +3767,244 @@ function ensureLessonSuggestions() {
   }
 }
 
+function isControlledLearningProposal(item) {
+  return Boolean(item && item.kind === "controlled_self_learning" && item.delta);
+}
+
+function controlledLearningProposals() {
+  return (currentLaunch?.lessonSuggestions || []).filter(isControlledLearningProposal);
+}
+
+function hasPendingControlledLearningProposal() {
+  return controlledLearningProposals().some((item) => (item.status || "proposed") === "proposed");
+}
+
+function currentTemplateForDiff() {
+  return currentLaunch?.template || activeTemplate();
+}
+
+function templateRiskGroups(template = currentTemplateForDiff()) {
+  return Array.isArray(template?.riskGroups) ? template.riskGroups : [];
+}
+
+function templatePersonas(template = currentTemplateForDiff()) {
+  if (Array.isArray(template?.redTeamPersonas)) return template.redTeamPersonas;
+  if (Array.isArray(template?.redTeam)) return template.redTeam.map((item) => item.persona || item.name || item).filter(Boolean);
+  return [];
+}
+
+function proposalDelta(item) {
+  const delta = item?.delta && typeof item.delta === "object" ? item.delta : {};
+  return {
+    addRiskGroups: Array.isArray(delta.addRiskGroups) ? delta.addRiskGroups : [],
+    addPersonas: Array.isArray(delta.addPersonas) ? delta.addPersonas : [],
+    rationale: delta.rationale || item?.reason || ""
+  };
+}
+
+function proposalPersonaLabel(persona) {
+  if (persona && typeof persona === "object") {
+    return persona.persona || persona.name || persona.role || JSON.stringify(persona);
+  }
+  const raw = String(persona || "").trim();
+  const match = raw.match(/['"]persona['"]\s*:\s*['"]([^'"]+)/i);
+  return (match?.[1] || raw || tr("Persona mới", "New persona")).slice(0, 120);
+}
+
+function proposalStatusLabel(status) {
+  if (status === "approved") return tr("Đã duyệt", "Approved");
+  if (status === "rejected") return tr("Đã từ chối", "Rejected");
+  if (status === "proposed") return tr("Chờ duyệt", "Pending approval");
+  return tr("Đề xuất", "Proposal");
+}
+
+function proposalSourceText() {
+  const postResult = document.getElementById("postResultInput")?.value.trim() || currentLaunch?.postLaunchResult || "";
+  const lessonInput = document.getElementById("lessonInput")?.value.trim() || "";
+  const savedLessons = (currentLaunch?.lessonsLearned || []).map((item) => item.text || item.lesson || "").filter(Boolean).join("\n");
+  return [postResult, lessonInput, savedLessons].filter(Boolean).join("\n\n").trim();
+}
+
+function proposalDiffHtml(item) {
+  const delta = proposalDelta(item);
+  const currentMax = templateRiskGroups().reduce((sum, group) => sum + (Number(group.maxScore) || 2), 0);
+  const addedMax = delta.addRiskGroups.reduce((sum, group) => sum + (Number(group.maxScore) || 0), 0);
+  const riskRows = delta.addRiskGroups.length
+    ? delta.addRiskGroups.map((group) => `
+      <li><b>+ ${escapeHTML(group.label || tr("Nhóm rủi ro", "Risk group"))}</b><span>${escapeHTML(group.maxScore || 2)} pts</span></li>
+    `).join("")
+    : `<li><b>${tr("Không thêm nhóm rủi ro", "No risk group added")}</b><span>0 pts</span></li>`;
+  const personaRows = delta.addPersonas.length
+    ? delta.addPersonas.map((persona) => `<li><b>+ ${escapeHTML(proposalPersonaLabel(persona))}</b><span>${tr("Red Team", "Red Team")}</span></li>`).join("")
+    : `<li><b>${tr("Không thêm persona", "No persona added")}</b><span>${tr("Giữ nguyên", "No change")}</span></li>`;
+  return `
+    <div class="proposal-diff" aria-label="${tr("Diff đề xuất template", "Template proposal diff")}">
+      <div class="proposal-score-diff">
+        <span>${tr("Điểm tối đa", "Max score")}</span>
+        <strong>${currentMax} -> ${currentMax + addedMax}</strong>
+      </div>
+      <div class="proposal-diff-grid">
+        <div>
+          <span class="proposal-diff-label">${tr("Rubric thêm", "Rubric additions")}</span>
+          <ul>${riskRows}</ul>
+        </div>
+        <div>
+          <span class="proposal-diff-label">${tr("Persona thêm", "Persona additions")}</span>
+          <ul>${personaRows}</ul>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderControlledProposalCard(item) {
+  const status = item.status || "proposed";
+  const pending = status === "proposed";
+  const disabled = Boolean(controlledLearningBusy) || !backendAvailable || !canApproveTemplateSuggestion();
+  const delta = proposalDelta(item);
+  const rationale = briefContentIsEnglish()
+    ? (delta.rationale || "Review this proposed template update before approving.")
+    : friendlyText(delta.rationale || "Kiểm tra kỹ đề xuất trước khi duyệt vào template.");
+  return `
+    <article class="suggestion-item controlled-proposal status-${escapeHTML(status)}">
+      <div class="proposal-head">
+        <div>
+          <span class="section-kicker">${escapeHTML(proposalStatusLabel(status))}</span>
+          <h4>${tr("Đề xuất tự học có kiểm soát", "Controlled self-learning proposal")}</h4>
+          <p>${escapeHTML(rationale)}</p>
+        </div>
+        <span class="proposal-status">${escapeHTML(proposalStatusLabel(status))}</span>
+      </div>
+      ${proposalDiffHtml(item)}
+      <div class="proposal-meta">
+        <span>${tr("Nguồn", "Source")}: ${escapeHTML(item.source || "deterministic")}</span>
+        <span>${tr("Tạo lúc", "Created")}: ${escapeHTML(formatDate(item.createdAt))}</span>
+      </div>
+      <div class="suggestion-actions">
+        <button type="button" data-proposal-approve="${escapeHTML(item.id)}" ${!pending || disabled ? "disabled" : ""}>${controlledLearningBusy === `approve:${item.id}` ? tr("Đang duyệt...", "Approving...") : tr("Duyệt vào template", "Approve into template")}</button>
+        <button type="button" data-proposal-reject="${escapeHTML(item.id)}" ${!pending || disabled ? "disabled" : ""}>${controlledLearningBusy === `reject:${item.id}` ? tr("Đang từ chối...", "Rejecting...") : tr("Từ chối", "Reject")}</button>
+      </div>
+    </article>
+  `;
+}
+
+function controlledLearningSnapshot() {
+  const hasPending = hasPendingControlledLearningProposal();
+  return {
+    launchId: currentLaunch?.id || "",
+    proposals: controlledLearningProposals().map((item) => ({
+      id: item.id,
+      status: item.status || "proposed",
+      source: item.source || "deterministic",
+      delta: proposalDelta(item),
+      createdAt: item.createdAt || ""
+    })),
+    canCreate: Boolean(currentLaunch?.id && !draftMode && proposalSourceText() && !hasPending),
+    busy: controlledLearningBusy,
+    hasPending
+  };
+}
+
+function notifyControlledLearningChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("launchops:controlled-learning", { detail: controlledLearningSnapshot() }));
+}
+
+async function createControlledLearningProposal() {
+  if (!currentLaunch) return;
+  if (!currentLaunch.id || draftMode) await saveCurrentLaunch({ silent: true });
+  if (hasPendingControlledLearningProposal()) {
+    analysisSource.textContent = tr("Đang có proposal chờ duyệt. Hãy duyệt hoặc từ chối proposal hiện tại trước khi tạo bản mới.", "There is already a pending proposal. Approve or reject it before creating a new one.");
+    renderLessonSuggestions();
+    return;
+  }
+  const sourceText = proposalSourceText();
+  if (!sourceText) {
+    analysisSource.textContent = tr("Cần có kết quả sau launch hoặc bài học trước khi tạo đề xuất.", "Add post-launch results or a lesson before creating a proposal.");
+    return;
+  }
+  if (!backendAvailable) {
+    analysisSource.textContent = tr("Backend chưa sẵn sàng nên chưa tạo proposal được.", "Backend is not ready, so the proposal cannot be created yet.");
+    return;
+  }
+  controlledLearningBusy = "create";
+  renderLessonSuggestions();
+  try {
+    const payload = await callLaunchOpsTool("lcc_propose_template_update", {
+      launchId: currentLaunch.id,
+      lesson: sourceText
+    });
+    currentLaunch = sanitizeLaunchData(payload.launch || currentLaunch);
+    upsertLaunchSummary(payload.summary || currentLaunch);
+    setFormFromLaunch(currentLaunch);
+    renderLaunchWorkspace();
+    analysisSource.textContent = tr("Đã tạo proposal tự học. Hãy xem diff rồi duyệt hoặc từ chối.", "Created the learning proposal. Review the diff, then approve or reject it.");
+  } catch (error) {
+    console.warn("Create controlled learning proposal failed.", error);
+    analysisSource.textContent = tr("Tạo proposal chưa thành công.", "Proposal creation failed.");
+  } finally {
+    controlledLearningBusy = "";
+    renderLessonSuggestions();
+  }
+}
+
+async function reviewControlledLearningProposal(id, approve = true) {
+  if (!currentLaunch?.id || !id || !backendAvailable) return;
+  controlledLearningBusy = `${approve ? "approve" : "reject"}:${id}`;
+  renderLessonSuggestions();
+  try {
+    const payload = await callLaunchOpsTool("lcc_approve_template_version", {
+      launchId: currentLaunch.id,
+      proposalId: id,
+      approve,
+      reviewer: activeTemplateOperator().name
+    });
+    currentLaunch = sanitizeLaunchData(payload.launch || currentLaunch);
+    upsertLaunchSummary(payload.summary || currentLaunch);
+    setFormFromLaunch(currentLaunch);
+    renderLaunchWorkspace();
+    analysisSource.textContent = approve
+      ? tr("Đã duyệt proposal và cập nhật template cho launch này.", "Approved the proposal and updated this launch template.")
+      : tr("Đã từ chối proposal. Template giữ nguyên.", "Rejected the proposal. Template stayed unchanged.");
+  } catch (error) {
+    console.warn("Review controlled learning proposal failed.", error);
+    analysisSource.textContent = tr("Duyệt/từ chối proposal chưa thành công.", "Proposal review failed.");
+  } finally {
+    controlledLearningBusy = "";
+    renderLessonSuggestions();
+  }
+}
+
+window.launchopsControlledLearning = {
+  snapshot: controlledLearningSnapshot,
+  create: createControlledLearningProposal,
+  approve: (id) => reviewControlledLearningProposal(id, true),
+  reject: (id) => reviewControlledLearningProposal(id, false)
+};
+
 function renderLessonSuggestions() {
   if (!lessonSuggestions) return;
   ensureLessonSuggestions();
   const suggestions = (currentLaunch?.lessonSuggestions || []).filter((item) => item.status !== "dismissed");
+  const hasPendingProposal = hasPendingControlledLearningProposal();
+  const canCreateProposal = Boolean(currentLaunch?.id && !draftMode && proposalSourceText() && !hasPendingProposal);
+  const createHint = hasPendingProposal
+    ? tr("Đang có proposal chờ duyệt. Hãy duyệt hoặc từ chối trước khi tạo bản mới.", "A proposal is pending. Approve or reject it before creating a new one.")
+    : tr("AI chỉ đề xuất. Rubric/persona chỉ đổi sau khi bạn duyệt proposal.", "AI only proposes. Rubric/persona changes only after you approve a proposal.");
+  const permissionNote = `
+    <div class="suggestion-note">
+      <span>${createHint}</span>
+      <button type="button" data-proposal-create ${!canCreateProposal || controlledLearningBusy ? "disabled" : ""}>${controlledLearningBusy === "create" ? tr("Đang tạo...", "Creating...") : tr("Tạo proposal từ bài học", "Create proposal from lesson")}</button>
+    </div>
+  `;
   if (!suggestions.length) {
-    lessonSuggestions.innerHTML = `<div class="empty-state">${tr("Chưa có đề xuất. Sau khi có phân tích hoặc bài học, AI sẽ đề xuất cập nhật template để bạn duyệt.", "No suggestions yet. After an analysis or saved lesson, AI will suggest template updates for review.")}</div>`;
+    lessonSuggestions.innerHTML = permissionNote + `<div class="empty-state">${tr("Chưa có đề xuất. Sau khi có kết quả/bài học sau launch, bấm Tạo proposal từ bài học để AI draft delta cho template.", "No suggestions yet. After post-launch results or lessons exist, click Create proposal from lesson to draft a template delta.")}</div>`;
+    notifyControlledLearningChanged();
     return;
   }
 
-  const permissionNote = `
-    <div class="suggestion-note">
-      ${tr("AI chỉ đề xuất cập nhật template để tham khảo. Bản demo hiện mở quyền duyệt để bạn áp dụng trực tiếp vào template.", "AI only suggests template updates for reference. Approval is open in this demo so you can apply suggestions directly to the template.")}
-    </div>
-  `;
   lessonSuggestions.innerHTML = permissionNote + suggestions.map((item) => {
+    if (isControlledLearningProposal(item)) return renderControlledProposalCard(item);
     const accepted = item.status === "accepted";
     const locked = !canApproveTemplateSuggestion();
     const typeLabel = item.type === "riskRequirement"
@@ -3767,8 +4020,8 @@ function renderLessonSuggestions() {
       <article class="suggestion-item ${accepted ? "accepted" : ""}">
         <div>
           <span class="section-kicker">${escapeHTML(typeLabel)}</span>
-          <h4>${escapeHTML(uiLang() === "en" ? suggestionTitleEn(item) : item.title)}</h4>
-          <p>${escapeHTML(uiLang() === "en" ? suggestionReasonEn(item) : friendlyText(item.reason))}</p>
+          <h4>${escapeHTML(briefContentIsEnglish() ? suggestionTitleEn(item) : item.title)}</h4>
+          <p>${escapeHTML(briefContentIsEnglish() ? suggestionReasonEn(item) : friendlyText(item.reason))}</p>
         </div>
         <div class="suggestion-actions">
           <button type="button" data-suggestion-apply="${escapeHTML(item.id)}" ${accepted || locked ? "disabled" : ""}>${accepted ? tr("Đã duyệt", "Approved") : tr("Duyệt vào template", "Approve into template")}</button>
@@ -3777,6 +4030,7 @@ function renderLessonSuggestions() {
       </article>
     `;
   }).join("");
+  notifyControlledLearningChanged();
 }
 
 function suggestionTitleEn(item) {
@@ -3820,7 +4074,7 @@ function findSuggestion(id) {
 
 function applyLessonSuggestion(id) {
   if (!canApproveTemplateSuggestion()) {
-    analysisSource.textContent = "Bạn có full quyền duyệt đề xuất template trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền duyệt đề xuất template trong bản demo này.", "You have full template-suggestion approval access in this demo.");
     return;
   }
   if (!currentLaunch) return;
@@ -3869,7 +4123,7 @@ function applyLessonSuggestion(id) {
   currentLaunch.template = defaultTemplateForType(selectedConfigType);
   addTemplateVersion(`Duyệt AI suggestion: ${suggestion.title}`, "ai_suggestion");
   renderLaunchWorkspace();
-  analysisSource.textContent = `Đã duyệt suggestion và cập nhật cấu hình chung cho ${typeLabel(selectedConfigType)}`;
+  analysisSource.textContent = tr(`Đã duyệt suggestion và cập nhật cấu hình chung cho ${typeLabel(selectedConfigType)}`, `Approved the suggestion and updated the shared config for ${typeLabel(selectedConfigType)}`);
 }
 
 function dismissLessonSuggestion(id) {
@@ -3878,7 +4132,7 @@ function dismissLessonSuggestion(id) {
   suggestion.status = "dismissed";
   suggestion.dismissedAt = new Date().toISOString();
   renderLaunchWorkspace();
-  analysisSource.textContent = "Đã bỏ qua suggestion";
+  analysisSource.textContent = tr("Đã bỏ qua suggestion", "Suggestion dismissed");
 }
 
 function renderLessons() {
@@ -3937,13 +4191,7 @@ function setDisabled(element, disabled) {
 
 function setAnalysisRunStatus(state, message) {
   if (!analysisRunStatus) return;
-  const statusText = {
-    "Hệ thống Agent đang phân tích dữ liệu vui lòng chờ...": "Agent system is analyzing data, please wait...",
-    "Hoàn thành Phân Tích": "Analysis complete",
-    "Đang gọi backend AI...": "Calling AI backend...",
-    "Đã lưu launch": "Launch saved"
-  };
-  analysisRunStatus.textContent = uiLang() === "en" ? (statusText[message] || message || "") : (message || "");
+  analysisRunStatus.textContent = message || "";
   analysisRunStatus.className = `analysis-run-status${state ? ` is-visible is-${state}` : ""}`;
 }
 
@@ -4016,8 +4264,8 @@ function renderRunLog() {
   }).join("");
 
   body.innerHTML = `
-    <h4 class="run-log-heading">${tr("Sự kiện phiên này (client)", "This session events (client)")}</h4>
-    ${clientRows || `<div class="empty-state">${tr("Chưa có sự kiện nào trong phiên này cho launch đang chọn.", "No client events in this session for the selected launch.")}</div>`}
+    <h4 class="run-log-heading">${tr("Sự kiện phiên này (client)", "This session's events (client)")}</h4>
+    ${clientRows || `<div class="empty-state">${tr("Chưa có sự kiện nào trong phiên này cho launch đang chọn.", "No events in this session for the selected launch.")}</div>`}
     <h4 class="run-log-heading">${tr("Các lần phân tích đã lưu (server trace)", "Saved analysis runs (server trace)")}</h4>
     ${serverBlocks || `<div class="empty-state">${tr("Launch này chưa có lần phân tích nào được lưu.", "This launch has no saved analysis runs yet.")}</div>`}
   `;
@@ -4070,7 +4318,7 @@ function applyLaunchPermissions() {
   });
 
   if (!canEdit && analysisSource) {
-    analysisSource.textContent = "Bạn có full quyền thao tác trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền thao tác trong bản demo này.", "You have full operator access in this demo.");
   }
 }
 
@@ -4083,7 +4331,9 @@ function renderLatestAnalysisOrPreview() {
   }
 
   if (briefInput.value.trim()) {
-    renderEmptyAnalysis(tr("Launch này có brief nhưng chưa có phân tích được lưu. Bấm Chạy phân tích để tạo readiness.", "This launch has a brief but no saved analysis yet. Run analysis to create readiness."));
+    renderLocalAnalysis(backendAvailable
+      ? tr("Xem thử local: chưa lưu lịch sử", "Local preview: not saved to history")
+      : tr("Dự phòng local: backend chưa bật", "Local fallback: backend offline"));
     return;
   }
 
@@ -4113,6 +4363,23 @@ async function fetchJson(url, options = {}) {
   } finally {
     if (timeoutId) window.clearTimeout(timeoutId);
   }
+}
+
+async function callLaunchOpsTool(name, args = {}, options = {}) {
+  const root = API_BASE ? API_BASE.replace(/\/api$/, "") : "";
+  const response = await fetch(`${root}/tools/call`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, arguments: args }),
+    signal: options.signal
+  });
+  const envelope = await response.json();
+  const text = envelope?.content?.[0]?.text;
+  const payload = text ? JSON.parse(text) : envelope;
+  if (!response.ok || envelope.isError || !payload.ok) {
+    throw new Error(payload?.message || payload?.error || `Tool ${name} failed`);
+  }
+  return payload;
 }
 
 async function loadLaunches() {
@@ -4164,7 +4431,7 @@ async function selectLaunch(id) {
     if (document.getElementById("runLog")?.classList.contains("active")) renderRunLog();
   } catch (error) {
     console.warn("Cannot load launch detail.", error);
-    renderEmptyAnalysis("Không mở được launch này. Kiểm tra backend local.");
+    renderEmptyAnalysis(tr("Không mở được launch này. Kiểm tra backend local.", "Could not open this launch. Check the local backend."));
   }
 }
 
@@ -4172,7 +4439,7 @@ function startNewLaunch() {
   draftMode = true;
   currentLaunch = {
     id: "",
-    name: tr("Launch mới", "New launch"),
+    name: "Launch mới",
     type: "Game event",
     status: "upcoming",
     owner: "",
@@ -4191,17 +4458,22 @@ function startNewLaunch() {
   loadLaunchUiState(currentLaunch);
   setFormFromLaunch(currentLaunch);
   renderLaunchWorkspace();
-  renderEmptyAnalysis(tr("Nhập brief rồi bấm Lưu launch hoặc Chạy phân tích.", "Enter a brief, then save the launch or run analysis."));
+  renderEmptyAnalysis(tr("Nhập brief rồi bấm Lưu launch hoặc Chạy phân tích.", "Enter a brief, then click Save launch or Run analysis."));
 }
 
 async function saveCurrentLaunch({ silent = false } = {}) {
   if (!canEditLaunch()) {
-    analysisSource.textContent = "Bạn có full quyền sửa launch trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền sửa launch trong bản demo này.", "You have full launch-edit access in this demo.");
     throw new Error("Launch edit is temporarily unavailable.");
   }
   const launchData = collectLaunchFromForm();
+  const scheduleValidation = validateLaunchScheduleRules(launchData);
+  if (!scheduleValidation.ok) {
+    showLaunchScheduleError(scheduleValidation);
+    throw new Error(scheduleValidation.error);
+  }
   if (!canSaveLaunchData(launchData)) {
-    analysisSource.textContent = "Bạn có full quyền lưu launch trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền lưu launch trong bản demo này.", "You have full launch-save access in this demo.");
     throw new Error("Launch save is temporarily unavailable.");
   }
   if (!launchData.id) launchData.id = slugify(launchData.name);
@@ -4244,11 +4516,13 @@ async function saveCurrentLaunch({ silent = false } = {}) {
     }
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
-    if (!silent) analysisSource.textContent = backendAvailable ? "Đã lưu launch vào bộ nhớ local" : "Dự phòng local: chưa lưu bền vững";
+    if (!silent) analysisSource.textContent = backendAvailable
+      ? tr("Đã lưu launch vào bộ nhớ local", "Launch saved to local storage")
+      : tr("Dự phòng local: chưa lưu bền vững", "Local fallback: not persisted");
     return currentLaunch;
   } catch (error) {
     console.warn("Save launch failed.", error);
-    analysisSource.textContent = "Lưu chưa thành công: backend chưa sẵn sàng";
+    analysisSource.textContent = tr("Lưu chưa thành công: backend chưa sẵn sàng", "Save failed: backend not ready");
     throw error;
   } finally {
     saveLaunchButton.disabled = false;
@@ -4259,13 +4533,13 @@ async function saveCurrentLaunch({ silent = false } = {}) {
 
 async function deleteCurrentLaunch() {
   if (!canDeleteLaunch()) {
-    analysisSource.textContent = "Chỉ có thể xóa launch đã lưu. Launch nháp chưa có id để xóa.";
+    analysisSource.textContent = tr("Chỉ có thể xóa launch đã lưu. Launch nháp chưa có id để xóa.", "Only saved launches can be deleted. A draft has no id yet.");
     return;
   }
   const launchId = currentLaunch?.id;
-  const launchLabel = currentLaunch?.name || "launch này";
+  const launchLabel = currentLaunch?.name || tr("launch này", "this launch");
   if (!launchId) return;
-  if (!window.confirm(`Xóa ${launchLabel}? Hành động này chỉ áp dụng trong bản demo/local hiện tại.`)) return;
+  if (!window.confirm(tr(`Xóa ${launchLabel}? Hành động này chỉ áp dụng trong bản demo/local hiện tại.`, `Delete ${launchLabel}? This only applies to the current demo/local copy.`))) return;
 
   if (backendAvailable) {
     await fetchJson(`${API_BASE}/launches/${encodeURIComponent(launchId)}`, { method: "DELETE" });
@@ -4276,7 +4550,7 @@ async function deleteCurrentLaunch() {
 
   launches = launches.filter((launch) => launch.id !== launchId);
   const next = launches.find((launch) => normalizeStatus(launch.status) === "running") || launches[0];
-  analysisSource.textContent = `Đã xóa ${launchLabel}.`;
+  analysisSource.textContent = tr(`Đã xóa ${launchLabel}.`, `Deleted ${launchLabel}.`);
   if (next) await selectLaunch(next.id);
   else startNewLaunch();
 }
@@ -4287,16 +4561,22 @@ const ANALYZE_CLIENT_TIMEOUT_MS = 240000;
 async function analyze() {
   const text = briefInput.value.trim();
   if (!text) {
-    renderEmptyAnalysis("Chưa có brief để phân tích.");
-    setAnalysisRunStatus("error", "Chưa có brief để phân tích. Nhập brief rồi chạy lại.");
+    renderEmptyAnalysis(tr("Chưa có brief để phân tích.", "No brief to analyze yet."));
+    setAnalysisRunStatus("error", tr("Chưa có brief. Nhập brief rồi thử lại.", "No brief. Add one and try again."));
     logRunEvent("error", "analyze", "Bấm Chạy phân tích nhưng brief đang trống.");
+    return;
+  }
+  const scheduleValidation = validateLaunchScheduleRules(collectLaunchFromForm());
+  if (!scheduleValidation.ok) {
+    showLaunchScheduleError(scheduleValidation);
+    logRunEvent("error", "analyze", scheduleValidation.message);
     return;
   }
 
   analyzeButton.disabled = true;
   analyzeButton.textContent = tr("Đang phân tích...", "Analyzing...");
   analysisSource.textContent = tr("Đang gọi AI...", "Calling AI...");
-  setAnalysisRunStatus("running", "Hệ thống Agent đang phân tích dữ liệu vui lòng chờ...");
+  setAnalysisRunStatus("running", tr("Đang phân tích brief...", "Analyzing brief..."));
   document.body.classList.add("is-analyzing");
   const startedAt = Date.now();
   logRunEvent("info", "analyze", `Bắt đầu phân tích "${currentLaunch?.name || "Launch mới"}" (backend=${backendAvailable ? "có" : "không"}).`);
@@ -4318,13 +4598,13 @@ async function analyze() {
       renderLaunchWorkspace();
       renderApiAnalysis(payload.result);
       activateTab("redTeam");
-      setAnalysisRunStatus("success", "Hoàn thành Phân Tích");
+      setAnalysisRunStatus("success", tr("Đã phân tích xong", "Analysis complete"));
       logRunEvent("success", "api", `Phân tích xong sau ${Math.round((Date.now() - startedAt) / 1000)}s, source=${payload.result?.source || "?"}${payload.result?.warning ? `, warning=${payload.result.warning}` : ""}.`);
       return;
     }
 
     const result = buildLocalAnalysisResult(text);
-    renderApiAnalysis(result, "Dự phòng local: backend/API chưa sẵn sàng");
+    renderApiAnalysis(result, tr("Dự phòng local: backend/API chưa sẵn sàng", "Local fallback: backend/API unavailable"));
     activateTab("redTeam");
     currentLaunch.analyses = currentLaunch.analyses || [];
     currentLaunch.analyses.push({
@@ -4335,7 +4615,7 @@ async function analyze() {
     });
     upsertLaunchSummary(currentLaunch);
     renderLaunchWorkspace();
-    setAnalysisRunStatus("success", "Hoàn thành Phân Tích");
+    setAnalysisRunStatus("success", tr("Đã phân tích xong", "Analysis complete"));
     logRunEvent("success", "local", "Phân tích bằng rule local (không gọi backend).");
   } catch (error) {
     console.warn("Analyze failed, using local fallback.", error);
@@ -4344,11 +4624,11 @@ async function analyze() {
       ? `Client hủy vì quá thời gian chờ ${Math.round(ANALYZE_CLIENT_TIMEOUT_MS / 1000)}s (server có thể vẫn đang chạy). Đã render kết quả rule local thay thế.`
       : `${error?.name || "Error"}: ${error?.message || error}. Đã render kết quả rule local thay thế.`);
     const result = buildLocalAnalysisResult(text);
-    renderApiAnalysis(result, "Dự phòng local: backend/API chưa sẵn sàng");
+    renderApiAnalysis(result, tr("Dự phòng local: backend/API chưa sẵn sàng", "Local fallback: backend/API unavailable"));
     activateTab("redTeam");
     setAnalysisRunStatus("error", isTimeout
-      ? "Phân tích quá thời gian chờ — đang hiển thị kết quả dự phòng. Bạn có thể thử lại từ tab Log."
-      : "Xảy ra sự cố, vui lòng thử lại sau.");
+      ? tr("Quá thời gian chờ. Đang hiển thị kết quả dự phòng.", "Timed out. Showing fallback results.")
+      : tr("Có lỗi. Hãy thử lại sau.", "Something went wrong. Try again."));
   } finally {
     document.body.classList.remove("is-analyzing");
     analyzeButton.disabled = false;
@@ -4384,7 +4664,7 @@ async function runDemoMode() {
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
     activateTab("briefView");
-    analysisSource.textContent = "Demo mode: đã nạp brief mẫu";
+    analysisSource.textContent = tr("Demo mode: đã nạp brief mẫu", "Demo mode: sample brief loaded");
     await wait(500);
 
     const result = buildLocalAnalysisResult(badBrief, "demo_mode");
@@ -4408,7 +4688,7 @@ async function runDemoMode() {
     activateTab("checklist");
     await wait(700);
     activateTab("lessons");
-    analysisSource.textContent = "Demo mode: flow mẫu đã sẵn sàng để quay video";
+    analysisSource.textContent = tr("Demo mode: flow mẫu đã sẵn sàng để quay video", "Demo mode: sample flow ready to record");
   } finally {
     demoModeButton.disabled = false;
     demoModeButton.textContent = "Demo mode";
@@ -4417,7 +4697,7 @@ async function runDemoMode() {
 
 async function saveLesson() {
   if (!canSaveLaunchOutcome()) {
-    analysisSource.textContent = "Bạn có full quyền lưu kết quả và bài học trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền lưu kết quả và bài học trong bản demo này.", "You have full result- and lesson-save access in this demo.");
     return;
   }
   const postResultInput = document.getElementById("postResultInput");
@@ -4456,10 +4736,12 @@ async function saveLesson() {
 
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
-    analysisSource.textContent = backendAvailable ? "Đã lưu bài học vào bộ nhớ local" : "Dự phòng local: bài học chưa lưu bền vững";
+    analysisSource.textContent = backendAvailable
+      ? tr("Đã lưu bài học vào bộ nhớ local", "Lesson saved to local storage")
+      : tr("Dự phòng local: bài học chưa lưu bền vững", "Local fallback: lesson not persisted");
   } catch (error) {
     console.warn("Save lesson failed.", error);
-    analysisSource.textContent = "Lưu bài học chưa thành công: backend chưa sẵn sàng";
+    analysisSource.textContent = tr("Lưu bài học chưa thành công: backend chưa sẵn sàng", "Lesson save failed: backend not ready");
   }
 }
 
@@ -4472,7 +4754,7 @@ function showSavedAnalysis(analysisId) {
 
 function saveTemplateConfig() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền lưu cấu hình trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền lưu cấu hình trong bản demo này.", "You have full config-save access in this demo.");
     return;
   }
   const type = configTemplateType();
@@ -4485,12 +4767,12 @@ function saveTemplateConfig() {
   addTemplateVersion(`Người thao tác lưu cấu hình chung cho ${typeLabel(type)}`, "manual_save");
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = `Đã lưu cấu hình chung cho ${typeLabel(type)}`;
+  analysisSource.textContent = tr(`Đã lưu cấu hình chung cho ${typeLabel(type)}`, `Saved shared config for ${typeLabel(type)}`);
 }
 
 function resetTemplateForSelectedType() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền nạp lại cấu hình trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền nạp lại cấu hình trong bản demo này.", "You have full config-reload access in this demo.");
     return;
   }
   const type = configTemplateType();
@@ -4502,7 +4784,7 @@ function resetTemplateForSelectedType() {
   addTemplateVersion(`Khôi phục mẫu chuẩn cho ${typeLabel(type)}`, "reset_default");
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = `Đã nạp mẫu chuẩn cho ${typeLabel(type)}`;
+  analysisSource.textContent = tr(`Đã nạp mẫu chuẩn cho ${typeLabel(type)}`, `Loaded the standard template for ${typeLabel(type)}`);
 }
 
 function switchTemplateFromSelector() {
@@ -4512,8 +4794,8 @@ function switchTemplateFromSelector() {
   selectedConfigType = selectedType;
   renderTemplateConfig();
   analysisSource.textContent = canEditTemplate()
-    ? `Đang cấu hình ${typeLabel(selectedType)}`
-    : `Đang xem cấu hình ${typeLabel(selectedType)}. Bản review public không cho chỉnh sửa.`;
+    ? tr(`Đang cấu hình ${typeLabel(selectedType)}`, `Configuring ${typeLabel(selectedType)}`)
+    : tr(`Đang xem cấu hình ${typeLabel(selectedType)}. Bản review public không cho chỉnh sửa.`, `Viewing config for ${typeLabel(selectedType)}. The public review build is read-only.`);
 }
 
 function uniqueLaunchTypeKey(label) {
@@ -4539,7 +4821,7 @@ function uniqueBaseTemplateId() {
 
 function addBaseTemplate() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền thêm template trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền thêm template trong bản demo này.", "You have full template-add access in this demo.");
     return;
   }
   const id = uniqueBaseTemplateId();
@@ -4550,17 +4832,18 @@ function addBaseTemplate() {
   }, configTemplateType());
   BASE_TEMPLATE_OPTIONS.push({ id, template });
   TEMPLATE_NAME_LABELS[template.name] = "Template mới";
+  TEMPLATE_NAME_LABELS_EN[template.name] = "New template";
   renderTemplateConfig();
-  analysisSource.textContent = "Đã thêm template mới. Bạn có thể đổi tên rồi gán cho phân loại cần dùng.";
+  analysisSource.textContent = tr("Đã thêm template mới. Bạn có thể đổi tên rồi gán cho phân loại cần dùng.", "New template added. You can rename it and assign it to a type.");
 }
 
 function removeBaseTemplate(id) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền xóa template trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền xóa template trong bản demo này.", "You have full template-delete access in this demo.");
     return;
   }
   if (PROTECTED_BASE_TEMPLATE_IDS.includes(id)) {
-    analysisSource.textContent = "Template mặc định đang được giữ lại để demo không mất dữ liệu mẫu.";
+    analysisSource.textContent = tr("Template mặc định đang được giữ lại để demo không mất dữ liệu mẫu.", "The default template is kept so the demo does not lose sample data.");
     return;
   }
   const index = BASE_TEMPLATE_OPTIONS.findIndex((item) => item.id === id);
@@ -4568,6 +4851,7 @@ function removeBaseTemplate(id) {
   const templateName = BASE_TEMPLATE_OPTIONS[index].template?.name;
   BASE_TEMPLATE_OPTIONS.splice(index, 1);
   if (templateName) delete TEMPLATE_NAME_LABELS[templateName];
+  if (templateName) delete TEMPLATE_NAME_LABELS_EN[templateName];
   Object.keys(LAUNCH_TEMPLATES).forEach((type) => {
     if (LAUNCH_TEMPLATES[type]?.name === templateName) {
       LAUNCH_TEMPLATES[type] = GENERIC_LAUNCH_TEMPLATE;
@@ -4578,21 +4862,22 @@ function removeBaseTemplate(id) {
   }
   renderTemplateConfig();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = "Đã xóa template tùy chỉnh. Phân loại đang dùng template đó được chuyển về Template launch chung.";
+  analysisSource.textContent = tr("Đã xóa template tùy chỉnh. Phân loại đang dùng template đó được chuyển về Template launch chung.", "Custom template deleted. Types using it were moved to the shared launch template.");
 }
 
 function addLaunchType() {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền thêm phân loại trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền thêm phân loại trong bản demo này.", "You have full type-add access in this demo.");
     return;
   }
   const label = "Phân loại mới";
   const type = uniqueLaunchTypeKey(label);
   LAUNCH_TEMPLATES[type] = GENERIC_LAUNCH_TEMPLATE;
   TYPE_LABELS[type] = label;
+  TYPE_LABELS_EN[type] = "New classification";
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
   renderTemplateConfig();
-  analysisSource.textContent = "Đã thêm phân loại mới. Bạn có thể đổi tên ngay trong bảng cấu hình.";
+  analysisSource.textContent = tr("Đã thêm phân loại mới. Bạn có thể đổi tên ngay trong bảng cấu hình.", "New type added. You can rename it right in the config table.");
 }
 
 function updateTemplateLabel(input, { render = true } = {}) {
@@ -4600,9 +4885,10 @@ function updateTemplateLabel(input, { render = true } = {}) {
   const templateNameKey = input.dataset.templateLabel;
   if (!templateNameKey) return;
   TEMPLATE_NAME_LABELS[templateNameKey] = input.value.trim() || templateNameKey;
+  TEMPLATE_NAME_LABELS_EN[templateNameKey] = input.value.trim() || templateNameKey;
   if (render) {
     renderLaunchWorkspace();
-    analysisSource.textContent = "Đã đổi tên hiển thị template.";
+    analysisSource.textContent = tr("Đã đổi tên hiển thị template.", "Template display name updated.");
   } else {
     syncTemplateDisplayLabels();
   }
@@ -4616,7 +4902,7 @@ function updateLaunchTypeLabel(input, { render = true } = {}) {
   if (render) {
     renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
     renderLaunchWorkspace();
-    analysisSource.textContent = "Đã đổi tên phân loại.";
+    analysisSource.textContent = tr("Đã đổi tên phân loại.", "Type renamed.");
   } else {
     syncLaunchTypeOptionLabels();
   }
@@ -4632,16 +4918,16 @@ function updateLaunchTypeTemplate(select) {
   }
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = `Đã đổi bộ template gốc cho ${typeLabel(type)}.`;
+  analysisSource.textContent = tr(`Đã đổi bộ template gốc cho ${typeLabel(type)}.`, `Changed the base template for ${typeLabel(type)}.`);
 }
 
 function removeLaunchType(type) {
   if (!canEditTemplate()) {
-    analysisSource.textContent = "Bạn có full quyền xóa phân loại trong bản demo này.";
+    analysisSource.textContent = tr("Bạn có full quyền xóa phân loại trong bản demo này.", "You have full type-delete access in this demo.");
     return;
   }
   if (!launchTypeExists(type) || PROTECTED_LAUNCH_TYPES.includes(type)) {
-    analysisSource.textContent = "Phân loại mặc định đang được giữ lại để demo không mất dữ liệu mẫu.";
+    analysisSource.textContent = tr("Phân loại mặc định đang được giữ lại để demo không mất dữ liệu mẫu.", "The default type is kept so the demo does not lose sample data.");
     return;
   }
   delete LAUNCH_TEMPLATES[type];
@@ -4653,7 +4939,7 @@ function removeLaunchType(type) {
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = "Đã xóa phân loại tùy chỉnh.";
+  analysisSource.textContent = tr("Đã xóa phân loại tùy chỉnh.", "Custom type deleted.");
 }
 
 function handleTemplateCatalogChange(event) {
@@ -4872,13 +5158,55 @@ function assistantExplainReply(rawText = "") {
 
 function assistantHomeOptions() {
   return [
-    { label: tr("Tạo launch mới", "New launch"), value: "assistant:create" },
-    { label: tr("Sửa launch hiện tại", "Edit this launch"), value: "assistant:edit" },
-    { label: tr("Tổng hợp launch", "Summarize launch"), value: "assistant:summary" },
-    { label: tr("Hỗ trợ", "Help / explain"), value: "assistant:support" },
-    { label: tr("Chạy phân tích", "Run analysis"), value: "assistant:analyze" },
-    { label: tr("Xem bài học", "Lessons"), value: "assistant:lessons" }
+    { label: "Tạo launch mới", value: "assistant:create" },
+    { label: "Sửa launch hiện tại", value: "assistant:edit" },
+    { label: "Tổng hợp launch", value: "assistant:summary" },
+    { label: "Chọn sản phẩm", value: "assistant:product" },
+    { label: "Hỗ trợ", value: "assistant:support" },
+    { label: "Chạy phân tích", value: "assistant:analyze" },
+    { label: "Xem bài học", value: "assistant:lessons" }
   ];
+}
+
+function assistantProductOptions() {
+  return [
+    { label: "Demo", value: "assistant:product:demo" },
+    { label: "Sản Phẩm XYZ", value: "assistant:product:xyz" },
+    { label: "Mở chọn sản phẩm", value: "assistant:product:open" }
+  ];
+}
+
+function assistantProductReply(rawText = "") {
+  const text = normalizeText(rawText);
+  const wantsLocked = text.includes("xyz") || text.includes("san pham xyz") || text.includes("product xyz") || text.includes("locked");
+  const wantsDemo = text.includes("demo") && !wantsLocked;
+  if (wantsLocked) {
+    return {
+      reply: tr(
+        "Sản Phẩm XYZ đang khóa trong bản demo này hoặc tài khoản hiện tại chưa có quyền truy cập. Vui lòng liên hệ Admin để được mở quyền.",
+        "Product XYZ is locked in this demo or your current account does not have access. Please contact Admin to request access."
+      ),
+      options: assistantProductOptions()
+    };
+  }
+  if (wantsDemo) {
+    return {
+      reply: tr(
+        "Sản phẩm Demo đang khả dụng. Tôi sẽ chọn Demo và đưa bạn vào mode Pro để thao tác LaunchOps.",
+        "The Demo product is available. I will select Demo and switch you into Pro mode for LaunchOps."
+      ),
+      action: "selectDemoProduct",
+      options: assistantHomeOptions()
+    };
+  }
+  return {
+    reply: tr(
+      "Hiện bản demo chỉ cho phép dùng sản phẩm Demo. Sản Phẩm XYZ đang khóa hoặc chưa có quyền truy cập, vui lòng liên hệ Admin nếu cần mở.",
+      "This demo currently allows only the Demo product. Product XYZ is locked or not permitted yet; please contact Admin if you need access."
+    ),
+    action: "openProductSelect",
+    options: assistantProductOptions()
+  };
 }
 
 function assistantSupportReply() {
@@ -4890,6 +5218,7 @@ function assistantSupportReply() {
       { label: "Giải thích Red Team", value: "assistant:explain:red-team" },
       { label: "Giải thích checklist", value: "assistant:explain:checklist" },
       { label: "Giải thích bài học", value: "assistant:explain:lessons" },
+      { label: "Chọn sản phẩm", value: "assistant:product" },
       { label: "Tạo launch mới", value: "assistant:create" }
     ]
   };
@@ -4982,8 +5311,17 @@ function inferAssistantStatus(rawText) {
 function normalizeAssistantDate(value) {
   const text = String(value || "").trim();
   if (!text) return "";
-  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) return normalizeDateForStorage(text);
+  if (/^\d{4}-\d{1,2}-\d{1,2}(?:[T\s]\d{1,2}:\d{2})?$/.test(text)) return normalizeDateForStorage(text);
   return normalizeDateForStorage(text.replace(/-/g, "/"));
+}
+
+function hasRequiredLaunchDateTime(value) {
+  const parts = parseDateOnly(normalizeAssistantDate(value));
+  return Boolean(parts && parts.hour !== "" && parts.minute !== "");
+}
+
+function normalizeAssistantDateTime(value) {
+  return hasRequiredLaunchDateTime(value) ? normalizeAssistantDate(value) : "";
 }
 
 function parseAssistantLaunchDraft(rawText) {
@@ -4998,10 +5336,12 @@ function parseAssistantLaunchDraft(rawText) {
   const owner = extractAssistantValue(rawText, [
     /(?:người phụ trách|nguoi phu trach|owner|pic)\s*(?:là|la|:)?\s*(.+?)(?=(?:\s|\n)*(?:start launch|end launch|brief)\b|[,.;\n]|$)/iu
   ]);
-  const targetDate = normalizeAssistantDate(extractAssistantValue(rawText, [
+  const targetDate = normalizeAssistantDateTime(extractAssistantValue(rawText, [
+    /(?:start launch|ngay bat dau|bat dau|start)\s*(?:la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}(?:[T\s,]+\d{1,2}:\d{2}))/iu,
     /(?:start launch|ngày bắt đầu|ngay bat dau|bắt đầu|bat dau)\s*(?:là|la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4})/iu
   ]));
-  const endDate = normalizeAssistantDate(extractAssistantValue(rawText, [
+  const endDate = normalizeAssistantDateTime(extractAssistantValue(rawText, [
+    /(?:end launch|ngay ket thuc|ket thuc|end)\s*(?:la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}(?:[T\s,]+\d{1,2}:\d{2}))/iu,
     /(?:end launch|ngày kết thúc|ngay ket thuc|kết thúc|ket thuc)\s*(?:là|la|:)?\s*(\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4})/iu
   ]));
   const brief = extractAssistantBlock(rawText, [
@@ -5034,24 +5374,40 @@ function templateOptionsForAssistant() {
 }
 
 function assistantCancelOptions() {
-  return [{ label: tr("Hủy", "Cancel"), value: "assistant:cancel" }];
+  return [{ label: "Hủy", value: "assistant:cancel" }];
 }
 
 function assistantConfirmOptions() {
   return [
-    { label: tr("Xác nhận tạo launch", "Confirm create launch"), value: "wizard:create:confirm" },
-    { label: tr("Sửa lại brief", "Edit brief"), value: "wizard:create:editBrief" },
-    { label: tr("Hủy", "Cancel"), value: "assistant:cancel" }
+    { label: "Xác nhận tạo launch", value: "wizard:create:confirm" },
+    { label: "Sửa lại Launch", value: "wizard:create:editLaunch" },
+    { label: "Hủy", value: "assistant:cancel" }
+  ];
+}
+
+function assistantCreateEditOptions() {
+  return [
+    { label: "Tên launch", value: "wizard:create:field:name" },
+    { label: "Phân loại", value: "wizard:create:field:type" },
+    { label: "Template", value: "wizard:create:field:template" },
+    { label: "Owner", value: "wizard:create:field:owner" },
+    { label: "Start/End Launch", value: "wizard:create:field:date" },
+    { label: "Mục tiêu", value: "wizard:create:field:objective" },
+    { label: "Nội dung brief", value: "wizard:create:field:brief" },
+    { label: "Quay lại xác nhận", value: "wizard:create:backConfirm" },
+    { label: "Hủy", value: "assistant:cancel" }
   ];
 }
 
 function formatAssistantDraftSummary(draft) {
+  const draftStatus = normalizeStatus(draft.status || inferStatusFromSchedule(draft));
   return [
     "Tôi đã gom đủ thông tin tạo launch:",
     "",
     `Tên launch: ${draft.name || "Chưa có"}`,
     `Phân loại: ${typeLabel(draft.type || "Game event")}`,
     `Template: ${draft.templateName || templateDisplayName(defaultTemplateForType(draft.type || "Game event"))}`,
+    `Trạng thái: ${STATUS_LABELS[draftStatus]}`,
     `Owner: ${draft.owner || "Chưa có"}`,
     `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa có")} - ${formatDateOnly(draft.endDate, "Chưa có")}`,
     "",
@@ -5094,7 +5450,7 @@ function startCreateLaunchWizard() {
     }
   };
   return {
-    reply: tr("Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, launch này thuộc phân loại/function nào?", "I will help you create a new launch step by step. First, what type/function does this launch belong to?"),
+    reply: "Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, launch này thuộc phân loại/function nào?",
     options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()]
   };
 }
@@ -5115,10 +5471,11 @@ function startEditLaunchWizard() {
     reply: `Bạn muốn sửa phần nào của launch hiện tại "${currentLaunch?.name || "Launch mới"}"?`,
     options: [
       { label: "Tên launch", value: "wizard:edit:field:name" },
+      { label: "Trạng thái", value: "wizard:edit:field:status" },
       { label: "Owner", value: "wizard:edit:field:owner" },
       { label: "Start/End Launch", value: "wizard:edit:field:date" },
       { label: "Nội dung brief", value: "wizard:edit:field:brief" },
-      { label: tr("Hủy", "Cancel"), value: "assistant:cancel" }
+      { label: "Hủy", value: "assistant:cancel" }
     ]
   };
 }
@@ -5137,6 +5494,92 @@ function handleCreateWizardInput(rawText) {
   const normalized = normalizeText(value);
   if (value === "assistant:cancel" || normalized === "huy" || normalized === "cancel") {
     return finishAssistantWizard("Đã hủy tạo launch mới.");
+  }
+
+  if (value === "wizard:create:editLaunch" || normalized.includes("sua launch")) {
+    assistantWizard.step = "editField";
+    return {
+      reply: "Bạn muốn sửa phần nào của launch nháp này?",
+      options: assistantCreateEditOptions()
+    };
+  }
+
+  if (assistantWizard.step === "editField") {
+    if (value === "wizard:create:backConfirm") {
+      assistantWizard.step = "confirm";
+      return { reply: formatAssistantDraftSummary(draft), options: assistantConfirmOptions() };
+    }
+    const field = value.startsWith("wizard:create:field:")
+      ? value.replace("wizard:create:field:", "")
+      : "brief";
+    assistantWizard.draft.editField = field;
+    assistantWizard.step = "editValue";
+    if (field === "type") {
+      return { reply: "Chọn lại phân loại launch.", options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()] };
+    }
+    if (field === "template") {
+      return { reply: "Chọn lại template/bộ luật cho launch.", options: [...templateOptionsForAssistant(), ...assistantCancelOptions()] };
+    }
+    const label = field === "name" ? "tên launch"
+      : field === "owner" ? "owner"
+        : field === "date" ? "Start/End Launch"
+          : field === "objective" ? "mục tiêu"
+            : "nội dung brief";
+    return {
+      reply: field === "date"
+        ? "Nhập lại Start/End Launch đầy đủ giờ phút, ví dụ 15/06/2026 08:30 - 17/06/2026 23:59."
+        : `Nhập lại ${label}.`,
+      options: assistantCancelOptions()
+    };
+  }
+
+  if (assistantWizard.step === "editValue") {
+    const field = assistantWizard.draft.editField || "brief";
+    if (field === "name") draft.name = cleanAssistantField(value) || draft.name;
+    if (field === "owner") draft.owner = cleanAssistantField(value) || draft.owner;
+    if (field === "objective") draft.objective = cleanAssistantBrief(value) || draft.objective;
+    if (field === "brief") draft.brief = cleanAssistantBrief(value) || draft.brief;
+    if (field === "type") {
+      const selectedType = value.startsWith("wizard:create:type:")
+        ? value.replace("wizard:create:type:", "")
+        : inferAssistantLaunchType(value);
+      draft.type = launchTypeExists(selectedType) ? selectedType : draft.type || "Game event";
+      draft.templateId = baseTemplateIdForType(draft.type);
+      const template = defaultTemplateForType(draft.type);
+      draft.templateName = templateDisplayName(template);
+      draft.template = cloneData(template);
+    }
+    if (field === "template") {
+      const templateId = value.startsWith("wizard:create:template:")
+        ? value.replace("wizard:create:template:", "")
+        : draft.templateId || baseTemplateIdForType(draft.type || "Game event");
+      const template = baseTemplateById(templateId);
+      draft.templateId = templateId;
+      draft.templateName = templateDisplayName(template);
+      draft.template = cloneData(template);
+    }
+    if (field === "date") {
+      const [startRaw, endRaw] = String(value || "").split(/\s*(?:-|đến|den|to)\s*/iu);
+      const start = normalizeAssistantDateTime(startRaw);
+      const end = normalizeAssistantDateTime(endRaw);
+      if (!start || !end) {
+        return {
+          reply: "Tôi chưa đọc được đủ Start/End Launch kèm giờ phút. Hãy nhập dạng 15/06/2026 08:30 - 17/06/2026 23:59.",
+          options: assistantCancelOptions()
+        };
+      }
+      draft.targetDate = start;
+      draft.endDate = end;
+    }
+    const validation = validateLaunchScheduleRules({ ...draft, status: inferStatusFromSchedule(draft) });
+    if (!validation.ok) {
+      return { reply: validation.message, options: assistantCreateEditOptions() };
+    }
+    assistantWizard.step = "confirm";
+    return {
+      reply: `${field === "date" ? "Đã cập nhật thời gian launch." : "Đã cập nhật launch nháp."}\n\n${formatAssistantDraftSummary(draft)}`,
+      options: assistantConfirmOptions()
+    };
   }
 
   if (assistantWizard.step === "type") {
@@ -5181,36 +5624,43 @@ function handleCreateWizardInput(rawText) {
     draft.name = cleanAssistantField(value) || "Launch mới từ Assistant";
     assistantWizard.step = "targetDate";
     return {
-      reply: "Start Launch là ngày nào? Bạn nhập theo dạng dd/mm/yyyy, ví dụ 15/06/2026.",
+      reply: "Start Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
       options: assistantCancelOptions()
     };
   }
 
   if (assistantWizard.step === "targetDate") {
-    const dateValue = normalizeAssistantDate(value);
-    if (!parseDateOnly(dateValue)) {
+    const dateValue = normalizeAssistantDateTime(value);
+    if (!dateValue) {
       return {
-        reply: "Tôi chưa đọc được ngày bắt đầu. Hãy nhập theo dạng dd/mm/yyyy, ví dụ 15/06/2026.",
+        reply: "Tôi chưa đọc được Start Launch đủ ngày giờ. Hãy nhập đúng dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
         options: assistantCancelOptions()
       };
     }
     draft.targetDate = dateValue;
     assistantWizard.step = "endDate";
     return {
-      reply: "End Launch là ngày nào? Bạn nhập theo dạng dd/mm/yyyy.",
+      reply: "End Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
       options: assistantCancelOptions()
     };
   }
 
   if (assistantWizard.step === "endDate") {
-    const dateValue = normalizeAssistantDate(value);
-    if (!parseDateOnly(dateValue)) {
+    const dateValue = normalizeAssistantDateTime(value);
+    if (!dateValue) {
       return {
-        reply: "Tôi chưa đọc được ngày kết thúc. Hãy nhập theo dạng dd/mm/yyyy, ví dụ 17/06/2026.",
+        reply: "Tôi chưa đọc được End Launch đủ ngày giờ. Hãy nhập đúng dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
         options: assistantCancelOptions()
       };
     }
     draft.endDate = dateValue;
+    const validation = validateLaunchScheduleRules({ ...draft, status: inferStatusFromSchedule(draft) });
+    if (!validation.ok) {
+      return {
+        reply: validation.message,
+        options: assistantCancelOptions()
+      };
+    }
     assistantWizard.step = "objective";
     return {
       reply: "Mục tiêu chính của launch này là gì? Ví dụ: tăng DAU cuối tuần, tăng conversion, giảm lỗi vận hành...",
@@ -5227,14 +5677,7 @@ function handleCreateWizardInput(rawText) {
     };
   }
 
-  if (assistantWizard.step === "brief" || value === "wizard:create:editBrief") {
-    if (value === "wizard:create:editBrief") {
-      assistantWizard.step = "brief";
-      return {
-        reply: "Dán lại nội dung brief bạn muốn dùng.",
-        options: assistantCancelOptions()
-      };
-    }
+  if (assistantWizard.step === "brief") {
     draft.brief = cleanAssistantBrief(value);
     assistantWizard.step = "confirm";
     return {
@@ -5244,17 +5687,25 @@ function handleCreateWizardInput(rawText) {
   }
 
   if (assistantWizard.step === "confirm") {
-    if (value === "wizard:create:editBrief" || normalized.includes("sua brief")) {
-      assistantWizard.step = "brief";
+    if (value === "wizard:create:editLaunch" || normalized.includes("sua launch") || normalized.includes("sua brief")) {
+      assistantWizard.step = "editField";
       return {
-        reply: "Dán lại nội dung brief bạn muốn dùng.",
-        options: assistantCancelOptions()
+        reply: "Bạn muốn sửa phần nào của launch nháp này?",
+        options: assistantCreateEditOptions()
       };
     }
     if (value === "wizard:create:confirm" || normalized.includes("xac nhan") || normalized === "ok" || normalized.includes("dong y")) {
+      const inferredStatus = inferStatusFromSchedule(draft);
+      const validation = validateLaunchScheduleRules({ ...draft, status: inferredStatus });
+      if (!validation.ok) {
+        return {
+          reply: validation.message,
+          options: assistantCreateEditOptions()
+        };
+      }
       const payload = {
         ...draft,
-        status: "upcoming",
+        status: inferredStatus,
         brief: composeAssistantLaunchBrief(draft)
       };
       assistantWizard = null;
@@ -5275,12 +5726,13 @@ function handleCreateWizardInput(rawText) {
 function applyAssistantEditDraft(field, value) {
   if (!currentLaunch) currentLaunch = collectLaunchFromForm();
   if (field === "name") launchName.value = cleanAssistantField(value) || launchName.value;
+  if (field === "status") launchStatus.value = statusValueFromText(value);
   if (field === "owner") launchOwner.value = cleanAssistantField(value) || launchOwner.value;
   if (field === "brief") briefInput.value = cleanAssistantBrief(value) || briefInput.value;
   if (field === "date") {
     const [startRaw, endRaw] = String(value || "").split(/\s*(?:-|đến|den|to)\s*/iu);
-    const start = normalizeAssistantDate(startRaw);
-    const end = normalizeAssistantDate(endRaw);
+    const start = normalizeAssistantDateTime(startRaw);
+    const end = normalizeAssistantDateTime(endRaw);
     if (start) setVisibleDateValue(launchTargetDate, launchTargetDateNative, start);
     if (end) setVisibleDateValue(launchEndDate, launchEndDateNative, end);
   }
@@ -5307,23 +5759,66 @@ function handleEditWizardInput(rawText) {
     assistantWizard.draft.field = field;
     assistantWizard.step = "value";
     const fieldLabel = field === "name" ? "tên launch"
+      : field === "status" ? "trạng thái"
       : field === "owner" ? "owner"
         : field === "date" ? "Start/End Launch"
           : "nội dung brief";
     return {
-      reply: `Nhập giá trị mới cho ${fieldLabel}. Với thời gian, nhập dạng 15/06/2026 - 17/06/2026.`,
-      options: assistantCancelOptions()
+      reply: field === "status"
+        ? "Chọn trạng thái mới cho launch. Lưu ý: nếu End Launch đã qua thì không được chọn Đang chạy/Sắp chạy; nếu Start Launch đã qua thì không được chọn Sắp chạy."
+        : `Nhập giá trị mới cho ${fieldLabel}. Với thời gian, bắt buộc nhập đủ giờ phút dạng 15/06/2026 08:30 - 17/06/2026 23:59.`,
+      options: field === "status"
+        ? [
+          { label: "Đã chạy", value: "completed" },
+          { label: "Đang chạy", value: "running" },
+          { label: "Sắp chạy", value: "upcoming" },
+          ...assistantCancelOptions()
+        ]
+        : assistantCancelOptions()
     };
   }
 
   if (assistantWizard.step === "value") {
+    if (assistantWizard.draft.field === "status") {
+      const status = statusValueFromText(value);
+      const validation = validateLaunchScheduleRules({ ...collectLaunchFromForm(), status });
+      if (!validation.ok) {
+        return {
+          reply: validation.message,
+          options: [
+            { label: "Đã chạy", value: "completed" },
+            { label: "Đang chạy", value: "running" },
+            { label: "Sắp chạy", value: "upcoming" },
+            ...assistantCancelOptions()
+          ]
+        };
+      }
+    }
+    if (assistantWizard.draft.field === "date") {
+      const [startRaw, endRaw] = String(value || "").split(/\s*(?:-|đến|den|to)\s*/iu);
+      const start = normalizeAssistantDateTime(startRaw);
+      const end = normalizeAssistantDateTime(endRaw);
+      if (!start || !end) {
+        return {
+          reply: "Tôi chưa đọc được đủ Start/End Launch kèm giờ phút. Hãy nhập dạng 15/06/2026 08:30 - 17/06/2026 23:59.",
+          options: assistantCancelOptions()
+        };
+      }
+      const validation = validateLaunchScheduleRules({ ...collectLaunchFromForm(), targetDate: start, endDate: end });
+      if (!validation.ok) {
+        return {
+          reply: validation.message,
+          options: assistantCancelOptions()
+        };
+      }
+    }
     assistantWizard.draft.value = value;
     assistantWizard.step = "confirm";
     return {
       reply: `Tôi sẽ cập nhật phần này trên form nhưng chưa tự deploy hay đổi cấu hình chung.\n\nNội dung mới:\n${value}\n\nBạn xác nhận sửa không?`,
       options: [
-        { label: tr("Xác nhận sửa", "Confirm edit"), value: "wizard:edit:confirm" },
-        { label: tr("Hủy", "Cancel"), value: "assistant:cancel" }
+        { label: "Xác nhận sửa", value: "wizard:edit:confirm" },
+        { label: "Hủy", value: "assistant:cancel" }
       ]
     };
   }
@@ -5343,12 +5838,22 @@ function handleEditWizardInput(rawText) {
   return finishAssistantWizard("Luồng sửa launch bị lệch bước, tôi đã hủy để tránh sửa sai.");
 }
 
+function shouldUseAssistantLLMForFreeText(normalizedText) {
+  const text = String(normalizedText || "");
+  const wantsBriefHelp = /(viet|soan|draft|tao|lam|goi y|huong dan|ho tro|tu van).*(brief|event|launch|campaign|su kien|tang qua|qua tang|khong biet|lam sao)/.test(text)
+    || /(brief|event|launch|campaign|su kien|tang qua|qua tang).*(viet|soan|draft|goi y|huong dan|ho tro|tu van|khong biet|lam sao)/.test(text);
+  const wizardNeedsHumanText = assistantWizard?.mode && ["brief", "objective", "editValue"].includes(assistantWizard.step);
+  const asksForAdvice = /(ho tro|tu van|goi y|huong dan|lam sao|khong biet|viet|soan|draft)/.test(text);
+  return Boolean(wantsBriefHelp || (wizardNeedsHumanText && asksForAdvice));
+}
+
 function assistantWizardReply(rawText) {
   const value = String(rawText || "").trim();
   const text = normalizeText(value);
   if (value === "assistant:cancel" || text === "huy" || text === "cancel") {
     return finishAssistantWizard();
   }
+  if (shouldUseAssistantLLMForFreeText(text)) return null;
   if (value === "assistant:summary" || assistantSummaryIntent(text)) {
     return assistantLaunchSummaryReply();
   }
@@ -5358,7 +5863,7 @@ function assistantWizardReply(rawText) {
   if (value === "assistant:edit" || (text.includes("sua") && text.includes("launch"))) {
     return startEditLaunchWizard();
   }
-  if (value === "assistant:support" || text.includes("ho tro") || text.includes("huong dan")) {
+  if (value === "assistant:support" || ((text.includes("ho tro") || text.includes("huong dan")) && !shouldUseAssistantLLMForFreeText(text))) {
     return assistantSupportReply();
   }
   if (value === "assistant:explain:readiness") {
@@ -5391,6 +5896,12 @@ function assistantWizardReply(rawText) {
   if (value === "assistant:lessons") {
     return { reply: "Tôi mở tab Bài học để bạn xem kết quả sau launch và lessons learned.", action: "lessons" };
   }
+  if (value === "assistant:product" || value === "assistant:product:open" || text.includes("chon san pham") || text.includes("doi san pham") || text.includes("switch product") || text.includes("select product")) {
+    return assistantProductReply(value);
+  }
+  if (value === "assistant:product:demo" || value === "assistant:product:xyz" || text.includes("san pham xyz") || text.includes("product xyz")) {
+    return assistantProductReply(value);
+  }
   if (assistantExplainIntent(text)) {
     return assistantExplainReply(value);
   }
@@ -5412,7 +5923,13 @@ function isAssistantConfigActionIntent(text) {
 }
 
 async function createLaunchFromAssistant(draft) {
-  const status = normalizeStatus(draft?.status || "upcoming");
+  const status = normalizeStatus(draft?.status || inferStatusFromSchedule(draft));
+  const validation = validateLaunchScheduleRules({ ...draft, status });
+  if (!validation.ok) {
+    appendAssistantMessage("bot", validation.message, assistantHomeOptions());
+    showLaunchScheduleError(validation);
+    return;
+  }
   if (status !== "upcoming" && !isLaunchAdmin()) {
     appendAssistantMessage("bot", `Bạn có full quyền tạo/sửa launch ${STATUS_LABELS[status]} trong bản demo này.`);
     return;
@@ -5443,9 +5960,9 @@ async function createLaunchFromAssistant(draft) {
   renderLaunchWorkspace();
   activateTab("briefView");
   await saveCurrentLaunch({ silent: true });
-  renderEmptyAnalysis("Assistant đã tạo launch mới. Kiểm tra brief rồi bấm Chạy phân tích khi cần.");
-  analysisSource.textContent = `Assistant đã tạo launch "${currentLaunch.name}" ở trạng thái ${STATUS_LABELS[normalizeStatus(currentLaunch.status)]}.`;
-  appendAssistantMessage("bot", `Đã tạo launch "${currentLaunch.name}". Tôi đã mở tab Tóm tắt để bạn kiểm tra brief.`);
+  renderEmptyAnalysis(tr("Assistant đã tạo launch mới. Kiểm tra brief rồi bấm Chạy phân tích khi cần.", "Assistant created a new launch. Review the brief, then click Run analysis."));
+  analysisSource.textContent = tr(`Assistant đã tạo launch "${currentLaunch.name}" ở trạng thái ${STATUS_LABELS[normalizeStatus(currentLaunch.status)]}.`, `Assistant created launch "${currentLaunch.name}" with status ${STATUS_LABELS[normalizeStatus(currentLaunch.status)]}.`);
+  appendAssistantMessage("bot", tr(`Đã tạo launch "${currentLaunch.name}". Tôi đã mở tab Tóm tắt để bạn kiểm tra brief.`, `Created launch "${currentLaunch.name}". I opened the Summary tab so you can review the brief.`));
 }
 
 function scopedAssistantReply(rawText) {
@@ -5454,17 +5971,29 @@ function scopedAssistantReply(rawText) {
   const outsideScope = /(thoi tiet|weather|gia vang|bitcoin|coin|bong da|phim|nau an|code python|viet email|facebook|youtube|google|tin tuc)/.test(text);
   if (outsideScope) {
     return {
-      reply: tr(
-        "Tôi chỉ hỗ trợ trong phạm vi LaunchOps Command Center: launch brief, readiness, phản biện, checklist, bài học, cấu hình phân loại và thao tác trong web này.",
-        "I can only help inside LaunchOps Command Center: launch briefs, readiness, red-team review, checklist, lessons, classification config, and actions in this web app."
-      )
+      reply: "Tôi chỉ hỗ trợ trong phạm vi LaunchOps Command Center: launch brief, readiness, phản biện, checklist, bài học, cấu hình phân loại và thao tác trong web này."
+    };
+  }
+
+  if (shouldUseAssistantLLMForFreeText(text)) {
+    return {
+      reply: [
+        "Tôi có thể hỗ trợ bạn viết brief launch. Với event tặng quà, brief nên có:",
+        "- Mục tiêu/KPI: muốn tăng DAU, retention, doanh thu hay engagement.",
+        "- Đối tượng nhận quà và điều kiện đủ điều kiện.",
+        "- Cơ chế nhận/quay/đổi quà, giới hạn lượt và thời gian chạy.",
+        "- Reward cap, ngân sách, tỷ lệ trúng hoặc rule hết quà.",
+        "- CS FAQ, chống abuse, rollback/pause threshold và dashboard theo dõi.",
+        "",
+        "Nếu muốn, hãy gửi vài ý thô như tên event, sản phẩm, thời gian và quà tặng; tôi sẽ soạn thành brief rõ ràng hơn."
+      ].join("\n")
     };
   }
 
   const launchDraft = parseAssistantLaunchDraft(rawText);
   if (launchDraft) {
     return {
-      reply: tr(`Tôi sẽ tạo launch "${launchDraft.name}" trong LaunchOps Command Center.`, `I will create "${launchDraft.name}" in LaunchOps Command Center.`),
+      reply: `Tôi sẽ tạo launch "${launchDraft.name}" trong LaunchOps Command Center.`,
       action: { type: "createLaunch", payload: launchDraft }
     };
   }
@@ -5472,78 +6001,67 @@ function scopedAssistantReply(rawText) {
   if (assistantSummaryIntent(text)) return assistantLaunchSummaryReply();
   if (assistantExplainIntent(text)) return assistantExplainReply(rawText);
 
+  if (text.includes("chon san pham") || text.includes("doi san pham") || text.includes("san pham xyz") || text.includes("product xyz") || text.includes("switch product") || text.includes("select product")) {
+    return assistantProductReply(rawText);
+  }
+
   if (isAssistantConfigActionIntent(text)) {
     return {
-      reply: tr("Tôi mở Cấu hình phân loại. Bản demo hiện mở full quyền thao tác, bạn có thể sửa/lưu/duyệt trực tiếp trong UI.", "Opening Classification Config. This demo allows full actions, so you can edit, save, and approve directly in the UI."),
+      reply: "Tôi mở Cấu hình phân loại. Bản demo hiện mở full quyền thao tác, bạn có thể sửa/lưu/duyệt trực tiếp trong UI.",
       action: "openConfig"
     };
   }
 
   if (isAssistantConfigIntent(text) && !isAssistantConfigActionIntent(text)) {
     return {
-      reply: tr("Cấu hình phân loại là bộ luật chung cho từng loại launch: nhóm rủi ro, góc phản biện, checklist và bài học.", "Classification Config is the shared rule set for each launch type: risk groups, red-team perspectives, checklist, and lessons.")
+      reply: "Cấu hình phân loại là bộ luật chung cho từng loại launch: nhóm rủi ro, góc phản biện, checklist và bài học. Bản review public chỉ cho xem để tránh người review sửa nhầm dữ liệu demo."
     };
   }
 
   if (text.includes("mo cau hinh") || text.includes("cau hinh phan loai")) {
     return {
-      reply: tr("Tôi mở Cấu hình phân loại. Bạn có thể chỉnh template, checklist và rule phản biện trực tiếp trong UI.", "Opening Classification Config. You can edit templates, checklist, and red-team rules directly in the UI."),
+      reply: "Tôi mở Cấu hình phân loại. Bạn có thể chỉnh template, checklist và rule phản biện trực tiếp trong UI.",
       action: "openConfig"
     };
   }
   if (text.includes("quay lai") || text.includes("tro lai launch")) {
-    return { reply: tr("Tôi quay lại màn launch đang làm.", "Going back to the current launch."), action: "backToLaunch" };
+    return { reply: "Tôi quay lại màn launch đang làm.", action: "backToLaunch" };
   }
   if (text.includes("tom tat")) return assistantLaunchSummaryReply();
-  if (text.includes("phan tich") || text.includes("red team")) return { reply: tr("Tôi mở tab Phân tích.", "Opening the Analysis tab."), action: "redTeam" };
-  if (text.includes("checklist") || text.includes("viec can lam")) return { reply: tr("Tôi mở tab Việc cần làm.", "Opening the To-do tab."), action: "checklist" };
-  if (text.includes("lich su")) return { reply: tr("Tôi mở tab Lịch sử phân tích.", "Opening the History tab."), action: "history" };
-  if (text.includes("bai hoc") || text.includes("postmortem")) return { reply: tr("Tôi mở tab Bài học.", "Opening the Lessons tab."), action: "lessons" };
+  if (text.includes("phan tich") || text.includes("red team")) return { reply: "Tôi mở tab Phân tích.", action: "redTeam" };
+  if (text.includes("checklist") || text.includes("viec can lam")) return { reply: "Tôi mở tab Việc cần làm.", action: "checklist" };
+  if (text.includes("lich su")) return { reply: "Tôi mở tab Lịch sử phân tích.", action: "history" };
+  if (text.includes("bai hoc") || text.includes("postmortem")) return { reply: "Tôi mở tab Bài học.", action: "lessons" };
   if (text.includes("chay phan tich") || text.includes("analyze")) {
-    return { reply: tr("Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", "I will run analysis for the current launch if the brief has content."), action: "analyze" };
+    return { reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", action: "analyze" };
   }
 
   if (text.includes("diem toi da") || text.includes("phan diem") || text.includes("max score")) {
     return {
-      reply: tr(
-        `Điểm tối đa là trọng số của từng nhóm rủi ro. Với phân loại hiện tại, tổng readiness là ${context.maxScore} điểm từ ${context.riskCount} nhóm rủi ro. Agent chấm từng nhóm từ 0 đến điểm tối đa dựa trên tiêu chí đạt điểm, từ khóa demo local và nội dung brief.`,
-        `Max score is the sum of risk-group weights. For the current classification, readiness is ${context.maxScore} points across ${context.riskCount} risk groups. The Agent scores each group from 0 to its max based on scoring criteria and brief evidence.`
-      )
+      reply: `Điểm tối đa là trọng số của từng nhóm rủi ro. Với phân loại hiện tại, tổng readiness là ${context.maxScore} điểm từ ${context.riskCount} nhóm rủi ro. Agent chấm từng nhóm từ 0 đến điểm tối đa dựa trên tiêu chí đạt điểm, từ khóa demo local và nội dung brief.`
     };
   }
 
   if (text.includes("hoc") || text.includes("human sua") || text.includes("nho cai moi") || text.includes("phan tich theo huong cu")) {
     return {
-      reply: tr(
-        "AI không tự train lại vĩnh viễn sau mỗi lần human sửa. Nó sẽ phân tích theo cái mới nếu phần sửa được lưu vào Cấu hình phân loại hoặc được lưu thành bài học/template và gửi kèm trong request phân tích sau đó. Các phân tích cũ vẫn giữ nguyên để làm lịch sử; muốn dùng logic mới thì chạy phân tích lại.",
-        "The AI does not permanently retrain after each human edit. It uses new logic when the edit is saved into Classification Config or stored as a lesson/template and sent with the next analysis request. Old analyses remain historical; re-run analysis to use the new logic."
-      )
+      reply: "AI không tự train lại vĩnh viễn sau mỗi lần human sửa. Nó sẽ phân tích theo cái mới nếu phần sửa được lưu vào Cấu hình phân loại hoặc được lưu thành bài học/template và gửi kèm trong request phân tích sau đó. Các phân tích cũ vẫn giữ nguyên để làm lịch sử; muốn dùng logic mới thì chạy phân tích lại."
     };
   }
 
   if (text.includes("ngay") || text.includes("lich") || text.includes("start") || text.includes("end")) {
     return {
-      reply: tr(
-        "Start Launch và End Launch là ngày bắt đầu/kết thúc launch. Tôi đã dùng input ngày của browser để có nút chọn lịch. Khi lưu, app lưu theo dạng chuẩn yyyy-mm-dd nhưng vẫn hiển thị ngày dễ đọc ở các phần tổng quan.",
-        "Start Launch and End Launch are the start/end dates. The app uses browser date inputs for a calendar picker, stores dates as yyyy-mm-dd, and displays readable dates in summaries."
-      )
+      reply: "Start Launch và End Launch là ngày giờ bắt đầu/kết thúc launch. Với Bot Chat, bắt buộc nhập đủ giờ phút theo dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30. Nếu chỉ có ngày, tôi sẽ hỏi lại thay vì tự đoán giờ."
     };
   }
 
   if (text.includes("diem") || text.includes("muc san sang") || text.includes("readiness")) {
     return {
-      reply: tr(
-        `Mức sẵn sàng hiện được tính theo cấu hình phân loại của launch. Launch "${context.launchName}" thuộc "${context.launchType}", tổng điểm tối đa hiện là ${context.maxScore}. Màu Green/Yellow/Red dựa trên tỷ lệ điểm đạt được, không cố định 12 điểm.`,
-        `Readiness is calculated from this launch's classification config. "${context.launchName}" is "${context.launchType}", with a current max score of ${context.maxScore}. Green/Yellow/Red is based on score ratio, not a fixed 12-point scale.`
-      )
+      reply: `Mức sẵn sàng hiện được tính theo cấu hình phân loại của launch. Launch "${context.launchName}" thuộc "${context.launchType}", tổng điểm tối đa hiện là ${context.maxScore}. Màu Green/Yellow/Red dựa trên tỷ lệ điểm đạt được, không cố định 12 điểm.`
     };
   }
 
   return {
-    reply: tr(
-      `Tôi có thể hỗ trợ trong LaunchOps: giải thích điểm, cấu hình phân loại, phản biện, checklist, bài học, hoặc thao tác mở tab/chạy phân tích. Launch hiện tại là "${context.launchName}" (${context.status}, ${context.launchType}).`,
-      `I can help inside LaunchOps: explain readiness, classification config, red-team review, checklist, lessons, or open tabs/run analysis. Current launch: "${context.launchName}" (${context.status}, ${context.launchType}).`
-    )
+    reply: `Tôi có thể hỗ trợ trong LaunchOps: giải thích điểm, cấu hình phân loại, phản biện, checklist, bài học, hoặc thao tác mở tab/chạy phân tích. Launch hiện tại là "${context.launchName}" (${context.status}, ${context.launchType}).`
   };
 }
 
@@ -5556,8 +6074,8 @@ async function assistantReply(rawText) {
       method: "POST",
       body: JSON.stringify({
         message: rawText,
-        context: assistantContextSummary(),
         language: uiLang(),
+        context: assistantContextSummary(),
         localReply: localResult.reply
       }),
       timeoutMs: 45000
@@ -5589,13 +6107,21 @@ async function applyAssistantAction(action) {
     activateTab(previousLaunchView || "briefView");
     return;
   }
+  if (action === "openProductSelect") {
+    openProductSelect();
+    return;
+  }
+  if (action === "selectDemoProduct") {
+    selectProduct("demo");
+    return;
+  }
   if (["briefView", "redTeam", "checklist", "history", "lessons"].includes(action)) {
     activateTab(action);
     return;
   }
   if (action === "analyze") {
     if (!canEditLaunch()) {
-      appendAssistantMessage("bot", tr("Bạn có full quyền chạy lại phân tích trong bản demo này.", "You have full permission to re-run analysis in this demo."));
+      appendAssistantMessage("bot", "Bạn có full quyền chạy lại phân tích trong bản demo này.");
       return;
     }
     await analyze();
@@ -5621,8 +6147,74 @@ function closeAssistantPanel() {
   assistantPanel?.setAttribute("aria-hidden", "true");
 }
 
+function openCommunicationAppsModal() {
+  if (!communicationAppsModal) return;
+  try {
+    updateUILanguage(localStorage.getItem("launchops_lang") || currentLang || "vi");
+  } catch (error) {
+    console.warn("Communication Apps i18n sync failed.", error);
+  }
+  communicationAppsModal.classList.remove("closed");
+  communicationAppsModal.setAttribute("aria-hidden", "false");
+  closeCommunicationAppsButton?.focus({ preventScroll: true });
+}
+
+function closeCommunicationAppsModal() {
+  communicationAppsModal?.classList.add("closed");
+  communicationAppsModal?.setAttribute("aria-hidden", "true");
+  commAppsToast?.classList.remove("visible");
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch (error) {
+    copied = false;
+  }
+  textarea.remove();
+  return copied;
+}
+
+async function copyCommunicationAppLink(url) {
+  if (!url) return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      return true;
+    }
+  } catch (error) {
+    console.warn("Clipboard API unavailable, trying fallback copy.", error);
+  }
+  return fallbackCopyText(url);
+}
+
+let commAppsToastTimer = null;
+function showCommunicationAppsToast(messageOrSuccess = true) {
+  if (!commAppsToast) return;
+  const message = typeof messageOrSuccess === "string"
+    ? messageOrSuccess
+    : (messageOrSuccess
+      ? tr("Dán link Bot vào nhóm Zalo mà bạn muốn mời", "Paste the Bot link into the Zalo group you want to invite")
+      : tr("Chưa copy được link. Bạn có thể mở Zalo DM và copy link thủ công.", "Could not copy the link. Open Zalo DM and copy it manually."));
+  commAppsToast.textContent = message;
+  commAppsToast.classList.add("visible");
+  window.clearTimeout(commAppsToastTimer);
+  commAppsToastTimer = window.setTimeout(() => {
+    commAppsToast.classList.remove("visible");
+  }, 3000);
+}
+
 function closeIntroModal() {
   if (!introModal) return;
+  if (introModal.classList.contains("closed")) return;
   introModal.classList.add("closed");
   introModal.setAttribute("aria-hidden", "true");
   openProductSelect();
@@ -5640,10 +6232,31 @@ function closeProductSelect() {
   productSelect.setAttribute("aria-hidden", "true");
 }
 
+function forceProModeForProductEntry() {
+  try { localStorage.setItem("launchops_ui_mode", "pro"); } catch (error) {}
+  document.body.classList.remove("ui-mode-friendly");
+  document.body.classList.add("ui-mode-pro");
+  document.querySelectorAll(".mode-btn[data-mode]").forEach((button) => {
+    const active = button.dataset.mode === "pro";
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
 function selectProduct(id) {
   if (id !== "demo") return; // Product XYZ is locked in this demo
   try { localStorage.setItem("launchops_product", id); } catch (error) {}
+  forceProModeForProductEntry();
   closeProductSelect();
+}
+
+function showLockedProductMessage() {
+  const message = tr(
+    "Sản Phẩm XYZ đang khóa trong bản demo này hoặc tài khoản hiện tại chưa có quyền truy cập. Vui lòng liên hệ Admin để được mở quyền.",
+    "Product XYZ is locked in this demo or your current account does not have access. Please contact Admin to request access."
+  );
+  analysisSource.textContent = message;
+  if (assistantMessages) appendAssistantMessage("bot", message, assistantProductOptions());
 }
 
 function focusIntroModal() {
@@ -5660,8 +6273,11 @@ document.getElementById("newLaunch").addEventListener("click", () => {
 // i18n-clean.js gọi hook này khi user bấm nút VI/EN — re-render các chuỗi động.
 window.launchopsOnLanguageApplied = () => {
   try {
+    currentLang = localStorage.getItem("launchops_lang") || currentLang || "vi";
     renderLaunchGroups();
     renderLaunchWorkspace();
+    renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
+    syncLaunchTypeOptionLabels();
     renderLatestAnalysisOrPreview();
     if (openTemplateConfigButton) openTemplateConfigButton.textContent = configButtonText(appShell?.classList.contains("config-mode"));
   } catch (error) {
@@ -5712,9 +6328,9 @@ document.getElementById("clearRunLog")?.addEventListener("click", () => {
 document.getElementById("copyRunLog")?.addEventListener("click", async (event) => {
   try {
     await navigator.clipboard.writeText(runLogPlainText());
-    event.target.textContent = "Đã copy";
+    event.target.textContent = tr("Đã copy", "Copied");
   } catch (error) {
-    event.target.textContent = "Copy lỗi";
+    event.target.textContent = tr("Copy lỗi", "Copy failed");
   }
   window.setTimeout(() => { event.target.textContent = LAUNCHOPS_LANG_MAP[currentLang].runLogCopy; }, 1500);
 });
@@ -5732,12 +6348,31 @@ if (openTemplateConfigButton) {
 
 openAssistantButton?.addEventListener("click", openAssistantPanel);
 closeAssistantButton?.addEventListener("click", closeAssistantPanel);
+openCommunicationAppsButton?.addEventListener("click", openCommunicationAppsModal);
+closeCommunicationAppsButton?.addEventListener("click", closeCommunicationAppsModal);
+copyZaloGroupLinkButton?.addEventListener("click", async () => {
+  const url = copyZaloGroupLinkButton.dataset.copyUrl || "https://bot.zaloplatforms.com/groups/invite/bot.AKFMGNfj";
+  const copied = await copyCommunicationAppLink(url);
+  showCommunicationAppsToast(copied);
+});
+copyCommStarterPromptButton?.addEventListener("click", async () => {
+  const prompt = commStarterPrompt?.textContent?.trim() || "";
+  const copied = await copyCommunicationAppLink(prompt);
+  showCommunicationAppsToast(copied
+    ? tr("Đã copy prompt khởi đầu cho Bot.", "Copied the starter prompt for the Bot.")
+    : tr("Chưa copy được prompt. Hãy chọn và copy thủ công.", "Could not copy the prompt. Select and copy it manually."));
+});
 closeIntroModalButton?.addEventListener("click", closeIntroModal);
 enterDemoFromIntroButton?.addEventListener("click", closeIntroModal);
 
 productSelect?.addEventListener("click", (event) => {
   const card = event.target.closest(".product-card");
-  if (card && !card.classList.contains("locked")) selectProduct(card.dataset.product);
+  if (!card) return;
+  if (card.classList.contains("locked")) {
+    showLockedProductMessage();
+    return;
+  }
+  selectProduct(card.dataset.product);
 });
 changeProductButton?.addEventListener("click", openProductSelect);
 
@@ -5747,8 +6382,15 @@ introModal?.addEventListener("click", (event) => {
   }
 });
 
+communicationAppsModal?.addEventListener("click", (event) => {
+  if (event.target === communicationAppsModal) {
+    closeCommunicationAppsModal();
+  }
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    closeCommunicationAppsModal();
     closeIntroModal();
   }
 });
@@ -5770,7 +6412,7 @@ async function handleAssistantUserMessage(message, displayText = message) {
     await applyAssistantAction(result.action);
   } catch (error) {
     console.warn("Assistant message failed.", error);
-    appendAssistantMessage("bot", tr("Tôi chưa thao tác được yêu cầu này. Hãy kiểm tra brief hoặc backend rồi thử lại trong LaunchOps.", "I could not complete that request. Check the brief or backend, then try again in LaunchOps."), assistantHomeOptions());
+    appendAssistantMessage("bot", "Tôi chưa thao tác được yêu cầu này. Hãy kiểm tra brief hoặc backend rồi thử lại trong LaunchOps.", assistantHomeOptions());
   }
 }
 
@@ -5804,10 +6446,7 @@ assistantInput?.addEventListener("keydown", (event) => {
 
 appendAssistantMessage(
   "bot",
-  tr(
-    "Tôi là trợ lý LaunchOps. Bạn cần tôi hỗ trợ gì? Tôi có thể tạo launch mới theo từng bước, sửa launch hiện tại, chạy phân tích hoặc mở phần bài học.",
-    "I am the LaunchOps assistant. What do you need help with? I can create a launch step by step, edit the current launch, run analysis, or open lessons."
-  ),
+  "Tôi là trợ lý LaunchOps. Bạn cần tôi hỗ trợ gì? Tôi có thể tạo launch mới theo từng bước, sửa launch hiện tại, chạy phân tích hoặc mở phần bài học.",
   assistantHomeOptions()
 );
 
@@ -5817,12 +6456,16 @@ document.getElementById("loadBadBrief").addEventListener("click", () => {
   sample.name = tr("Brief Mẫu", "Sample Brief");
   sample.analyses = [];
   sample.lessonsLearned = [];
+  sample.lessonSuggestions = [];
+  sample.postLaunchResult = "";
+  sample.redTeamBriefSupplements = {};
+  sample.checklistProgress = {};
   currentLaunch = sample;
   draftMode = true;
+  loadLaunchUiState(currentLaunch);
   setFormFromLaunch(currentLaunch);
   renderLaunchWorkspace();
-  renderEmptyAnalysis(tr("Đã nạp brief mẫu. Bấm Chạy phân tích để tạo kết quả đầu tiên.", "Sample brief loaded. Run analysis to create the first result."));
-  analysisSource.textContent = tr("Demo mode: đã nạp brief mẫu", "Demo mode: sample brief loaded");
+  renderEmptyAnalysis(tr("Brief mẫu đã được nạp. Bấm Chạy phân tích để tạo score.", "Sample brief loaded. Click Run Analysis to generate a score."));
 });
 
 saveLaunchButton.addEventListener("click", () => {
@@ -5833,7 +6476,7 @@ if (deleteLaunchButton) {
   deleteLaunchButton.addEventListener("click", () => {
     deleteCurrentLaunch().catch((error) => {
       console.warn("Delete launch failed.", error);
-      analysisSource.textContent = "Xóa launch chưa thành công.";
+      analysisSource.textContent = tr("Xóa launch chưa thành công.", "Delete launch failed.");
     });
   });
 }
@@ -5852,7 +6495,7 @@ if (demoModeButton) {
   demoModeButton.addEventListener("click", () => {
     runDemoMode().catch((error) => {
       console.warn("Demo mode failed.", error);
-      analysisSource.textContent = "Demo mode lỗi, kiểm tra console.";
+      analysisSource.textContent = tr("Demo mode lỗi, kiểm tra console.", "Demo mode failed, check the console.");
       demoModeButton.disabled = false;
       demoModeButton.textContent = "Demo mode";
     });
@@ -5863,7 +6506,7 @@ if (exportReportButton) {
   exportReportButton.addEventListener("click", () => {
     exportLaunchReport().catch((error) => {
       console.warn("Export report failed.", error);
-      analysisSource.textContent = "Export report chưa thành công.";
+      analysisSource.textContent = tr("Export report chưa thành công.", "Export report failed.");
     });
   });
 }
@@ -5957,6 +6600,7 @@ if (launchStatusFilterSelect) {
 launchGroups.addEventListener("click", (event) => {
   const button = event.target.closest(".launch-card");
   if (!button) return;
+  if (button.classList.contains("pro-session-draft") || !button.dataset.launchId) return;
   selectLaunch(button.dataset.launchId);
 });
 
@@ -5972,8 +6616,14 @@ lessonsPanel.addEventListener("click", (event) => {
 
 if (lessonSuggestions) {
   lessonSuggestions.addEventListener("click", (event) => {
+    const createButton = event.target.closest("[data-proposal-create]");
+    const approveButton = event.target.closest("[data-proposal-approve]");
+    const rejectButton = event.target.closest("[data-proposal-reject]");
     const applyButton = event.target.closest("[data-suggestion-apply]");
     const dismissButton = event.target.closest("[data-suggestion-dismiss]");
+    if (createButton) createControlledLearningProposal();
+    if (approveButton) reviewControlledLearningProposal(approveButton.dataset.proposalApprove, true);
+    if (rejectButton) reviewControlledLearningProposal(rejectButton.dataset.proposalReject, false);
     if (applyButton) applyLessonSuggestion(applyButton.dataset.suggestionApply);
     if (dismissButton) dismissLessonSuggestion(dismissButton.dataset.suggestionDismiss);
   });
@@ -6012,7 +6662,7 @@ const LAUNCHOPS_LANG_MAP = {
     statusLabel: "Trạng thái",
     roleLabel: "Vai trò",
     introTitle: "LaunchOps Command Center là gì?",
-    introSummary: "LaunchOps Command Center là một Super Agent / Trung tâm điều hành Launch giúp team kiểm soát rủi ro trước, trong và sau khi phát hành sự kiện, campaign, tính năng mới hoặc hệ thống nội bộ.",
+    introSummary: "LaunchOps Command Center là một <strong>multi-agent command center</strong> giúp điều phối các agent chuyên trách để <strong>kiểm soát rủi ro launch</strong> trước, trong và sau khi phát hành sự kiện, campaign, tính năng mới hoặc hệ thống nội bộ.",
     closeIntro: "Đóng",
     tabBrief: "Brief",
     tabAnalysis: "Phân tích",
@@ -6029,6 +6679,29 @@ const LAUNCHOPS_LANG_MAP = {
     assistantSend: "Gửi",
     assistantTitleKicker: "Trợ lý trong web",
     assistantBtn: "Trợ lý",
+    commAppsBtn: "Kết Nối Ứng Dụng Chat",
+    commAppsKicker: "Kết nối kênh chat",
+    commAppsTitle: "Kết Nối Ứng Dụng Chat",
+    commAppsSubtitle: "Chọn kênh để kết nối LaunchOps Bot vào DM hoặc nhóm làm việc.",
+    commAppsClose: "Đóng kết nối ứng dụng chat",
+    commZaloStatus: "Đang hỗ trợ",
+    commComingSoon: "Sắp có",
+    commZaloDmHint: "Mở bot Zalo để chat trực tiếp với LaunchOps.",
+    commZaloGroupHint: "Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời.",
+    commTelegramDmHint: "Bot Telegram sẽ được mở sau.",
+    commTelegramGroupHint: "Kết nối nhóm Telegram sẽ được mở sau.",
+    commDiscordDmHint: "Bot Discord DM sẽ được mở sau.",
+    commDiscordChannelHint: "Kết nối channel Discord sẽ được mở sau.",
+    commConnect: "Connect",
+    commCopy: "Copy",
+    commComingSoonCta: "Coming Soon",
+    commZaloGroupNote: "(chưa chính thức có thể bị disable)",
+    commPromptTitle: "Prompt khởi đầu cho Bot",
+    commPromptStatus: "Gọi lcc_docs",
+    commPromptHint: "Copy prompt này để Bot trả hướng dẫn LCC, ví dụ lệnh/tool và cách bắt đầu phân tích hoặc tạo launch.",
+    commStarterPrompt: "lcc docs\nHãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center): LCC là gì, luồng Brief -> Chấm điểm sẵn sàng (Green/Yellow/Red) -> Phản biện Red Team -> Checklist hành động -> Post-mortem -> Bài học kinh nghiệm. Sau đó liệt kê cách tôi có thể yêu cầu Bot hỗ trợ: phân tích rủi ro từ brief, liệt kê/xem/tạo/cập nhật/xóa launch, xem catalog sản phẩm/phân loại/template hợp lệ, và giải thích rõ phần cấu hình phân loại/template/sản phẩm là quyền Human Admin, Bot chỉ được đọc catalog. Cuối cùng liệt kê các tool/lệnh chính và khi nào dùng từng tool. Trả lời bằng tiếng Việt, có heading và bullet rõ ràng.",
+    commPromptCopy: "Copy prompt",
+    commCopyToast: "Dán link Bot vào nhóm Zalo mà bạn muốn mời",
     friendlyKicker: "Friendly mode",
     friendlyVizBriefGoal: "Chọn một launch ở danh sách bên trái, kiểm tra brief, rồi bấm 'Chạy phân tích'.",
     friendlyVizScoreReason: "Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.",
@@ -6091,7 +6764,7 @@ const LAUNCHOPS_LANG_MAP = {
     statusLabel: "Status",
     roleLabel: "Role",
     introTitle: "What is LaunchOps Command Center?",
-    introSummary: "LaunchOps Command Center is a Super Agent & Launch Dashboard that helps teams manage risks before, during, and after shipping campaigns, H5 events, features, or releases.",
+    introSummary: "LaunchOps Command Center is a <strong>multi-agent command center</strong> that orchestrates specialized agents to manage <strong>launch risk</strong> before, during, and after campaigns, H5 events, features, or internal releases.",
     closeIntro: "Close",
     tabBrief: "Brief",
     tabAnalysis: "Analyze",
@@ -6108,6 +6781,29 @@ const LAUNCHOPS_LANG_MAP = {
     assistantSend: "Send",
     assistantTitleKicker: "In-App Assistant",
     assistantBtn: "Assistant",
+    commAppsBtn: "Communication Apps",
+    commAppsKicker: "Chat channel connections",
+    commAppsTitle: "Communication Apps",
+    commAppsSubtitle: "Choose a channel to connect the LaunchOps Bot to DMs or team groups.",
+    commAppsClose: "Close communication apps",
+    commZaloStatus: "Available",
+    commComingSoon: "Coming soon",
+    commZaloDmHint: "Open the Zalo bot to chat directly with LaunchOps.",
+    commZaloGroupHint: "Copy the Zalo Group link and paste it into the Zalo group you want to invite.",
+    commTelegramDmHint: "Telegram DM bot will be available later.",
+    commTelegramGroupHint: "Telegram Group connection will be available later.",
+    commDiscordDmHint: "Discord DM bot will be available later.",
+    commDiscordChannelHint: "Discord Channel connection will be available later.",
+    commConnect: "Connect",
+    commCopy: "Copy",
+    commComingSoonCta: "Coming Soon",
+    commZaloGroupNote: "(not official yet, may be disabled)",
+    commPromptTitle: "Starter prompt for the Bot",
+    commPromptStatus: "Calls lcc_docs",
+    commPromptHint: "Copy this prompt so the Bot returns the LCC guide, command/tool examples, and how to start analyzing or creating a launch.",
+    commStarterPrompt: "lcc docs\nIntroduce LCC (LaunchOps Command Center) fully but concisely: what LCC is, the Brief -> Readiness scoring (Green/Yellow/Red) -> Red Team review -> Action checklist -> Post-mortem -> Lessons learned flow. Then list how I can ask the Bot for help: analyze launch risk from a brief, list/view/create/update/delete launches, view the valid product/classification/template catalog, and clearly explain that product/classification/template configuration is Human Admin only while the Bot may only read the catalog. Finally list the main tools/commands and when to use each tool. Reply in English with clear headings and bullets.",
+    commPromptCopy: "Copy prompt",
+    commCopyToast: "Paste the Bot link into the Zalo group you want to invite",
     friendlyKicker: "Friendly mode",
     friendlyVizBriefGoal: "Select a launch from the left sidebar, check the brief, then click 'Run Analysis'.",
     friendlyVizScoreReason: "Run analysis to view detailed scores, verdicts, and missing checklist items.",
@@ -6134,6 +6830,10 @@ function updateUILanguage(lang) {
   // Update active buttons state
   document.getElementById("langViBtn")?.classList.toggle("active", lang === "vi");
   document.getElementById("langEnBtn")?.classList.toggle("active", lang === "en");
+  document.getElementById("introLangViBtn")?.classList.toggle("active", lang === "vi");
+  document.getElementById("introLangEnBtn")?.classList.toggle("active", lang === "en");
+  document.getElementById("introLangViBtn")?.setAttribute("aria-pressed", lang === "vi" ? "true" : "false");
+  document.getElementById("introLangEnBtn")?.setAttribute("aria-pressed", lang === "en" ? "true" : "false");
 
   // Basic Topbar elements
   const titleEl = document.querySelector(".topbar h1");
@@ -6204,7 +6904,7 @@ function updateUILanguage(lang) {
   const introTitleEl = document.getElementById("introTitle");
   if (introTitleEl) introTitleEl.textContent = dict.introTitle;
   const introSummaryEl = document.getElementById("introSummary");
-  if (introSummaryEl) introSummaryEl.textContent = dict.introSummary;
+  if (introSummaryEl) introSummaryEl.innerHTML = dict.introSummary;
   const closeIntroEl = document.getElementById("closeIntroModal");
   if (closeIntroEl) {
     closeIntroEl.setAttribute("aria-label", dict.closeIntro);
@@ -6244,6 +6944,57 @@ function updateUILanguage(lang) {
   if (asstSubmit) asstSubmit.textContent = dict.assistantSend;
   const asstLauncher = document.getElementById("openAssistant");
   if (asstLauncher) asstLauncher.textContent = dict.assistantBtn;
+
+  const commLauncher = document.getElementById("openCommunicationApps");
+  if (commLauncher) commLauncher.textContent = dict.commAppsBtn;
+  const commKicker = document.getElementById("commAppsKicker");
+  if (commKicker) commKicker.textContent = dict.commAppsKicker;
+  const commTitle = document.getElementById("commAppsTitle");
+  if (commTitle) commTitle.textContent = dict.commAppsTitle;
+  const commSubtitle = document.getElementById("commAppsSubtitle");
+  if (commSubtitle) commSubtitle.textContent = dict.commAppsSubtitle;
+  const commClose = document.getElementById("closeCommunicationApps");
+  if (commClose) commClose.setAttribute("aria-label", dict.commAppsClose);
+  const commZaloStatus = document.getElementById("commZaloStatus");
+  if (commZaloStatus) commZaloStatus.textContent = dict.commZaloStatus;
+  const commTelegramStatus = document.getElementById("commTelegramStatus");
+  if (commTelegramStatus) commTelegramStatus.textContent = dict.commComingSoon;
+  const commDiscordStatus = document.getElementById("commDiscordStatus");
+  if (commDiscordStatus) commDiscordStatus.textContent = dict.commComingSoon;
+  const commZaloDmHint = document.getElementById("commZaloDmHint");
+  if (commZaloDmHint) commZaloDmHint.textContent = dict.commZaloDmHint;
+  const commZaloGroupHint = document.getElementById("commZaloGroupHint");
+  if (commZaloGroupHint) commZaloGroupHint.textContent = dict.commZaloGroupHint;
+  const commTelegramDmHint = document.getElementById("commTelegramDmHint");
+  if (commTelegramDmHint) commTelegramDmHint.textContent = dict.commTelegramDmHint;
+  const commTelegramGroupHint = document.getElementById("commTelegramGroupHint");
+  if (commTelegramGroupHint) commTelegramGroupHint.textContent = dict.commTelegramGroupHint;
+  const commDiscordDmHint = document.getElementById("commDiscordDmHint");
+  if (commDiscordDmHint) commDiscordDmHint.textContent = dict.commDiscordDmHint;
+  const commDiscordChannelHint = document.getElementById("commDiscordChannelHint");
+  if (commDiscordChannelHint) commDiscordChannelHint.textContent = dict.commDiscordChannelHint;
+  const commZaloDmConnect = document.getElementById("commZaloDmConnect");
+  if (commZaloDmConnect) commZaloDmConnect.textContent = dict.commConnect;
+  const copyZaloGroup = document.getElementById("copyZaloGroupLink");
+  if (copyZaloGroup) copyZaloGroup.textContent = dict.commCopy;
+  const commZaloGroupNote = document.getElementById("commZaloGroupNote");
+  if (commZaloGroupNote) commZaloGroupNote.textContent = dict.commZaloGroupNote;
+  const commPromptTitle = document.getElementById("commPromptTitle");
+  if (commPromptTitle) commPromptTitle.textContent = dict.commPromptTitle;
+  const commPromptStatus = document.getElementById("commPromptStatus");
+  if (commPromptStatus) commPromptStatus.textContent = dict.commPromptStatus;
+  const commPromptHint = document.getElementById("commPromptHint");
+  if (commPromptHint) commPromptHint.textContent = dict.commPromptHint;
+  const commStarterPromptEl = document.getElementById("commStarterPrompt");
+  if (commStarterPromptEl) commStarterPromptEl.textContent = dict.commStarterPrompt;
+  const copyCommPrompt = document.getElementById("copyCommStarterPrompt");
+  if (copyCommPrompt) copyCommPrompt.textContent = dict.commPromptCopy;
+  ["commTelegramDmCta", "commTelegramGroupCta", "commDiscordDmCta", "commDiscordChannelCta"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = dict.commComingSoonCta;
+  });
+  const commToast = document.getElementById("commAppsToast");
+  if (commToast && !commToast.classList.contains("visible")) commToast.textContent = dict.commCopyToast;
 
   // Friendly visualize
   const frVizKicker = document.querySelector(".friendly-viz-kicker");

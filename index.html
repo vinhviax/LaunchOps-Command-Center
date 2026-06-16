@@ -7,21 +7,27 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260616h">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260616h">
+  <link rel="stylesheet" href="styles.css?v=fix-20260617p">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260617p">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
     <div class="intro-card">
       <button id="closeIntroModal" class="intro-close" type="button" aria-label="Đóng giới thiệu">×</button>
       <div class="intro-content">
-        <span class="section-kicker">Giới thiệu demo</span>
+        <div class="intro-topline">
+          <span class="section-kicker">Giới thiệu demo</span>
+          <div class="intro-lang-switch" role="group" aria-label="Ngôn ngữ popup / Popup language">
+            <button id="introLangViBtn" type="button" class="mode-btn active" data-lang="vi" aria-pressed="true">VI</button>
+            <button id="introLangEnBtn" type="button" class="mode-btn" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+        </div>
         <h2 id="introTitle">LaunchOps Command Center là gì?</h2>
-        <p id="introSummary">
-          LaunchOps Command Center là một Super Agent / Trung tâm điều hành Launch giúp team kiểm soát rủi ro trước, trong và sau khi phát hành sự kiện, campaign, tính năng mới hoặc hệ thống nội bộ.
+        <p id="introSummary" class="intro-lead">
+          LaunchOps Command Center là một <strong>multi-agent command center</strong> giúp điều phối các agent chuyên trách để <strong>kiểm soát rủi ro launch</strong> trước, trong và sau khi phát hành sự kiện, campaign, tính năng mới hoặc hệ thống nội bộ.
         </p>
-        <p>
-          Công cụ có thể dùng trực tiếp trên Web UI như bản demo này, hoặc tích hợp thành chatbot trên các kênh làm việc quen thuộc như Zalo, Discord, Telegram, Slack để team gửi brief, hỏi trạng thái launch, xem checklist và nhận cảnh báo rủi ro ngay trong nơi đang làm việc.
+        <p class="intro-lead">
+          Công cụ có thể dùng trực tiếp trên <strong>Web UI</strong> như bản demo này, hoặc tích hợp thành <strong>Bot Chat</strong> trên <strong>Zalo, Discord, Telegram</strong> và mọi Communication Apps có hỗ trợ <strong>OpenClaw / autonomous agentic framework</strong>.
         </p>
 
         <div class="intro-grid">
@@ -60,7 +66,7 @@
               </div>
               <div class="intro-agent-row">
                 <strong>6. LaunchOps Assistant / Channel Agent</strong>
-                <span>Chatbot hỗ trợ giải thích, tạo launch, điều hướng trong Web UI và có thể mở rộng sang Zalo, Discord, Telegram hoặc Slack.</span>
+                <span>Bot Chat hỗ trợ giải thích, tạo launch, điều hướng trong Web UI và có thể mở rộng sang Zalo, Discord, Telegram hoặc các communication apps có hỗ trợ OpenClaw / Autonomous Agentic Framework.</span>
               </div>
             </div>
           </div>
@@ -82,7 +88,13 @@
 
   <section id="productSelect" class="product-modal closed" role="dialog" aria-modal="true" aria-labelledby="productSelectTitle" aria-hidden="true">
     <div class="product-shell">
-      <span class="section-kicker" id="productSelectKicker">Chọn sản phẩm</span>
+      <div class="product-head">
+        <span class="section-kicker" id="productSelectKicker">Chọn sản phẩm</span>
+        <button id="createProductLocked" class="product-create-locked" type="button" disabled aria-disabled="true" title="Demo không cho tạo sản phẩm. Chỉ Admin mới được tạo.">
+          <span id="createProductLabel">Tạo sản phẩm</span>
+          <small id="createProductHint">Chỉ Admin</small>
+        </button>
+      </div>
       <h2 id="productSelectTitle">Bạn đang vận hành sản phẩm nào?</h2>
       <p id="productSelectSubtitle">Mỗi sản phẩm có bộ phân loại và template riêng. Chọn một sản phẩm để vào LaunchOps Command Center.</p>
       <div class="product-grid">
@@ -154,14 +166,15 @@
         </div>
 
         <div class="detail-right-cluster">
+          <button class="help-button hero-help" type="button" aria-label="Giải thích mức sẵn sàng và lịch sử" data-tooltip="Mức sẵn sàng: tổng điểm theo cấu hình phân loại hiện tại, điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn. Lịch sử: số lần đã phân tích và số bài học đã lưu sau launch.">?</button>
           <div class="hero-metrics">
             <div id="readinessMetric" class="metric score-metric yellow">
-              <span>Mức sẵn sàng <button class="help-button inline" type="button" aria-label="Giải thích mức sẵn sàng" data-tooltip="Tổng điểm được tính theo cấu hình phân loại hiện tại. Điểm thấp nghĩa là brief còn thiếu dữ liệu để launch an toàn.">?</button></span>
+              <span>Mức sẵn sàng</span>
               <strong id="scoreValue">0/12</strong>
               <small id="scoreColor">Vàng</small>
             </div>
             <div class="metric">
-              <span>Lịch sử <button class="help-button inline" type="button" aria-label="Giải thích lịch sử" data-tooltip="Số lần đã phân tích launch này và số bài học đã lưu sau launch. Dùng để xem lại quyết định cũ.">?</button></span>
+              <span>Lịch sử</span>
               <div id="launchMemoryStats" class="metric-lines">
                 <strong>0 lần phân tích</strong>
                 <strong>0 bài học</strong>
@@ -258,8 +271,8 @@
                   <option value="completed">Đã chạy</option>
                 </select>
                 <input id="friendlyLaunchOwner" type="text" autocomplete="off">
-                <input id="friendlyLaunchTargetDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
-                <input id="friendlyLaunchEndDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy">
+                <input id="friendlyLaunchTargetDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy hh:mm">
+                <input id="friendlyLaunchEndDate" type="text" inputmode="numeric" autocomplete="off" placeholder="dd/mm/yyyy hh:mm">
                 <textarea id="friendlyBriefInput" spellcheck="false"></textarea>
                 <button id="friendlyLoadBadBrief" type="button">Nạp Brief Mẫu</button>
                 <button id="friendlySaveLaunch" type="button">Lưu launch</button>
@@ -360,7 +373,7 @@
             <div>
               <div class="title-row">
                 <h3>Thông tin launch</h3>
-                <button class="help-button" type="button" aria-label="Giải thích thông tin launch" data-tooltip="Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày nào và đang ở trạng thái nào.">?</button>
+                <button class="help-button" type="button" aria-label="Giải thích thông tin launch" data-tooltip="Điền metadata ngắn để Agent hiểu đây là launch gì, ai phụ trách, bắt đầu/kết thúc ngày giờ nào và đang ở trạng thái nào.">?</button>
               </div>
             </div>
           </div>
@@ -400,7 +413,7 @@
 
           <div class="form-grid-dates">
             <label class="field">
-              <span>Start Launch <button class="help-button inline" type="button" aria-label="Giải thích Start Launch" data-tooltip="Ngày giờ bắt đầu launch (dd/mm/yyyy hh:mm — giờ phút có thể bỏ trống). Bấm biểu tượng lịch để chọn nhanh.">?</button></span>
+              <span>Start Launch <button class="help-button inline" type="button" aria-label="Giải thích Start Launch" data-tooltip="Ngày giờ bắt đầu launch (dd/mm/yyyy hh:mm — bắt buộc có giờ phút). Bấm biểu tượng lịch để chọn nhanh.">?</button></span>
               <div class="date-input-wrap">
                 <input id="launchTargetDate" type="text" autocomplete="off" placeholder="dd/mm/yyyy hh:mm">
                 <button id="launchTargetDatePicker" class="date-picker-button" type="button" aria-label="Chọn Start Launch" title="Chọn ngày giờ">
@@ -415,7 +428,7 @@
               </div>
             </label>
             <label class="field">
-              <span>End Launch <button class="help-button inline" type="button" aria-label="Giải thích End Launch" data-tooltip="Ngày giờ kết thúc hoặc tổng kết launch (dd/mm/yyyy hh:mm — giờ phút có thể bỏ trống). Bấm biểu tượng lịch để chọn nhanh.">?</button></span>
+              <span>End Launch <button class="help-button inline" type="button" aria-label="Giải thích End Launch" data-tooltip="Ngày giờ kết thúc hoặc tổng kết launch (dd/mm/yyyy hh:mm — bắt buộc có giờ phút). Bấm biểu tượng lịch để chọn nhanh.">?</button></span>
               <div class="date-input-wrap">
                 <input id="launchEndDate" type="text" autocomplete="off" placeholder="dd/mm/yyyy hh:mm">
                 <button id="launchEndDatePicker" class="date-picker-button" type="button" aria-label="Chọn End Launch" title="Chọn ngày giờ">
@@ -462,7 +475,7 @@
       <section id="redTeam" class="view">
         <div class="analysis-layout">
           <article id="scoreCard" class="decision-card yellow">
-            <span class="section-kicker">Kết luận <button class="help-button inline" type="button" aria-label="Giải thích kết luận" data-tooltip="Kết luận tổng hợp cho biết launch nên chạy, giữ lại để sửa hay dừng. Dựa trên tổng điểm và các rủi ro thiếu dữ liệu.">?</button></span>
+            <span class="section-kicker">Kết luận</span>
             <div class="decision-main">
               <div id="scoreDial" class="score-dial" style="--score-percent: 0%">
                 <span>Score</span>
@@ -473,6 +486,7 @@
                 <p id="scoreReason">Chọn launch, kiểm tra brief rồi bấm Chạy phân tích.</p>
                 <div class="decision-tags">
                   <span id="launchGate" class="gate-pill yellow">Chưa phân tích</span>
+                  <button class="help-button inline" type="button" aria-label="Giải thích kết luận" data-tooltip="Kết luận tổng hợp cho biết launch nên chạy, giữ lại để sửa hay dừng. Dựa trên tổng điểm và các rủi ro thiếu dữ liệu.">?</button>
                 </div>
               </div>
             </div>
@@ -835,9 +849,103 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
-  <script src="config.js?v=fix-20260616h"></script>
-  <script src="app.js?v=fix-20260616h"></script>
-  <script src="friendly-ui.js?v=fix-20260616h"></script>
-  <script src="i18n-clean.js?v=fix-20260616h"></script>
+  <section id="communicationAppsModal" class="comm-apps-modal closed" role="dialog" aria-modal="true" aria-labelledby="commAppsTitle" aria-hidden="true">
+    <div class="comm-apps-card">
+      <div class="comm-apps-head">
+        <div>
+          <span class="section-kicker" id="commAppsKicker">Kết nối kênh chat</span>
+          <h2 id="commAppsTitle">Kết Nối Ứng Dụng Chat</h2>
+          <p id="commAppsSubtitle">Chọn kênh để kết nối LaunchOps Bot vào DM hoặc nhóm làm việc.</p>
+        </div>
+        <button id="closeCommunicationApps" class="comm-apps-close" type="button" aria-label="Đóng kết nối ứng dụng chat">×</button>
+      </div>
+
+      <section class="comm-app-card comm-app-prompt-card">
+        <div class="comm-app-card-head">
+          <strong id="commPromptTitle">Prompt khởi đầu cho Bot</strong>
+          <span id="commPromptStatus">Gọi lcc_docs</span>
+        </div>
+        <p id="commPromptHint" class="comm-prompt-hint">Copy prompt này để Bot trả hướng dẫn LCC, ví dụ lệnh/tool và cách bắt đầu phân tích hoặc tạo launch.</p>
+        <div class="comm-prompt-box">
+          <pre id="commStarterPrompt">lcc docs
+Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center): LCC là gì, luồng Brief -&gt; Chấm điểm sẵn sàng (Green/Yellow/Red) -&gt; Phản biện Red Team -&gt; Checklist hành động -&gt; Post-mortem -&gt; Bài học kinh nghiệm. Sau đó liệt kê cách tôi có thể yêu cầu Bot hỗ trợ: phân tích rủi ro từ brief, liệt kê/xem/tạo/cập nhật/xóa launch, xem catalog sản phẩm/phân loại/template hợp lệ, và giải thích rõ phần cấu hình phân loại/template/sản phẩm là quyền Human Admin, Bot chỉ được đọc catalog. Cuối cùng liệt kê các tool/lệnh chính và khi nào dùng từng tool. Trả lời bằng tiếng Việt, có heading và bullet rõ ràng.</pre>
+          <button id="copyCommStarterPrompt" class="comm-app-action" type="button">Copy prompt</button>
+        </div>
+      </section>
+
+      <div class="comm-apps-list">
+        <section class="comm-app-card">
+          <div class="comm-app-card-head">
+            <strong>Zalo</strong>
+            <span id="commZaloStatus">Đang hỗ trợ</span>
+          </div>
+          <div class="comm-app-row">
+            <div>
+              <b>Zalo DM</b>
+              <small id="commZaloDmHint">Mở bot Zalo để chat trực tiếp với LaunchOps.</small>
+            </div>
+            <a id="commZaloDmConnect" class="comm-app-action" href="https://bot.zaloplatforms.com/bots/3210695072641519949" target="_blank" rel="noopener noreferrer">Connect</a>
+          </div>
+          <div class="comm-app-row">
+            <div>
+              <b>Zalo Group <span id="commZaloGroupNote" class="comm-app-title-note">(chưa chính thức có thể bị disable)</span></b>
+              <small id="commZaloGroupHint">Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời.</small>
+            </div>
+            <button id="copyZaloGroupLink" class="comm-app-action" type="button" data-copy-url="https://bot.zaloplatforms.com/groups/invite/bot.AKFMGNfj">Copy</button>
+          </div>
+        </section>
+
+        <section class="comm-app-card">
+          <div class="comm-app-card-head">
+            <strong>Telegram</strong>
+            <span id="commTelegramStatus">Sắp có</span>
+          </div>
+          <div class="comm-app-row muted">
+            <div>
+              <b>Telegram DM</b>
+              <small id="commTelegramDmHint">Bot Telegram sẽ được mở sau.</small>
+            </div>
+            <span class="comm-app-action disabled" id="commTelegramDmCta">Coming Soon</span>
+          </div>
+          <div class="comm-app-row muted">
+            <div>
+              <b>Telegram Group</b>
+              <small id="commTelegramGroupHint">Kết nối nhóm Telegram sẽ được mở sau.</small>
+            </div>
+            <span class="comm-app-action disabled" id="commTelegramGroupCta">Coming Soon</span>
+          </div>
+        </section>
+
+        <section class="comm-app-card">
+          <div class="comm-app-card-head">
+            <strong>Discord</strong>
+            <span id="commDiscordStatus">Sắp có</span>
+          </div>
+          <div class="comm-app-row muted">
+            <div>
+              <b>Discord DM</b>
+              <small id="commDiscordDmHint">Bot Discord DM sẽ được mở sau.</small>
+            </div>
+            <span class="comm-app-action disabled" id="commDiscordDmCta">Coming Soon</span>
+          </div>
+          <div class="comm-app-row muted">
+            <div>
+              <b>Discord Channel</b>
+              <small id="commDiscordChannelHint">Kết nối channel Discord sẽ được mở sau.</small>
+            </div>
+            <span class="comm-app-action disabled" id="commDiscordChannelCta">Coming Soon</span>
+          </div>
+        </section>
+      </div>
+
+      <div id="commAppsToast" class="comm-apps-toast" role="status" aria-live="polite">Dán link Bot vào nhóm Zalo mà bạn muốn mời</div>
+    </div>
+  </section>
+  <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
+
+  <script src="config.js?v=fix-20260617p"></script>
+  <script src="app.js?v=fix-20260617p"></script>
+  <script src="friendly-ui.js?v=fix-20260617p"></script>
+  <script src="i18n-clean.js?v=fix-20260617p"></script>
 </body>
 </html>

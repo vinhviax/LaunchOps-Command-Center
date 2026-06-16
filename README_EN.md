@@ -1,18 +1,12 @@
 # LaunchOps Command Center
 
 > Updated: 2026-06-16 — production runs on VNG AgentBase, image `v33`, runtime version 46, UI cache `fix-20260616f`, storage backend `cloud`, mode `remote_agents`.
-> Source `main` now includes UI polish `fix-20260616g`; production remains on `fix-20260616f` until the next rollout.
 
 LaunchOps Command Center is a **launch-risk Super Agent**. A user pastes a launch brief, and the system scores readiness as Green/Yellow/Red, runs a 5-persona Red Team review, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for future launches.
 
 **Live demo:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
-## Judge Demo Flow
-
-1. Open a Golden Spin / Lucky Wheel brief that is missing operational details.
-2. Click **Run analysis** to see Yellow/Red readiness, 5 Red Team perspectives, and an owner/deadline checklist.
-3. Improve the brief or select a Green launch to show a full score with no open risks.
-4. After launch, enter **Post-launch results** and a new lesson; the next analysis can use that lesson as context.
+> ⚠️ **This is the author's own hackathon instance.** The endpoint, MaaS key, Memory stores, vDB, and child runtimes above are the author's **private resources and credentials — not shared and not multi-tenant**. Outsiders who want the full mode must **provision their own resources** (see [Two ways to run](#two-ways-to-run-local-demo-vs-full-agentbase)). To try it instantly without cloud, use **Local demo mode**.
 
 ## Current Status
 
@@ -91,8 +85,7 @@ LaunchOps has two protection layers:
 - **App-level rate limit:** protects the expensive analysis path; production is set to 50 requests/minute and 1000 requests/day. MCP fast path is exempt.
 - **Platform Guardrail/Rate Limit:** created in Protect & Govern to protect MaaS/model access.
 
-Platform Policy Gateway is intentionally not enabled yet because an overly strict policy can block MCP/OpenClaw. It should be added last with broad allow rules first, then tightened.
-Policy Gateway/IAM is optional production hardening for MCP. It is not required to run the local demo or review the Web UI flow.
+**The Platform Policy Gateway is optional hardening, NOT a missing required item.** The two layers of guardrail + rate limit above are enforced in the app and are sufficient for demo security. The Policy Gateway only adds an allow/deny tier at the MCP Gateway; it is intentionally not enabled yet because an overly strict policy can block MCP/OpenClaw, so if enabled it should start with broad allow rules and then be tightened.
 
 ## MCP and OpenClaw
 
@@ -116,30 +109,76 @@ Main tools:
 
 OpenClaw can connect through `npx mcp-remote <endpoint>/mcp`.
 
+### Channel skill for self-hosted OpenClaw/Zalo/Telegram
+
+If you run LaunchOps on your own server, you do not need AgentBase Gateway just to test the tools. The backend exposes a channel skill for OpenClaw/Zalo/Telegram/Discord:
+
+- `GET /api/channel-skill` or `GET /openclaw/skill`: JSON manifest with the system prompt, MCP endpoint, direct tool-call endpoint, tool catalog, and operating rules.
+- `GET /openclaw/system-prompt.txt`: system prompt you can paste into OpenClaw or a channel bot.
+- `GET /openclaw/mcp-remote.json`: `npx mcp-remote <base>/mcp` config for OpenClaw.
+- `GET /discord/skill`, `GET /discord/system-prompt.txt`, `GET /discord/mcp-remote.json`: Discord-specific aliases for self-hosted Discord bots, returning the same channel skill package.
+- `POST /tools/call`: simple HTTP adapter for bots that cannot speak MCP, with body `{ "name": "lcc_docs", "arguments": {} }`.
+
+Local example:
+
+```bash
+curl http://127.0.0.1:8788/openclaw/skill
+curl http://127.0.0.1:8788/openclaw/system-prompt.txt
+```
+
+The production AgentBase/OpenClaw setup can still use MCP Gateway/IAM. Self-host mode only needs your bot to point at `/mcp` or `/tools/call`.
+
 ## Web UI
 
-- **Pro mode:** default experience, with the full operations dashboard for readiness, Red Team, checklist, post-mortem, RAG insight, and trace.
-- **Friendly mode:** guided step-by-step visualization for reviewers or demos.
+- **Friendly mode:** default reviewer experience with guided flow and step visualization.
+- **Pro mode:** full operations dashboard with readiness, Red Team, checklist, post-mortem, RAG insight, and trace.
 - **Admin log:** open with `?role=admin` to inspect client events and server trace per launch.
 - **VI/EN:** UI is bilingual; LLM output follows the brief language.
 - **Responsive:** mobile overflow is fixed while desktop UI/UX remains unchanged.
 
-## Run Locally
+## Two ways to run: Local demo vs Full AgentBase
+
+LaunchOps runs in two modes. **Neither** needs the author's account or keys.
+
+### 1. Local demo mode (runs instantly, no cloud)
+
+No MaaS key, no cloud, no `.env`. Uses local SQLite/JSON + the bundled Golden Spin sample data, with scoring from the local deterministic rubric. Ideal for judges/outsiders to try the full flow right away.
 
 ```bash
-# Fast rule mode, no API key required
 LAUNCHOPS_LLM_ENABLED=false PORT=8788 python server/app.py
+# open http://127.0.0.1:8788/
+```
 
-# Full mode, requires MaaS/AgentBase config in .env
+In this mode, readiness/Red Team/checklist/post-mortem are produced by local rules (no LLM calls); MCP `lcc` stays deterministic. Enough to walk through the Golden Spin demo below.
+
+### 2. Full AgentBase mode (real multi-agent + LLM)
+
+To get the 6 real LLM agents, RAG, Cloud DB, and remote multi-agent, an outsider **must provision their own resources** and put them in their own `.env` (the author's resources cannot be used):
+
+- **Your own VNG MaaS API key** (`LAUNCHOPS_AGENTBASE_BASE_URL` + key) — required to call models.
+- **Your own AgentBase Memory store(s)** for lessons + knowledge/RAG (`LAUNCHOPS_MEMORY_ID`, `LAUNCHOPS_KNOWLEDGE_MEMORY_ID`); seed with `server/seed_knowledge.py`.
+- **Your own VNG vDB/PostgreSQL** for launch/template/history (`LAUNCHOPS_DB_URL`, `LAUNCHOPS_STORAGE_BACKEND=cloud`); migrate with `server/migrate_to_cloud_db.py`.
+- **Your own 4 child AgentBase runtimes** (readiness/redteam/checklist/postmortem) if you want remote multi-agent (`LAUNCHOPS_USE_REMOTE_AGENTS=true` + 4 URLs + `LAUNCHOPS_AGENT_INVOCATION_TOKEN`). Skip this and the app runs monolithic in one runtime, still with all 6 agents.
+- **Your own AgentBase MCP Gateway/IAM** if you want to expose MCP through an authenticated gateway.
+- **Your own `.env`** with all of the above (see [Important Env Vars](#important-env-vars)). The author's `.env` is not in the repo.
+
+```bash
+# Full mode: needs your own provisioned .env as above
 PORT=8788 python server/app.py
 ```
 
-Open `http://127.0.0.1:8788/`.
+If you have not provisioned everything, the app **falls back safely**: no DB → `LAUNCHOPS_STORAGE_BACKEND=local`; no Memory → `LAUNCHOPS_MEMORY_ENABLED=false`; no child runtimes → the orchestrator runs monolithic; no MaaS key → each agent uses local rules. So a clone still runs without any cloud infrastructure.
 
-### Two Local Modes
+## Demo flow for judges (Golden Spin)
 
-- **Local demo mode:** runs immediately on a personal machine with no AgentBase, MaaS key, Memory, or vDB. The app uses deterministic rule fallback to generate readiness, Red Team cards, checklist, and post-mortem samples.
-- **Full AgentBase mode:** the user provisions their own MaaS key, AgentBase Memory, VNG vDB/PostgreSQL, 4 child runtimes, and MCP Gateway/IAM, then fills the matching `.env`. The local backend can then call real LLMs, save to cloud DB, and use memory/remote agents like production.
+The sample data tells the **Golden Spin** spin-reward event story to walk the full launch lifecycle:
+
+1. **Risky brief** — pick `Golden Spin Weekend Risk` (or a Risk draft) → readiness **Yellow/Red**, low score, with a 5-persona Red Team + a fix-it checklist.
+2. **Learn from retro** — `Golden Spin ... Retro` holds lessons saved after a prior launch; those lessons are recalled to ground the next analysis.
+3. **Ready brief** — `Golden Spin Weekend v2 Ready` applied the lessons → readiness **Green 12/12**; at full score there are no open risks/Red Team, and new risks are only recorded under post-launch results to become the next lesson.
+4. **Multi-agent evidence** — open the trace tab / runtime console to see `orchestration.mode=remote_agents`, 4 `remote_runtime` children, and readiness/redteam/checklist/postmortem running independently.
+
+Click **Load Sample Brief** or **Demo mode** to load this scenario quickly.
 
 ## Important Env Vars
 
@@ -200,6 +239,7 @@ README.md
 ## Security
 
 - Do not commit `.env`, `.greennode.json`, API keys, real DB URLs, logs, or database files.
+- Production resources + credentials (endpoint, MaaS key, Memory, vDB, child runtimes) are the author's own and are **not shared**; anyone cloning provisions their own.
 - The public endpoint is intentionally open for the hackathon demo.
 - The official MCP path goes through AgentBase MCP Gateway/IAM.
 - Guardrail checks secrets/PII before LLM calls or memory writes.

@@ -516,8 +516,56 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
 }
 
 .friendly-viz-brief .friendly-viz-miss{
+  display:grid;
+  gap:6px;
+  margin-top:8px;
+  padding:9px;
+  border:1px solid rgba(194,67,26,.18);
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,247,241,.96),rgba(255,250,246,.84));
+  color:var(--viz-ink);
+  font-weight:600;
+}
+
+.friendly-viz-brief .friendly-viz-miss.is-empty{
+  display:block;
+  margin-top:0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--viz-ink-soft);
+  font-weight:500;
+}
+
+.friendly-viz-miss-title{
+  display:flex;
+  align-items:center;
+  gap:6px;
   color:var(--viz-red);
-  font-weight:700;
+  font-size:10.5px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.friendly-viz-miss-title::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--viz-red);
+  box-shadow:0 0 0 4px rgba(194,67,26,.1);
+}
+
+.friendly-viz-miss-chip{
+  display:block;
+  padding:7px 9px;
+  border:1px solid rgba(194,67,26,.12);
+  border-radius:10px;
+  background:#fff;
+  color:#6b3423;
+  font-size:12px;
+  line-height:1.35;
 }
 
 .friendly-viz-scan{
@@ -821,6 +869,56 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
   color:var(--viz-muted);
   font-size:11.5px;
   line-height:1.35;
+}
+
+.friendly-controlled-learning{
+  display:grid;
+  gap:7px;
+  border:1px solid var(--viz-line);
+  border-left:3px solid var(--viz-accent);
+  border-radius:10px;
+  background:var(--viz-paper);
+  padding:9px;
+}
+
+.friendly-controlled-learning > b{
+  color:var(--viz-ink);
+  font-size:12px;
+}
+
+.friendly-controlled-learning > span,
+.friendly-controlled-row span{
+  color:var(--viz-muted);
+  font-size:11.5px;
+  line-height:1.35;
+}
+
+.friendly-controlled-row{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+  padding-top:6px;
+  border-top:1px dashed var(--viz-line);
+}
+
+.friendly-controlled-row span{
+  flex:1 1 150px;
+}
+
+.friendly-controlled-learning button{
+  min-height:30px;
+  border:1px solid var(--viz-line);
+  border-radius:8px;
+  background:var(--viz-ink);
+  color:var(--viz-paper);
+  padding:5px 9px;
+  font-size:11.5px;
+  font-weight:700;
+}
+
+.friendly-controlled-learning button:disabled{
+  opacity:.55;
 }
 
 .friendly-lesson-form{

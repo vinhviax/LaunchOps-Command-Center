@@ -6,6 +6,7 @@
   'use strict';
 
   var STORAGE_KEY = 'launchops_ui_mode';
+  // Default to Pro on first visit; keep any saved user mode.
   var DEFAULT_MODE = 'pro';
 
   function getMode() {
@@ -14,18 +15,6 @@
     } catch (e) {
       return DEFAULT_MODE;
     }
-  }
-
-  function friendlyLang() {
-    try {
-      return localStorage.getItem('launchops_lang') === 'en' ? 'en' : 'vi';
-    } catch (e) {
-      return 'vi';
-    }
-  }
-
-  function ftr(vi, en) {
-    return friendlyLang() === 'en' ? en : vi;
   }
 
   function applyMode(mode) {
@@ -316,34 +305,46 @@
     return 'unknown';
   }
 
+  function friendlyIsEN() {
+    return (localStorage.getItem('launchops_lang') || 'vi') === 'en';
+  }
+
+  function friendlyCopy(vi, en) {
+    return friendlyIsEN() ? en : vi;
+  }
+
+  function colorBadgeText(state) {
+    var en = friendlyIsEN();
+    if (state === 'green') return en ? 'Green' : 'Xanh';
+    if (state === 'yellow') return en ? 'Yellow' : 'Vàng';
+    if (state === 'red') return en ? 'Red' : 'Đỏ';
+    return en ? 'Not scored' : 'Chưa chấm';
+  }
+
   function readinessBadge(card, state) {
     var title = normalize(card.getAttribute('title') || '');
     var score = title.match(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/);
     if (card && card.classList.contains('active') && state !== 'unknown' && hasRealAnalysis()) {
       var currentScore = normalize(ownText(byId('scoreValue')));
       var currentColor = normalize(ownText(byId('scoreColor')));
-      if (currentScore) return (currentColor || colorText(state)) + ' ' + currentScore;
+      if (currentScore) return (currentColor || colorBadgeText(state)) + ' ' + currentScore;
     }
-    if (state === 'green') return 'Green' + (score ? ' ' + score[0] : '');
-    if (state === 'yellow') return 'Yellow' + (score ? ' ' + score[0] : '');
-    if (state === 'red') return 'Red' + (score ? ' ' + score[0] : '');
-    return ftr('Chưa chấm', 'Not scored');
+    if (state === 'green' || state === 'yellow' || state === 'red') {
+      return colorBadgeText(state) + (score ? ' ' + score[0] : '');
+    }
+    return colorBadgeText('unknown');
   }
 
   function enhanceLaunchCards() {
     [].slice.call(document.querySelectorAll('.launch-card')).forEach(function (card) {
       var state = cardReadiness(card);
-      if (state === 'unknown' && card.classList.contains('active') && hasRealAnalysis()) {
-        var liveState = detectState();
-        if (liveState === 'green' || liveState === 'yellow' || liveState === 'red') state = liveState;
-      }
       var label = readinessBadge(card, state);
       var launchId = card.getAttribute('data-launch-id') || '';
       if (card.classList.contains('friendly-session-draft')) {
         state = 'unknown';
-        label = 'Chưa lưu';
+        label = friendlyIsEN() ? 'Not saved' : 'Chưa lưu';
       } else if (launchId && friendlyEditDrafts[launchId]) {
-        label = 'Đang sửa';
+        label = friendlyIsEN() ? 'Editing' : 'Đang sửa';
       }
       if (card.getAttribute('data-friendly-readiness') !== state) {
         card.setAttribute('data-friendly-readiness', state);
@@ -383,8 +384,8 @@
     showHomeActions();
     refreshChatSummary();
     refreshPostLaunchPanel();
-    addChatMessage('agent', ftr('Mình đã chuyển sang launch này. Lịch sử chat đã reset để không lẫn với launch trước.', 'I switched to this launch. Chat history was reset so it does not mix with the previous launch.'));
-    setNpcSpeech(ftr('Đã đổi launch, tôi đang đọc trạng thái mới.', 'Switched launch. Reading the new state.'));
+    addChatMessage('agent', friendlyCopy('Mình đã chuyển sang launch này. Lịch sử chat đã reset để không lẫn với launch trước.', 'I switched to this launch. The chat history was reset so it does not mix with the previous launch.'));
+    setNpcSpeech(friendlyCopy('Đã đổi launch, tôi đang đọc trạng thái mới.', 'Launch switched. I am reading the new status.'));
     updateGuidance();
   }
 
@@ -415,9 +416,9 @@
   }
 
   function statusLabel(value) {
-    if (value === 'running') return 'Đang chạy';
-    if (value === 'completed') return 'Đã chạy';
-    return 'Sắp chạy';
+    if (value === 'running') return friendlyCopy('Đang chạy', 'Running');
+    if (value === 'completed') return friendlyCopy('Đã chạy', 'Completed');
+    return friendlyCopy('Sắp chạy', 'Upcoming');
   }
 
   function launchStatusValue() {
@@ -430,6 +431,26 @@
     if (low.indexOf('da chay') !== -1 || low.indexOf('completed') !== -1 || low === 'done') return 'completed';
     if (low.indexOf('dang chay') !== -1 || low.indexOf('running') !== -1 || low === 'live') return 'running';
     if (low.indexOf('sap chay') !== -1 || low.indexOf('upcoming') !== -1 || low === 'draft') return 'upcoming';
+    return '';
+  }
+
+  function friendlyDateForRule(value) {
+    var text = String(value || '').trim();
+    var match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s,]+(\d{1,2}):(\d{2}))?$/);
+    if (match) return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]), Number(match[4] || 0), Number(match[5] || 0));
+    match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{2}))?$/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 0), Number(match[5] || 0));
+    return null;
+  }
+
+  function validateFriendlySchedule(next) {
+    var status = next.status || (byId('launchStatus') && byId('launchStatus').value) || 'upcoming';
+    var start = friendlyDateForRule(next.targetDate !== undefined ? next.targetDate : (byId('launchTargetDate') && byId('launchTargetDate').value));
+    var end = friendlyDateForRule(next.endDate !== undefined ? next.endDate : (byId('launchEndDate') && byId('launchEndDate').value));
+    var now = new Date();
+    if (start && end && end < start) return friendlyCopy('End Launch không được sớm hơn Start Launch. Hãy sửa lại thời gian trước khi lưu hoặc phân tích.', 'End Launch cannot be earlier than Start Launch. Fix the schedule before saving or analyzing.');
+    if (end && end < now && (status === 'running' || status === 'upcoming')) return friendlyCopy('End Launch đã ở quá khứ, nên launch không thể để trạng thái Đang chạy hoặc Sắp chạy. Hãy đổi sang Đã chạy hoặc sửa End Launch.', 'End Launch is in the past, so the launch cannot be Running or Upcoming. Change it to Completed or update End Launch.');
+    if (start && start < now && status === 'upcoming') return friendlyCopy('Start Launch đã ở quá khứ, nên launch không thể để trạng thái Sắp chạy. Hãy đổi sang Đang chạy/Đã chạy hoặc sửa Start Launch.', 'Start Launch is in the past, so the launch cannot be Upcoming. Change it to Running/Completed or update Start Launch.');
     return '';
   }
 
@@ -448,7 +469,7 @@
 
   function readFriendlyFormData() {
     return {
-      name: normalize((byId('launchName') && byId('launchName').value) || 'Launch mới'),
+      name: normalize((byId('launchName') && byId('launchName').value) || friendlyCopy('Launch mới', 'New launch')),
       type: (byId('launchType') && byId('launchType').value) || 'Game event',
       status: (byId('launchStatus') && byId('launchStatus').value) || 'upcoming',
       owner: normalize((byId('launchOwner') && byId('launchOwner').value) || ''),
@@ -466,7 +487,7 @@
     if (!data) return;
     restoringFriendlySession = true;
     [
-      ['launchName', data.name || 'Launch mới'],
+      ['launchName', data.name || friendlyCopy('Launch mới', 'New launch')],
       ['launchType', data.type || 'Game event'],
       ['launchStatus', data.status || 'upcoming'],
       ['launchOwner', data.owner || ''],
@@ -559,10 +580,10 @@
 
   function updateFriendlyCardContent(card, data, mode) {
     if (!card || !data) return;
-    var name = data.name || 'Launch mới';
-    var typeLabelText = labelForSelectValue('launchType', data.type || 'Game event') || 'Chưa chọn phân loại';
-    var owner = data.owner ? 'Owner: ' + data.owner : 'Chưa có owner';
-    var saved = mode === 'new' ? 'Chưa lưu' : 'Đang sửa';
+    var name = data.name || friendlyCopy('Launch mới', 'New launch');
+    var typeLabelText = labelForSelectValue('launchType', data.type || 'Game event') || friendlyCopy('Chưa chọn phân loại', 'No type selected');
+    var owner = data.owner ? 'Owner: ' + data.owner : friendlyCopy('Chưa có owner', 'No owner yet');
+    var saved = mode === 'new' ? friendlyCopy('Chưa lưu', 'Not saved') : friendlyCopy('Đang sửa', 'Editing');
     var statusText = statusLabel(data.status || 'upcoming');
     var historyKey = [name, typeLabelText, owner, saved, statusText, mode].join('|');
     var history = card.querySelector('.launch-card-history');
@@ -571,19 +592,19 @@
     card.classList.toggle('friendly-session-draft', mode === 'new');
     card.classList.toggle('friendly-session-edit', mode === 'edit');
     card.setAttribute('data-friendly-readiness', mode === 'new' ? 'unknown' : (cardReadiness(card) || 'unknown'));
-    card.setAttribute('data-friendly-badge', mode === 'new' ? 'Chưa lưu' : 'Đang sửa');
-    card.setAttribute('aria-label', 'Mở ' + name + '. ' + saved + ' trong Friendly mode.');
-    card.setAttribute('title', saved + ' trong phiên này. F5 trước khi lưu sẽ mất bản nháp.');
+    card.setAttribute('data-friendly-badge', saved);
+    card.setAttribute('aria-label', friendlyCopy('Mở ', 'Open ') + name + '. ' + saved + friendlyCopy(' trong Friendly mode.', ' in Friendly mode.'));
+    card.setAttribute('title', saved + friendlyCopy(' trong phiên này. F5 trước khi lưu sẽ mất bản nháp.', ' in this session. Refreshing before save will lose this draft.'));
 
     var title = card.querySelector('strong');
     var meta = card.querySelector('.launch-card-meta-line');
     var ownerLine = card.querySelector('.launch-card-owner-line');
     if (title) title.textContent = name;
-    if (meta) meta.textContent = typeLabelText + ' · Nháp Friendly';
+    if (meta) meta.textContent = typeLabelText + ' · ' + friendlyCopy('Nháp Friendly', 'Friendly draft');
     if (ownerLine) ownerLine.textContent = owner + ' · ' + saved;
     if (history && history.getAttribute('data-friendly-history-key') !== historyKey) {
       history.setAttribute('data-friendly-history-key', historyKey);
-      history.innerHTML = '<span>' + statusText + '</span><strong>0 phân tích · 0 bài học</strong><small>' + saved + '</small>';
+      history.innerHTML = '<span>' + statusText + '</span><strong>' + friendlyCopy('0 phân tích · 0 bài học', '0 analyses · 0 lessons') + '</strong><small>' + saved + '</small>';
     }
   }
 
@@ -672,7 +693,7 @@
     activeFriendlyDraftId = '';
     if (!friendlyEditDrafts[id]) return false;
     writeFriendlyFormData(friendlyEditDrafts[id]);
-    setNpcSpeech(ftr('Đã khôi phục phần đang sửa tạm của launch này.', 'Restored the unsaved draft for this launch.'));
+    setNpcSpeech(friendlyCopy('Đã khôi phục phần đang sửa tạm của launch này.', 'Restored the temporary edits for this launch.'));
     return true;
   }
 
@@ -698,7 +719,7 @@
       refreshChatSummary();
       updateGuidance();
     }
-    setNpcSpeech(ftr('Đã mở lại launch nháp. Bạn có thể tiếp tục cấu hình hoặc lưu.', 'Reopened draft launch. You can continue configuring or save it.'));
+    setNpcSpeech(friendlyCopy('Đã mở lại launch nháp. Bạn có thể tiếp tục cấu hình hoặc lưu.', 'Reopened the draft launch. You can keep configuring it or save it.'));
   }
 
   function scheduleFriendlySaveCleanup(draftId, editId) {
@@ -739,11 +760,11 @@
     if (!isFriendlyMode()) return;
     var title = byId('detailTitle');
     var sub = byId('detailSub');
-    var launchName = normalize((byId('launchName') && byId('launchName').value) || ownText(title) || 'Launch mới');
-    var type = selectedText(byId('launchType')) || 'Chưa chọn phân loại';
+    var launchName = normalize((byId('launchName') && byId('launchName').value) || ownText(title) || friendlyCopy('Launch mới', 'New launch'));
+    var type = selectedText(byId('launchType')) || friendlyCopy('Chưa chọn phân loại', 'No type selected');
     var status = byId('launchStatus') ? statusLabel(byId('launchStatus').value) : '';
-    var owner = normalize((byId('launchOwner') && byId('launchOwner').value) || 'Chưa có owner');
-    if (title && title.textContent !== (launchName || 'Launch mới')) title.textContent = launchName || 'Launch mới';
+    var owner = normalize((byId('launchOwner') && byId('launchOwner').value) || friendlyCopy('Chưa có owner', 'No owner yet'));
+    if (title && title.textContent !== (launchName || friendlyCopy('Launch mới', 'New launch'))) title.textContent = launchName || friendlyCopy('Launch mới', 'New launch');
     if (sub) {
       clearNode(sub);
       addChip(sub, status, 'status');
@@ -757,9 +778,9 @@
     if (!box) return;
     clearNode(box);
     [
-      normalize((byId('launchName') && byId('launchName').value) || 'Launch mới'),
-      selectedText(byId('launchType')) || 'Chưa chọn phân loại',
-      normalize((byId('launchOwner') && byId('launchOwner').value) || 'Chưa có owner')
+      normalize((byId('launchName') && byId('launchName').value) || friendlyCopy('Launch mới', 'New launch')),
+      selectedText(byId('launchType')) || friendlyCopy('Chưa chọn phân loại', 'No type selected'),
+      normalize((byId('launchOwner') && byId('launchOwner').value) || friendlyCopy('Chưa có owner', 'No owner yet'))
     ].forEach(function (item) {
       var chip = document.createElement('span');
       chip.textContent = item;
@@ -807,9 +828,6 @@
     'Hỗ trợ / giải thích': 'Help / explain',
     'Lưu launch': 'Save launch',
     'Nạp Brief Mẫu': 'Load Sample Brief',
-    'Xóa launch này': 'Delete launch',
-    'Demo mode': 'Demo mode',
-    'Export report': 'Export report',
     'Phân loại': 'Type',
     'Phân tích ngay': 'Analyze now',
     'Quay lại': 'Back',
@@ -826,8 +844,16 @@
     'Xem checklist': 'View checklist',
     'Xem lại brief': 'Review brief',
     'Xem readiness': 'View readiness',
-    'Đang chạy': 'Running',
-    'Đã chạy': 'Completed'
+    'Xóa launch': 'Delete launch',
+      'Đang chạy': 'Running',
+    'Đã chạy': 'Completed',
+    'Brief': 'Brief',
+    'Checklist': 'Checklist',
+    'Demo mode': 'Demo mode',
+    'Export report': 'Export report',
+    'Owner': 'Owner',
+    'Red Team': 'Red Team',
+    'Rule readiness': 'Readiness rule'
   };
   var lastChatActions = null;
   function setChatActions(actions) {
@@ -879,26 +905,26 @@
 
   function chatInputPlaceholder(text) {
     var input = byId('friendlyChatInput');
-    if (input) input.placeholder = text || ftr('Gõ câu trả lời hoặc dán brief ở đây', 'Type an answer or paste the brief here');
+    if (input) input.placeholder = text || friendlyCopy('Gõ câu trả lời hoặc dán brief ở đây', 'Type an answer or paste the brief here');
   }
 
   function fieldHint(field) {
-    if (field === 'name') return ftr('đặt tên launch ngắn, dễ nhận ra trong danh sách.', 'give the launch a short name easy to recognise in the list.');
-    if (field === 'type') return ftr('chọn phân loại để dùng đúng bộ luật đánh giá.', 'pick a type so the right scoring rules are used.');
-    if (field === 'owner') return ftr('nhập owner chính để checklist có người chịu trách nhiệm.', 'enter the main owner so the checklist has someone accountable.');
-    if (field === 'dates') return ftr('nhập Start - End theo dạng dd/mm/yyyy - dd/mm/yyyy.', 'type Start - End as dd/mm/yyyy - dd/mm/yyyy.');
-    if (field === 'brief') return ftr('dán brief thô, càng rõ mục tiêu và phạm vi càng tốt.', 'paste the raw brief — the clearer the goals and scope, the better.');
-    if (field === 'postResult') return ftr('ghi kết quả thật sau launch để lưu bài học.', 'write the actual post-launch result to save a lesson.');
-    if (field === 'lesson') return ftr('ghi bài học ngắn, có thể dùng lại cho launch sau.', 'write a short lesson that can be reused for future launches.');
-    return ftr('chọn thao tác hoặc gõ trực tiếp cho Mission Control.', 'pick an action or type directly in Mission Control.');
+    if (field === 'name') return friendlyCopy('đặt tên launch ngắn, dễ nhận ra trong danh sách.', 'give the launch a short name that is easy to spot in the list.');
+    if (field === 'type') return friendlyCopy('chọn phân loại để dùng đúng bộ luật đánh giá.', 'choose the launch type so the right scoring rules are used.');
+    if (field === 'owner') return friendlyCopy('nhập owner chính để checklist có người chịu trách nhiệm.', 'add the main owner so checklist items have accountability.');
+    if (field === 'dates') return friendlyCopy('nhập Start - End đầy đủ ngày giờ theo dạng dd/mm/yyyy hh:mm - dd/mm/yyyy hh:mm.', 'enter Start - End with full date and time as dd/mm/yyyy hh:mm - dd/mm/yyyy hh:mm.');
+    if (field === 'brief') return friendlyCopy('dán brief thô, càng rõ mục tiêu và phạm vi càng tốt.', 'paste the raw brief; clearer goals and scope are better.');
+    if (field === 'postResult') return friendlyCopy('ghi kết quả thật sau launch để lưu bài học.', 'record the real post-launch result before saving lessons.');
+    if (field === 'lesson') return friendlyCopy('ghi bài học ngắn, có thể dùng lại cho launch sau.', 'write a short lesson that can be reused next launch.');
+    return friendlyCopy('chọn thao tác hoặc gõ trực tiếp cho Mission Control.', 'pick an action or type directly to Mission Control.');
   }
 
   function guidanceText(snapshot) {
-    if (chatAwaiting) return ftr('Gợi ý tiếp theo: ', 'Next suggestion: ') + fieldHint(chatAwaiting);
-    if (chatFlow === 'new') return ftr('Gợi ý tiếp theo: mình sẽ tự dẫn từng mục cho tới khi đủ launch brief.', 'Next suggestion: I will walk through each field until the launch brief is complete.');
-    if (!snapshot || snapshot.state === 'idle') return ftr('Gợi ý tiếp theo: tạo/sửa launch bằng chat, hoặc chạy phân tích khi brief đã đủ.', 'Next suggestion: create/edit a launch in chat, or run analysis when the brief is ready.');
-    if (snapshot.topRisks && snapshot.topRisks.length) return ftr('Gợi ý tiếp theo: xử lý "', 'Next suggestion: fix "') + shorten(snapshot.topRisks[0], 86) + ftr('" trước khi launch.', '" before launch.');
-    return ftr('Gợi ý tiếp theo: xem readiness, phản biện và checklist trước khi lưu quyết định.', 'Next suggestion: review readiness, red-team notes, and checklist before saving the decision.');
+    if (chatAwaiting) return friendlyCopy('Gợi ý tiếp theo: ', 'Next hint: ') + fieldHint(chatAwaiting);
+    if (chatFlow === 'new') return friendlyCopy('Gợi ý tiếp theo: mình sẽ tự dẫn từng mục cho tới khi đủ launch brief.', 'Next hint: I will guide each field until the launch brief is complete.');
+    if (!snapshot || snapshot.state === 'idle') return friendlyCopy('Gợi ý tiếp theo: tạo/sửa launch bằng chat, hoặc chạy phân tích khi brief đã đủ.', 'Next hint: create/edit a launch by chat, or run analysis once the brief is ready.');
+    if (snapshot.topRisks && snapshot.topRisks.length) return friendlyCopy('Gợi ý tiếp theo: xử lý "', 'Next hint: handle "') + shorten(snapshot.topRisks[0], 86) + friendlyCopy('" trước khi launch.', '" before launch.');
+    return friendlyCopy('Gợi ý tiếp theo: xem readiness, phản biện và checklist trước khi lưu quyết định.', 'Next hint: review readiness, red team, and checklist before saving the decision.');
   }
 
   function updateGuidance(text) {
@@ -917,31 +943,31 @@
     var folded = fold(resultText);
     var suggestions = [
       {
-        title: 'So sánh mục tiêu ban đầu với kết quả thật',
-        detail: 'Ghi rõ đạt/chưa đạt, lệch ở chỉ số nào, và nguyên nhân vận hành có thể kiểm chứng.'
+        title: friendlyCopy('So sánh mục tiêu ban đầu với kết quả thật', 'Compare the original goal with the real result'),
+        detail: friendlyCopy('Ghi rõ đạt/chưa đạt, lệch ở chỉ số nào, và nguyên nhân vận hành có thể kiểm chứng.', 'Record what was met/not met, which metric moved, and any verifiable ops cause.')
       }
     ];
     if (folded.indexOf('faq') !== -1 || folded.indexOf('cs') !== -1 || folded.indexOf('support') !== -1) {
       suggestions.push({
-        title: 'Đưa CS FAQ vào checklist trước launch',
-        detail: 'Kết quả có nhắc tới CS/FAQ, nên lần sau cần chốt câu trả lời mẫu trước T-1.'
+        title: friendlyCopy('Đưa CS FAQ vào checklist trước launch', 'Add CS FAQ to the pre-launch checklist'),
+        detail: friendlyCopy('Kết quả có nhắc tới CS/FAQ, nên lần sau cần chốt câu trả lời mẫu trước T-1.', 'The result mentions CS/FAQ, so next time finalize sample answers before T-1.')
       });
     }
     if (folded.indexOf('rollback') !== -1 || folded.indexOf('pause') !== -1 || folded.indexOf('dung') !== -1) {
       suggestions.push({
-        title: 'Chốt ngưỡng dừng hoặc rollback sớm hơn',
-        detail: 'Kết quả có tín hiệu phải dừng/rollback, nên brief sau cần có ngưỡng quyết định rõ.'
+        title: friendlyCopy('Chốt ngưỡng dừng hoặc rollback sớm hơn', 'Lock pause or rollback thresholds earlier'),
+        detail: friendlyCopy('Kết quả có tín hiệu phải dừng/rollback, nên brief sau cần có ngưỡng quyết định rõ.', 'The result signals pause/rollback, so the next brief needs clear decision thresholds.')
       });
     }
     if (folded.indexOf('reward') !== -1 || folded.indexOf('thuong') !== -1 || folded.indexOf('qua') !== -1) {
       suggestions.push({
-        title: 'Thêm reviewer Economy/Reward',
-        detail: 'Kết quả có liên quan phần thưởng, nên cần người rà soát ngân sách và khả năng lạm dụng.'
+        title: friendlyCopy('Thêm reviewer Economy/Reward', 'Add an Economy/Reward reviewer'),
+        detail: friendlyCopy('Kết quả có liên quan phần thưởng, nên cần người rà soát ngân sách và khả năng lạm dụng.', 'The result involves rewards, so someone should review budget and abuse risk.')
       });
     }
     if (lastSnapshot && lastSnapshot.topRisks && lastSnapshot.topRisks.length) {
       suggestions.push({
-        title: 'Biến rủi ro pre-launch thành bài học',
+        title: friendlyCopy('Biến rủi ro pre-launch thành bài học', 'Turn pre-launch risk into a lesson'),
         detail: shorten(lastSnapshot.topRisks[0], 130)
       });
     }
@@ -963,12 +989,71 @@
       row.appendChild(detail);
       box.appendChild(row);
     });
+    renderFriendlyControlledLearning();
+  }
+
+  function learningApi() {
+    return window.launchopsControlledLearning || null;
+  }
+
+  function renderFriendlyControlledLearning() {
+    var box = byId('friendlyLessonSuggestions');
+    var api = learningApi();
+    if (!box || !api || typeof api.snapshot !== 'function') return;
+    [].slice.call(box.querySelectorAll('.friendly-controlled-learning')).forEach(function (node) { node.remove(); });
+    var snapshot = api.snapshot();
+    var proposals = snapshot.proposals || [];
+    if (!snapshot.canCreate && !proposals.length) return;
+    var panel = document.createElement('div');
+    panel.className = 'friendly-controlled-learning';
+    var title = document.createElement('b');
+    title.textContent = friendlyCopy('Tự học có kiểm soát', 'Controlled learning');
+    panel.appendChild(title);
+    var intro = document.createElement('span');
+    intro.textContent = proposals.length
+      ? friendlyCopy('Có proposal template cần duyệt. Rubric chỉ đổi sau khi bạn bấm duyệt.', 'There is a template proposal to review. Rubric changes only after approval.')
+      : friendlyCopy('Tạo proposal từ bài học sau launch để AI draft rubric/persona mới.', 'Create a proposal from the post-launch lesson so AI can draft rubric/persona changes.');
+    panel.appendChild(intro);
+    proposals.slice(-3).forEach(function (proposal) {
+      var row = document.createElement('div');
+      row.className = 'friendly-controlled-row';
+      var delta = proposal.delta || {};
+      var riskCount = (delta.addRiskGroups || []).length;
+      var personaCount = (delta.addPersonas || []).length;
+      var summary = document.createElement('span');
+      summary.textContent = proposal.status + ' · +' + riskCount + friendlyCopy(' nhóm rủi ro, +', ' risk groups, +') + personaCount + friendlyCopy(' persona', ' personas');
+      row.appendChild(summary);
+      if (proposal.status === 'proposed') {
+        var approve = document.createElement('button');
+        approve.type = 'button';
+        approve.setAttribute('data-friendly-action', 'approve-proposal');
+        approve.setAttribute('data-friendly-value', proposal.id);
+        approve.textContent = friendlyCopy('Duyệt', 'Approve');
+        var reject = document.createElement('button');
+        reject.type = 'button';
+        reject.setAttribute('data-friendly-action', 'reject-proposal');
+        reject.setAttribute('data-friendly-value', proposal.id);
+        reject.textContent = friendlyCopy('Từ chối', 'Reject');
+        row.appendChild(approve);
+        row.appendChild(reject);
+      }
+      panel.appendChild(row);
+    });
+    if (snapshot.canCreate) {
+      var create = document.createElement('button');
+      create.type = 'button';
+      create.setAttribute('data-friendly-action', 'propose-learning');
+      create.textContent = snapshot.busy === 'create' ? friendlyCopy('Đang tạo...', 'Creating...') : friendlyCopy('Tạo proposal', 'Create proposal');
+      create.disabled = Boolean(snapshot.busy);
+      panel.appendChild(create);
+    }
+    box.appendChild(panel);
   }
 
   function runPostLaunchReview() {
     var resultText = postResultText();
     if (!resultText) {
-      addLessonMessage('agent', ftr('Cần nhập kết quả sau launch trước, rồi mình mới phân tích sau launch được.', 'Post-launch result is required before I can run the post-launch review.'));
+      addLessonMessage('agent', friendlyCopy('Cần nhập kết quả sau launch trước, rồi mình mới phân tích sau launch được.', 'Enter post-launch results first, then I can run post-launch analysis.'));
       lessonAwaiting = 'postResult';
       setLessonActionState();
       return false;
@@ -977,11 +1062,11 @@
     postReviewKey = key;
     postReviewDone = true;
     renderPostReviewSuggestions(postReviewSuggestions(resultText));
-    addLessonMessage('agent', ftr('Mình đã phân tích kết quả sau launch và đưa đề xuất bên dưới. Bước tiếp theo: thêm bài học ngắn để lưu lại.', 'I have reviewed the post-launch result and added suggestions below. Next: add a short lesson to save.'));
-    setNpcSpeech(ftr('Đã phân tích sau launch, đang chờ bài học cuối cùng.', 'Post-launch reviewed. Waiting for the final lesson.'));
+    addLessonMessage('agent', friendlyCopy('Mình đã phân tích kết quả sau launch và đưa đề xuất bên dưới. Bước tiếp theo: thêm bài học ngắn để lưu lại.', 'I analyzed the post-launch result and added suggestions below. Next step: add a short lesson to save.'));
+    setNpcSpeech(friendlyCopy('Đã phân tích sau launch, đang chờ bài học cuối cùng.', 'Post-launch analysis is done. Waiting for the final lesson.'));
     lessonAwaiting = 'lesson';
     var input = byId('friendlyLessonChatInput');
-    if (input) input.placeholder = ftr('Nhập bài học rút ra sau launch', 'Enter lesson learned');
+    if (input) input.placeholder = friendlyCopy('Nhập bài học rút ra sau launch', 'Enter the lesson learned after launch');
     setLessonActionState();
     return true;
   }
@@ -998,17 +1083,17 @@
     if (gate) {
       gate.classList.toggle('is-locked', locked);
       gate.classList.toggle('is-ready', !locked);
-      gate.textContent = locked ? ftr('Chưa tới sau launch', 'Post-launch not yet') : ftr('Sau launch', 'Post-launch');
+      gate.textContent = locked ? friendlyCopy('Chưa tới sau launch', 'Not post-launch yet') : friendlyCopy('Sau launch', 'Post-launch');
     }
     if (status) {
       status.textContent = locked
-        ? ftr('Launch chưa ở trạng thái Đã chạy. Sau khi launch xong, quay lại nhập kết quả và bài học.', 'Launch is not completed yet. Once it finishes, come back to enter results and lessons.')
-        : ftr('Flow bắt buộc: nhập kết quả sau launch -> Agent phân tích -> thêm bài học -> lưu.', 'Required flow: enter post-launch result → Agent reviews → add lesson → save.');
+        ? friendlyCopy('Launch chưa ở trạng thái Đã chạy. Sau khi launch xong, quay lại nhập kết quả và bài học.', 'This launch is not Completed yet. After it finishes, come back to enter results and lessons.')
+        : friendlyCopy('Flow bắt buộc: nhập kết quả sau launch -> Agent phân tích -> thêm bài học -> lưu.', 'Required flow: enter post-launch results -> Agent analyzes -> add lesson -> save.');
     }
     if (input) {
       input.placeholder = locked
-        ? ftr('Chỉ nhập sau khi launch đã chạy xong', 'Only available after the launch has completed')
-        : (lessonAwaiting === 'lesson' ? ftr('Nhập bài học rút ra sau launch', 'Enter lesson learned') : ftr('Nhập kết quả sau launch ở đây', 'Enter post-launch result here'));
+        ? friendlyCopy('Chỉ nhập sau khi launch đã chạy xong', 'Only enter this after the launch is complete')
+        : (lessonAwaiting === 'lesson' ? friendlyCopy('Nhập bài học rút ra sau launch', 'Enter the lesson learned after launch') : friendlyCopy('Nhập kết quả sau launch ở đây', 'Enter post-launch results here'));
     }
     var currentResult = postResultText();
     var currentKey = currentResult + '|' + (lastSnapshot && lastSnapshot.decision ? lastSnapshot.decision : '');
@@ -1028,16 +1113,16 @@
     chatFlow = '';
     chatFlowSteps = [];
     chatFlowIndex = -1;
-    chatInputPlaceholder(ftr('Gõ yêu cầu, ví dụ: đổi owner thành PM LiveOps', 'Type a request, e.g. change owner to PM LiveOps'));
+    chatInputPlaceholder(friendlyCopy('Gõ yêu cầu, ví dụ: đổi owner thành PM LiveOps', 'Type a request, e.g. change owner to PM LiveOps'));
     updateGuidance();
     setChatActions([
       { label: 'Tạo launch mới', action: 'new' },
       { label: 'Sửa launch này', action: 'edit' },
+      { label: 'Lưu launch', action: 'save' },
+      { label: 'Xóa launch', action: 'delete' },
       { label: 'Tổng hợp launch', action: 'summarize' },
       { label: 'Hỗ trợ / giải thích', action: 'support' },
       { label: 'Nạp Brief Mẫu', action: 'sample' },
-      { label: 'Lưu launch', action: 'save' },
-      { label: 'Xóa launch này', action: 'delete' },
       { label: 'Chạy phân tích', action: 'analyze' },
       { label: 'Demo mode', action: 'demo' },
       { label: 'Export report', action: 'export' },
@@ -1050,8 +1135,8 @@
     chatFlow = 'edit';
     chatFlowSteps = [];
     chatFlowIndex = -1;
-    chatInputPlaceholder(ftr('Chọn mục cần sửa hoặc gõ nội dung', 'Pick a field to edit or type directly'));
-    updateGuidance(ftr('Gợi ý tiếp theo: chọn một mục cần sửa, mình sẽ cập nhật ngay trong Chi tiết launch.', 'Next suggestion: pick a field to edit — I will update it in the Launch Details right away.'));
+    chatInputPlaceholder(friendlyCopy('Chọn mục cần sửa hoặc gõ nội dung', 'Choose a field to edit or type the content'));
+    updateGuidance(friendlyCopy('Gợi ý tiếp theo: chọn một mục cần sửa, mình sẽ cập nhật ngay trong Chi tiết launch.', 'Next hint: choose a field to edit and I will update Launch details immediately.'));
     setChatActions([
       { label: 'Tên launch', action: 'field', value: 'name' },
       { label: 'Phân loại', action: 'field', value: 'type' },
@@ -1068,7 +1153,7 @@
     var real = byId(realId);
     if (!real) return false;
     if (real.disabled) {
-      addChatMessage('agent', ftr('Bản demo hiện mở full quyền thao tác. Nếu nút chưa dùng được, hãy kiểm tra launch đã có dữ liệu hợp lệ hoặc mở Pro để xem chi tiết.', 'This demo allows full actions. If a button is not available, check that the launch has valid data or switch to Pro for details.'));
+      addChatMessage('agent', friendlyCopy('Bản demo hiện mở full quyền thao tác. Nếu nút chưa dùng được, hãy kiểm tra launch đã có dữ liệu hợp lệ hoặc mở Pro để xem chi tiết.', 'This demo allows full actions. If this control is unavailable, check that the launch has valid data or open Pro mode for details.'));
       return false;
     }
     setControlValue(real, value);
@@ -1083,7 +1168,7 @@
   function clickRealButton(realId) {
     var real = byId(realId);
     if (!real || real.disabled) {
-      addChatMessage('agent', ftr('Nút này hiện chưa dùng được với dữ liệu launch hiện tại. Hãy kiểm tra brief hoặc trạng thái launch rồi thử lại.', 'This button is not available for the current launch data. Check the brief or launch status, then try again.'));
+      addChatMessage('agent', friendlyCopy('Nút này hiện chưa dùng được với dữ liệu launch hiện tại. Hãy kiểm tra brief hoặc trạng thái launch rồi thử lại.', 'This button is not available for the current launch data. Check the brief or launch status, then try again.'));
       return false;
     }
     real.click();
@@ -1111,55 +1196,62 @@
   function promptField(field) {
     chatAwaiting = field;
     setChatActions([]);
-    updateGuidance(ftr('Gợi ý tiếp theo: ', 'Next suggestion: ') + fieldHint(field));
+    updateGuidance(friendlyCopy('Gợi ý tiếp theo: ', 'Next hint: ') + fieldHint(field));
     if (field === 'name') {
-      addChatMessage('agent', ftr('Bạn đặt tên launch là gì?', 'What should we call this launch?'));
-      chatInputPlaceholder(ftr('Ví dụ: Golden Spin Weekend', 'e.g. Golden Spin Weekend'));
-      setNpcSpeech(ftr('Đang chờ tên launch. Tôi sẽ gắn tên này vào chi tiết ngay khi bạn gửi.', 'Waiting for launch name. I will fill it in as soon as you send.'));
+      addChatMessage('agent', friendlyCopy('Bạn đặt tên launch là gì?', 'What is the launch name?'));
+      chatInputPlaceholder('Ví dụ: Golden Spin Weekend');
+      setNpcSpeech(friendlyCopy('Đang chờ tên launch. Tôi sẽ gắn tên này vào chi tiết ngay khi bạn gửi.', 'Waiting for the launch name. I will attach it to the details as soon as you send it.'));
     } else if (field === 'type') {
       chatAwaiting = 'type';
-      addChatMessage('agent', ftr('Chọn hoặc gõ phân loại launch để mình dùng đúng template. Ví dụ: Sự kiện game.', 'Choose or type the launch type so I use the right template. e.g. Game event.'));
-      chatInputPlaceholder(ftr('Gõ phân loại, hoặc gõ "giữ nguyên"', 'Type a type, or type "keep"'));
-      setNpcSpeech(ftr('Đang chờ bạn chọn phân loại.', 'Waiting for launch type.'));
+      addChatMessage('agent', friendlyCopy('Chọn hoặc gõ phân loại launch để mình dùng đúng template. Ví dụ: Sự kiện game.', 'Choose or type the launch type so I use the right template. Example: Game event.'));
+      chatInputPlaceholder(friendlyCopy('Gõ phân loại, hoặc gõ "giữ nguyên"', 'Type a type, or type "keep"'));
+      setNpcSpeech(friendlyCopy('Đang chờ bạn chọn phân loại.', 'Waiting for you to choose the launch type.'));
       showTypeActions();
     } else if (field === 'status') {
       chatAwaiting = 'status';
-      addChatMessage('agent', ftr('Chọn hoặc gõ trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.', 'Choose or type the launch status: Upcoming, Running, or Completed.'));
-      chatInputPlaceholder(ftr('Gõ trạng thái, hoặc gõ "giữ nguyên"', 'Type a status, or type "keep"'));
-      setNpcSpeech(ftr('Đang chờ trạng thái launch.', 'Waiting for launch status.'));
+      addChatMessage('agent', friendlyCopy('Chọn hoặc gõ trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.', 'Choose or type the launch status: Upcoming, Running, or Completed.'));
+      chatInputPlaceholder(friendlyCopy('Gõ trạng thái, hoặc gõ "giữ nguyên"', 'Type a status, or type "keep"'));
+      setNpcSpeech(friendlyCopy('Đang chờ trạng thái launch.', 'Waiting for the launch status.'));
       showStatusActions();
     } else if (field === 'owner') {
-      addChatMessage('agent', ftr('Ai là owner chính của launch này?', 'Who is the main owner of this launch?'));
-      chatInputPlaceholder(ftr('Ví dụ: PM LiveOps', 'e.g. PM LiveOps'));
-      setNpcSpeech(ftr('Đang chờ owner để cập nhật phần chi tiết launch.', 'Waiting for owner to update launch details.'));
+      addChatMessage('agent', friendlyCopy('Ai là owner chính của launch này?', 'Who is the main owner for this launch?'));
+      chatInputPlaceholder('Ví dụ: PM LiveOps');
+      setNpcSpeech(friendlyCopy('Đang chờ owner để cập nhật phần chi tiết launch.', 'Waiting for the owner so I can update the launch details.'));
     } else if (field === 'dates') {
-      addChatMessage('agent', ftr('Gõ thời gian dạng Start - End. Ví dụ: 12/06/2026 - 14/06/2026.', 'Type dates as Start - End. e.g. 12/06/2026 - 14/06/2026.'));
-      chatInputPlaceholder(ftr('12/06/2026 - 14/06/2026', '12/06/2026 - 14/06/2026'));
-      setNpcSpeech(ftr('Đang chờ mốc thời gian. Chỉ cần nhập Start - End.', 'Waiting for dates. Just type Start - End.'));
+      addChatMessage('agent', friendlyCopy('Gõ Start - End đầy đủ ngày giờ. Ví dụ: 12/06/2026 08:30 - 14/06/2026 23:59.', 'Type Start - End with full date and time. Example: 12/06/2026 08:30 - 14/06/2026 23:59.'));
+      chatInputPlaceholder('12/06/2026 08:30 - 14/06/2026 23:59');
+      setNpcSpeech(friendlyCopy('Đang chờ mốc thời gian. Start và End đều bắt buộc có giờ phút hh:mm.', 'Waiting for the schedule. Both Start and End must include hh:mm.'));
     } else if (field === 'brief') {
-      addChatMessage('agent', ftr('Dán brief thô vào đây. Không cần văn hay, chỉ cần đủ dữ liệu để Agent đọc.', 'Paste the raw brief here. No need to be polished — just enough data for the Agent to read.'));
-      chatInputPlaceholder(ftr('Dán brief launch...', 'Paste brief here...'));
-      setNpcSpeech(ftr('Đang chờ brief. Tôi sẽ đọc mục tiêu, phạm vi và phần còn mơ hồ.', 'Waiting for brief. I will read goals, scope, and unclear areas.'));
+      addChatMessage('agent', friendlyCopy('Dán brief thô vào đây. Không cần văn hay, chỉ cần đủ dữ liệu để Agent đọc.', 'Paste the raw brief here. It does not need to be polished, just readable enough for the Agent.'));
+      chatInputPlaceholder(friendlyCopy('Dán brief launch...', 'Paste the launch brief...'));
+      setNpcSpeech(friendlyCopy('Đang chờ brief. Tôi sẽ đọc mục tiêu, phạm vi và phần còn mơ hồ.', 'Waiting for the brief. I will read the goal, scope, and unclear parts.'));
     } else if (field === 'postResult') {
-      addChatMessage('agent', ftr('Kết quả sau launch thực tế là gì?', 'What was the actual post-launch result?'));
-      chatInputPlaceholder(ftr('Ví dụ: đạt 82% target, còn lỗi CS FAQ...', 'e.g. hit 82% target, CS FAQ had issues...'));
-      setNpcSpeech(ftr('Đang chờ kết quả thật sau launch.', 'Waiting for the actual post-launch result.'));
+      addChatMessage('agent', friendlyCopy('Kết quả sau launch thực tế là gì?', 'What was the real post-launch result?'));
+      chatInputPlaceholder('Ví dụ: đạt 82% target, còn lỗi CS FAQ...');
+      setNpcSpeech(friendlyCopy('Đang chờ kết quả thật sau launch.', 'Waiting for the real post-launch result.'));
     } else if (field === 'lesson') {
-      addChatMessage('agent', ftr('Bài học mới cần lưu là gì?', 'What lesson should we save?'));
-      chatInputPlaceholder(ftr('Ví dụ: Lần sau phải chốt FAQ trước T-1.', 'e.g. Next time confirm FAQ by T-1.'));
-      setNpcSpeech(ftr('Đang chờ bài học để lưu lại cho lần sau.', 'Waiting for a lesson to save for next time.'));
+      addChatMessage('agent', friendlyCopy('Bài học mới cần lưu là gì?', 'What new lesson should be saved?'));
+      chatInputPlaceholder(friendlyCopy('Ví dụ: Lần sau phải chốt FAQ trước T-1.', 'Example: Next time, finalize FAQ before T-1.'));
+      setNpcSpeech(friendlyCopy('Đang chờ bài học để lưu lại cho lần sau.', 'Waiting for the lesson to save for next time.'));
     } else {
       chatAwaiting = '';
-      addChatMessage('agent', ftr('Bạn muốn sửa mục nào?', 'Which field do you want to edit?'));
+      addChatMessage('agent', friendlyCopy('Bạn muốn sửa mục nào?', 'Which field do you want to edit?'));
       showEditActions();
     }
   }
 
+  function hasFriendlyDateTime(value) {
+    return /^\s*(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{1,2}-\d{1,2})(?:[T\s,]+\d{1,2}:\d{2})\s*$/.test(String(value || ''));
+  }
+
   function parseDates(text) {
-    var parts = String(text || '').split(/\s*(?:-|->|đến|den|to)\s*/i).map(normalize).filter(Boolean);
+    var matches = String(text || '').match(/(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{1,2}-\d{1,2})(?:[T\s,]+\d{1,2}:\d{2})?/g) || [];
+    var start = normalize(matches[0] || '');
+    var end = normalize(matches[1] || '');
     return {
-      start: parts[0] || '',
-      end: parts[1] || ''
+      start: hasFriendlyDateTime(start) ? start : '',
+      end: hasFriendlyDateTime(end) ? end : '',
+      missingTime: Boolean(!hasFriendlyDateTime(start) || !hasFriendlyDateTime(end))
     };
   }
 
@@ -1169,8 +1261,8 @@
     chatFlowIndex = 0;
     chatAwaiting = '';
     clearNode(byId('friendlyChatMessages'));
-    addChatMessage('agent', ftr('Mình bắt đầu một launch mới. Mình sẽ hỏi từng phần và tự điền vào LaunchOps.', 'Starting a new launch. I will ask step by step and fill in LaunchOps for you.'));
-    setNpcSpeech(ftr('Bắt đầu cấu hình launch mới.', 'Starting new launch setup.'));
+    addChatMessage('agent', friendlyCopy('Mình bắt đầu một launch mới. Mình sẽ hỏi từng phần và tự điền vào LaunchOps.', 'I am starting a new launch. I will ask each part and fill LaunchOps for you.'));
+    setNpcSpeech(friendlyCopy('Bắt đầu cấu hình launch mới.', 'Starting a new launch setup.'));
     promptField(chatFlowSteps[chatFlowIndex]);
     focusFriendlyFirstInput();
   }
@@ -1181,20 +1273,20 @@
     chatFlowIndex = 0;
     chatAwaiting = '';
     clearNode(byId('friendlyChatMessages'));
-    addChatMessage('agent', ftr('Mình sẽ rà soát launch đang lưu theo từng mục. Nếu mục nào giữ nguyên, bạn gõ "giữ nguyên".', 'I will go through each field. If a field stays the same, type "keep".'));
-    setNpcSpeech(ftr('Bắt đầu flow sửa launch tuần tự.', 'Starting sequential edit flow.'));
+    addChatMessage('agent', friendlyCopy('Mình sẽ rà soát launch đang lưu theo từng mục. Nếu mục nào giữ nguyên, bạn gõ "giữ nguyên".', 'I will review the saved launch field by field. If a field stays unchanged, type "keep".'));
+    setNpcSpeech(friendlyCopy('Bắt đầu flow sửa launch tuần tự.', 'Starting the sequential edit flow.'));
     promptField(chatFlowSteps[chatFlowIndex]);
     focusFriendlyFirstInput();
   }
 
   function briefReviewText() {
     return [
-      'Tóm tắt trước khi phân tích:',
-      '- Tên: ' + normalize((byId('launchName') && byId('launchName').value) || 'Chưa có'),
-      '- Phân loại: ' + (selectedText(byId('launchType')) || 'Chưa chọn'),
-      '- Owner: ' + normalize((byId('launchOwner') && byId('launchOwner').value) || 'Chưa có'),
-      '- Thời gian: ' + [normalize((byId('launchTargetDate') && byId('launchTargetDate').value) || ''), normalize((byId('launchEndDate') && byId('launchEndDate').value) || '')].filter(Boolean).join(' - '),
-      '- Brief: ' + shorten((byId('briefInput') && byId('briefInput').value) || 'Chưa có brief', 220)
+      friendlyCopy('Tóm tắt trước khi phân tích:', 'Summary before analysis:'),
+      '- ' + friendlyCopy('Tên', 'Name') + ': ' + normalize((byId('launchName') && byId('launchName').value) || friendlyCopy('Chưa có', 'Not set')),
+      '- ' + friendlyCopy('Phân loại', 'Type') + ': ' + (selectedText(byId('launchType')) || friendlyCopy('Chưa chọn', 'Not selected')),
+      '- Owner: ' + normalize((byId('launchOwner') && byId('launchOwner').value) || friendlyCopy('Chưa có', 'Not set')),
+      '- ' + friendlyCopy('Thời gian', 'Schedule') + ': ' + [normalize((byId('launchTargetDate') && byId('launchTargetDate').value) || ''), normalize((byId('launchEndDate') && byId('launchEndDate').value) || '')].filter(Boolean).join(' - '),
+      '- Brief: ' + shorten((byId('briefInput') && byId('briefInput').value) || friendlyCopy('Chưa có brief', 'No brief yet'), 220)
     ].join('\n');
   }
 
@@ -1209,58 +1301,58 @@
   function launchSummaryText() {
     var snapshot = collectSnapshot();
     var hasAnalysis = hasRealAnalysis();
-    var status = selectedText(byId('launchStatus')) || 'Chưa rõ';
-    var owner = normalize((byId('launchOwner') && byId('launchOwner').value) || 'Chưa có owner');
+    var status = selectedText(byId('launchStatus')) || friendlyCopy('Chưa rõ', 'Unknown');
+    var owner = normalize((byId('launchOwner') && byId('launchOwner').value) || friendlyCopy('Chưa có owner', 'No owner yet'));
     var start = normalize((byId('launchTargetDate') && byId('launchTargetDate').value) || '');
     var end = normalize((byId('launchEndDate') && byId('launchEndDate').value) || '');
-    var dateText = [start, end].filter(Boolean).join(' - ') || 'Chưa có thời gian';
+    var dateText = [start, end].filter(Boolean).join(' - ') || friendlyCopy('Chưa có thời gian', 'No schedule yet');
     var brief = normalize((byId('briefInput') && byId('briefInput').value) || '');
     var postResult = postResultText();
     var savedLesson = lessonText();
     var nextAction = '';
 
-    if (!brief) nextAction = 'Nhập brief trước để Mission Control có dữ liệu đọc.';
-    else if (!hasAnalysis) nextAction = 'Chốt brief rồi chạy phân tích trước launch để có readiness, Red Team và checklist.';
-    else if (snapshot.topRisks && snapshot.topRisks.length) nextAction = 'Xử lý rủi ro đầu tiên: ' + shorten(snapshot.topRisks[0], 120);
-    else if (!isPostLaunchOpen()) nextAction = 'Theo dõi launch; khi chạy xong thì chuyển sang Bài học để nhập kết quả sau launch.';
-    else if (!postResult) nextAction = 'Nhập kết quả sau launch trước, rồi để Agent phân tích sau launch.';
-    else if (!postReviewDone) nextAction = 'Chạy phân tích sau launch để có đề xuất trước khi lưu bài học.';
-    else if (!savedLesson) nextAction = 'Thêm ít nhất một bài học ngắn rồi lưu kết quả / bài học.';
-    else nextAction = 'Lưu kết quả / bài học và dùng lại cho launch sau.';
+    if (!brief) nextAction = friendlyCopy('Nhập brief trước để Mission Control có dữ liệu đọc.', 'Enter a brief first so Mission Control has data to read.');
+    else if (!hasAnalysis) nextAction = friendlyCopy('Chốt brief rồi chạy phân tích trước launch để có readiness, Red Team và checklist.', 'Finalize the brief, then run pre-launch analysis for readiness, red team, and checklist.');
+    else if (snapshot.topRisks && snapshot.topRisks.length) nextAction = friendlyCopy('Xử lý rủi ro đầu tiên: ', 'Handle the first risk: ') + shorten(snapshot.topRisks[0], 120);
+    else if (!isPostLaunchOpen()) nextAction = friendlyCopy('Theo dõi launch; khi chạy xong thì chuyển sang Bài học để nhập kết quả sau launch.', 'Monitor the launch; when it is done, switch to Lessons to enter post-launch results.');
+    else if (!postResult) nextAction = friendlyCopy('Nhập kết quả sau launch trước, rồi để Agent phân tích sau launch.', 'Enter post-launch results first, then let the Agent analyze them.');
+    else if (!postReviewDone) nextAction = friendlyCopy('Chạy phân tích sau launch để có đề xuất trước khi lưu bài học.', 'Run post-launch analysis to get suggestions before saving lessons.');
+    else if (!savedLesson) nextAction = friendlyCopy('Thêm ít nhất một bài học ngắn rồi lưu kết quả / bài học.', 'Add at least one short lesson, then save results / lessons.');
+    else nextAction = friendlyCopy('Lưu kết quả / bài học và dùng lại cho launch sau.', 'Save results / lessons and reuse them for the next launch.');
 
     return [
-      'Tổng hợp launch hiện tại:',
-      '- Tên: ' + snapshot.launchName,
-      '- Phân loại: ' + snapshot.launchType,
-      '- Trạng thái: ' + status,
+      friendlyCopy('Tổng hợp launch hiện tại:', 'Current launch summary:'),
+      '- ' + friendlyCopy('Tên', 'Name') + ': ' + snapshot.launchName,
+      '- ' + friendlyCopy('Phân loại', 'Type') + ': ' + snapshot.launchType,
+      '- ' + friendlyCopy('Trạng thái', 'Status') + ': ' + status,
       '- Owner: ' + owner,
-      '- Thời gian: ' + dateText,
-      '- Brief: ' + shorten(snapshot.briefGoal || brief || 'Chưa có brief', 180),
+      '- ' + friendlyCopy('Thời gian', 'Schedule') + ': ' + dateText,
+      '- Brief: ' + shorten(snapshot.briefGoal || brief || friendlyCopy('Chưa có brief', 'No brief yet'), 180),
       '',
       'Readiness:',
       hasAnalysis
         ? '- ' + snapshot.scoreLabel + ' ' + snapshot.score.text + ' | ' + snapshot.decision + ' | ' + snapshot.gate
-        : '- Chưa có phân tích trước launch.',
-      snapshot.scoreReason ? '- Lý do: ' + shorten(snapshot.scoreReason, 180) : '',
+        : '- ' + friendlyCopy('Chưa có phân tích trước launch.', 'No pre-launch analysis yet.'),
+      snapshot.scoreReason ? '- ' + friendlyCopy('Lý do', 'Reason') + ': ' + shorten(snapshot.scoreReason, 180) : '',
       '',
       'Top risks:',
-      friendlyList(snapshot.topRisks, 'Chưa có top risk. Hãy chạy phân tích trước launch.', function (item) { return shorten(item, 150); }, 3),
+      friendlyList(snapshot.topRisks, friendlyCopy('Chưa có top risk. Hãy chạy phân tích trước launch.', 'No top risk yet. Run pre-launch analysis first.'), function (item) { return shorten(item, 150); }, 3),
       '',
       'Red Team:',
-      friendlyList(snapshot.voices, 'Chưa có phản biện. Hãy chạy phân tích trước launch.', function (item) {
+      friendlyList(snapshot.voices, friendlyCopy('Chưa có phản biện. Hãy chạy phân tích trước launch.', 'No red-team review yet. Run pre-launch analysis first.'), function (item) {
         return item.persona + ': ' + shorten(item.worry, 130);
       }, 3),
       '',
       'Checklist:',
-      friendlyList(snapshot.tasks, 'Chưa có checklist. Hãy chạy phân tích trước launch.', function (item) {
+      friendlyList(snapshot.tasks, friendlyCopy('Chưa có checklist. Hãy chạy phân tích trước launch.', 'No checklist yet. Run pre-launch analysis first.'), function (item) {
         return item.name + (item.meta ? ' | ' + item.meta : '');
       }, 4),
       '',
-      'Sau launch:',
-      '- Kết quả: ' + (postResult ? shorten(postResult, 160) : 'Chưa nhập'),
-      '- Bài học: ' + (savedLesson ? shorten(savedLesson, 160) : 'Chưa lưu bài học mới trong form Friendly'),
+      friendlyCopy('Sau launch:', 'Post-launch:'),
+      '- ' + friendlyCopy('Kết quả', 'Result') + ': ' + (postResult ? shorten(postResult, 160) : friendlyCopy('Chưa nhập', 'Not entered')),
+      '- ' + friendlyCopy('Bài học', 'Lesson') + ': ' + (savedLesson ? shorten(savedLesson, 160) : friendlyCopy('Chưa lưu bài học mới trong form Friendly', 'No new lesson saved in the Friendly form')),
       '',
-      'Gợi ý tiếp theo: ' + nextAction
+      friendlyCopy('Gợi ý tiếp theo: ', 'Next hint: ') + nextAction
     ].filter(function (line) { return line !== ''; }).join('\n');
   }
 
@@ -1280,35 +1372,42 @@
     var snapshot = collectSnapshot();
     if (low.indexOf('readiness') !== -1 || low.indexOf('diem') !== -1 || low.indexOf('cham') !== -1 || low.indexOf('rule') !== -1 || low.indexOf('luat') !== -1) {
       return [
-        'Rule readiness dùng để trả lời câu hỏi: launch này đã đủ an toàn để chạy chưa?',
-        'Friendly không tự chấm điểm lại. Nó đọc kết quả thật từ bản Pro sau khi bạn bấm Chạy phân tích.',
-        'Điểm được gom từ các nhóm rủi ro của phân loại/template hiện tại. Green nghĩa là tương đối sẵn sàng, Yellow nghĩa là cần sửa trước khi launch, Red nghĩa là nên dừng để xử lý rủi ro lớn.',
-        snapshot.score && hasRealAnalysis() ? 'Launch hiện tại đang là ' + snapshot.scoreLabel + ' ' + snapshot.score.text + ': ' + snapshot.gate + '.' : 'Launch hiện tại chưa có phân tích, nên chưa có màu readiness thật.'
+        friendlyCopy('Rule readiness dùng để trả lời câu hỏi: launch này đã đủ an toàn để chạy chưa?', 'The readiness rule answers: is this launch safe enough to run?'),
+        friendlyCopy('Friendly không tự chấm điểm lại. Nó đọc kết quả thật từ bản Pro sau khi bạn bấm Chạy phân tích.', 'Friendly does not rescore. It reads the real Pro result after you click Run analysis.'),
+        friendlyCopy('Điểm được gom từ các nhóm rủi ro của phân loại/template hiện tại. Green nghĩa là tương đối sẵn sàng, Yellow nghĩa là cần sửa trước khi launch, Red nghĩa là nên dừng để xử lý rủi ro lớn.', 'The score is aggregated from risk groups in the current type/template. Green means mostly ready, Yellow means fix before launch, Red means stop and handle major risk.'),
+        snapshot.score && hasRealAnalysis() ? friendlyCopy('Launch hiện tại đang là ', 'Current launch is ') + snapshot.scoreLabel + ' ' + snapshot.score.text + ': ' + snapshot.gate + '.' : friendlyCopy('Launch hiện tại chưa có phân tích, nên chưa có màu readiness thật.', 'This launch has no analysis yet, so it has no real readiness color.')
       ].join('\n');
     }
     if (low.indexOf('red') !== -1 || low.indexOf('phan bien') !== -1) {
-      return 'Red Team là nhóm góc nhìn phản biện trước launch. Nó không thay Human quyết định, mà chỉ chỉ ra chỗ dễ hỏng: người chơi hiểu nhầm, CS bị quá tải, kỹ thuật thiếu rollback, reward bị exploit, hoặc business guardrail chưa rõ. Sau khi phân tích, Friendly sẽ đọc các thẻ Red Team thật từ DOM.';
+      return friendlyCopy('Red Team là nhóm góc nhìn phản biện trước launch. Nó không thay Human quyết định, mà chỉ chỉ ra chỗ dễ hỏng: người chơi hiểu nhầm, CS bị quá tải, kỹ thuật thiếu rollback, reward bị exploit, hoặc business guardrail chưa rõ. Sau khi phân tích, Friendly sẽ đọc các thẻ Red Team thật từ DOM.', 'Red Team is the pre-launch challenge layer. It does not replace Human decisions; it points out what can break: user confusion, CS overload, missing rollback, reward exploits, or unclear business guardrails. After analysis, Friendly reads the real Red Team cards from the DOM.');
     }
     if (low.indexOf('checklist') !== -1 || low.indexOf('viec') !== -1) {
-      return 'Checklist biến brief và rủi ro thành việc cần làm có owner, deadline và trạng thái. Với Friendly, Human có thể chat để sửa brief/owner/thời gian; sau khi chạy phân tích thì checklist thật từ Pro sẽ hiện ở bước Việc cần làm.';
+      return friendlyCopy('Checklist biến brief và rủi ro thành việc cần làm có owner, deadline và trạng thái. Với Friendly, Human có thể chat để sửa brief/owner/thời gian; sau khi chạy phân tích thì checklist thật từ Pro sẽ hiện ở bước Việc cần làm.', 'The checklist turns brief and risks into tasks with owners, deadlines, and status. In Friendly, Human can chat to edit brief/owner/schedule; after analysis, the real Pro checklist appears in the To-do step.');
     }
     if (low.indexOf('lesson') !== -1 || low.indexOf('bai hoc') !== -1 || low.indexOf('post') !== -1) {
-      return 'Bài học là phân tích bắt buộc lần thứ hai, sau khi launch đã chạy. Flow đúng là: nhập kết quả sau launch, để Agent phân tích và đề xuất, sau đó mới thêm bài học và lưu lại cho launch sau.';
+      return friendlyCopy('Bài học là phân tích bắt buộc lần thứ hai, sau khi launch đã chạy. Flow đúng là: nhập kết quả sau launch, để Agent phân tích và đề xuất, sau đó mới thêm bài học và lưu lại cho launch sau.', 'Lessons are the required second analysis after the launch has run. Correct flow: enter post-launch results, let the Agent analyze and suggest, then add a lesson and save it for next launches.');
     }
     if (low.indexOf('brief') !== -1 || low.indexOf('nap') !== -1) {
-      return 'Brief không cần văn hay, nhưng nên có mục tiêu, đối tượng, thời gian, owner, kênh truyền thông, reward/impact, rủi ro còn mở và cách dừng/rollback. Nếu thiếu, cứ dán thô vào chat; Mission Control sẽ chỉ ra phần còn mơ hồ sau khi phân tích.';
+      return friendlyCopy('Brief không cần văn hay, nhưng nên có mục tiêu, đối tượng, thời gian, owner, kênh truyền thông, reward/impact, rủi ro còn mở và cách dừng/rollback. Nếu thiếu, cứ dán thô vào chat; Mission Control sẽ chỉ ra phần còn mơ hồ sau khi phân tích.', 'The brief does not need polished writing, but should include goal, audience, schedule, owner, communication channels, reward/impact, open risks, and stop/rollback plan. If incomplete, paste it raw; Mission Control will surface unclear parts after analysis.');
     }
     if (low.indexOf('flow') !== -1 || low.indexOf('tao') !== -1 || low.indexOf('sua') !== -1 || low.indexOf('cach dung') !== -1 || low.indexOf('huong dan') !== -1) {
-      return 'Friendly khác Pro ở cách thao tác: Human chat hoặc bấm nút nhanh, Mission Control dẫn từng bước và tự điền vào form thật. Pro là bảng điều khiển thủ công. Khi tạo/sửa launch, bạn có thể gõ tự nhiên như "đổi owner thành PM LiveOps", "sửa thời gian 12/06 - 18/06", hoặc "dán brief".';
+      return friendlyCopy('Friendly khác Pro ở cách thao tác: Human chat hoặc bấm nút nhanh, Mission Control dẫn từng bước và tự điền vào form thật. Pro là bảng điều khiển thủ công. Khi tạo/sửa launch, bạn có thể gõ tự nhiên như "đổi owner thành PM LiveOps", "sửa thời gian 12/06 - 18/06", hoặc "dán brief".', 'Friendly differs from Pro in interaction style: Human chats or clicks quick actions, Mission Control guides each step and fills the real form. Pro is the manual control board. When creating/editing, you can type naturally: "change owner to PM LiveOps", "set schedule 12/06 - 18/06", or "paste brief".');
     }
-    return [
+    return friendlyCopy([
       'Mình có thể hỗ trợ trong phạm vi LaunchOps Command Center:',
       '- Tổng hợp tình trạng launch hiện tại.',
       '- Giải thích rule readiness, Green/Yellow/Red và vì sao cần phân tích trước launch.',
       '- Giải thích Red Team, checklist, post-launch và bài học.',
       '- Hướng dẫn tạo/sửa launch bằng chat, nhưng không thay Human quyết định.',
       'Bạn có thể hỏi kiểu: "tổng hợp launch này", "giải thích rule chấm điểm", hoặc "nạp brief thế nào cho đúng?".'
-    ].join('\n');
+    ].join('\n'), [
+      'I can help within LaunchOps Command Center:',
+      '- Summarize the current launch status.',
+      '- Explain readiness rules, Green/Yellow/Red, and why pre-launch analysis matters.',
+      '- Explain Red Team, checklist, post-launch, and lessons.',
+      '- Guide chat-based launch creation/editing, without replacing Human decisions.',
+      'You can ask: "summarize this launch", "explain scoring rules", or "how should I load a brief?".'
+    ].join('\n'));
   }
 
   function isSummaryIntent(text) {
@@ -1455,10 +1554,10 @@
     chatFlowIndex = -1;
     chatAwaiting = 'finalDecision';
     addChatMessage('agent', briefReviewText());
-    addChatMessage('agent', ftr('Bạn đã chốt final brief chưa? Gõ "phân tích" để chạy phân tích trước launch, "xem lại" để xem brief, hoặc "sửa" để chỉnh tiếp.', 'Is the brief finalized? Type "analyze" to run pre-launch analysis, "review" to read the brief, or "edit" to keep adjusting.'));
-    setNpcSpeech(ftr('Đang chờ Human chốt final trước phân tích pre-launch.', 'Waiting for final confirmation before pre-launch analysis.'));
-    updateGuidance(ftr('Gợi ý tiếp theo: chốt final rồi mới chạy phân tích trước launch.', 'Next suggestion: finalise the brief before running the pre-launch analysis.'));
-    chatInputPlaceholder(ftr('Gõ: phân tích / xem lại / sửa', 'Type: analyze / review / edit'));
+    addChatMessage('agent', friendlyCopy('Bạn đã chốt final brief chưa? Gõ "phân tích" để chạy phân tích trước launch, "xem lại" để xem brief, hoặc "sửa" để chỉnh tiếp.', 'Have you finalized the brief? Type "analyze" to run pre-launch analysis, "review" to see the brief, or "edit" to keep editing.'));
+    setNpcSpeech(friendlyCopy('Đang chờ Human chốt final trước phân tích pre-launch.', 'Waiting for Human to finalize before pre-launch analysis.'));
+    updateGuidance(friendlyCopy('Gợi ý tiếp theo: chốt final rồi mới chạy phân tích trước launch.', 'Next hint: finalize the brief before running pre-launch analysis.'));
+    chatInputPlaceholder(friendlyCopy('Gõ: phân tích / xem lại / sửa', 'Type: analyze / review / edit'));
     setChatActions([
       { label: 'Phân tích ngay', action: 'final-analyze' },
       { label: 'Xem lại brief', action: 'final-review' },
@@ -1493,16 +1592,16 @@
 
     if (isSummaryIntent(value)) {
       addChatMessage('agent', launchSummaryText());
-      setNpcSpeech(ftr('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarising the current launch status.'));
-      updateGuidance(ftr('Gợi ý tiếp theo: hỏi tiếp về rule, rủi ro, checklist hoặc chốt phân tích trước launch.', 'Next suggestion: ask about rules, risks, or checklist, or finalise the pre-launch analysis.'));
+      setNpcSpeech(friendlyCopy('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarizing the current launch status for Human.'));
+      updateGuidance(friendlyCopy('Gợi ý tiếp theo: hỏi tiếp về rule, rủi ro, checklist hoặc chốt phân tích trước launch.', 'Next hint: ask about rules, risks, checklist, or finalize pre-launch analysis.'));
       setChatActions(friendlySupportActions());
       return;
     }
 
     if (isSupportIntent(value)) {
       addChatMessage('agent', supportText(value));
-      setNpcSpeech(ftr('Đang giải thích theo ngữ cảnh thao tác của Human.', 'Explaining based on current action context.'));
-      updateGuidance(ftr('Gợi ý tiếp theo: hỏi rõ phần bạn muốn hiểu, hoặc quay lại tạo/sửa launch.', 'Next suggestion: ask about the part you want to understand, or go back to create/edit a launch.'));
+      setNpcSpeech(friendlyCopy('Đang giải thích theo ngữ cảnh thao tác của Human.', 'Explaining based on the current Human workflow context.'));
+      updateGuidance(friendlyCopy('Gợi ý tiếp theo: hỏi rõ phần bạn muốn hiểu, hoặc quay lại tạo/sửa launch.', 'Next hint: ask for the part you want to understand, or return to create/edit launch.'));
       setChatActions(friendlySupportActions());
       return;
     }
@@ -1517,30 +1616,30 @@
     // Đặt TRƯỚC nhánh `chatAwaiting === 'brief'` để khỏi bị wizard nuốt text thô vào field.
     if (isWriteBriefIntent(value)) {
       var ideaSeed = text; // dùng raw text giữ nguyên dấu câu
-      addChatMessage('agent', ftr('Mình đang đọc ý tưởng và soạn brief launch đầy đủ theo format LaunchOps. Đợi mình một chút...', 'Reading your idea and drafting a full launch brief in LaunchOps format. Just a moment...'));
-      setNpcSpeech(ftr('Đang nhờ Agent AI soạn brief đầy đủ từ ý tưởng của Human.', 'Asking AI Agent to draft a full brief from your idea.'));
-      updateGuidance('Đang chờ Agent AI viết brief...');
+      addChatMessage('agent', friendlyCopy('Mình đang đọc ý tưởng và soạn brief launch đầy đủ theo format LaunchOps. Đợi mình một chút...', 'I am reading the idea and drafting a full LaunchOps brief. One moment...'));
+      setNpcSpeech(friendlyCopy('Đang nhờ Agent AI soạn brief đầy đủ từ ý tưởng của Human.', 'Asking the AI Agent to draft a complete brief from the Human idea.'));
+      updateGuidance(friendlyCopy('Đang chờ Agent AI viết brief...', 'Waiting for the AI Agent to write the brief...'));
       callAssistantForBriefWriter(ideaSeed, function (reply) {
         if (reply) {
           if (setRealField('briefInput', reply)) {
-            addChatMessage('agent', ftr('Mình đã soạn brief đầy đủ và ghi vào ô brief launch. Bản brief:', 'I have drafted the full brief and filled it in. Here it is:'));
+            addChatMessage('agent', friendlyCopy('Mình đã soạn brief đầy đủ và ghi vào ô brief launch. Bản brief:', 'I drafted the full brief and filled the launch brief field. Draft:'));
             addChatMessage('agent', reply);
-            setNpcSpeech(ftr('Brief đã được Agent AI viết, mời Human kiểm tra.', 'Brief drafted by AI Agent. Please review.'));
-            updateGuidance('Gợi ý: kiểm tra brief, sửa thêm nếu cần, rồi bấm Chạy phân tích.');
+            setNpcSpeech(friendlyCopy('Brief đã được Agent AI viết, mời Human kiểm tra.', 'The AI Agent drafted the brief. Human should review it.'));
+            updateGuidance(friendlyCopy('Gợi ý: kiểm tra brief, sửa thêm nếu cần, rồi bấm Chạy phân tích.', 'Hint: review the brief, edit if needed, then click Run analysis.'));
             // Nếu đang ở wizard step brief, đẩy flow đi tiếp; nếu không thì show edit actions
             if (chatAwaiting === 'brief') {
-              finishField('Brief đã được AI soạn và nạp vào ô brief.', 'brief');
+              finishField(friendlyCopy('Brief đã được AI soạn và nạp vào ô brief.', 'The AI drafted and loaded the brief.'), 'brief');
             } else {
               setChatActions(friendlySupportActions());
             }
           } else {
-            addChatMessage('agent', ftr('Mình đã có bản brief nhưng chưa ghi được vào ô brief (form có thể đang đóng). Brief đề xuất:', 'I have a draft brief but could not write it to the field (the form may be closed). Suggested brief:'));
+            addChatMessage('agent', friendlyCopy('Mình đã có bản brief nhưng chưa ghi được vào ô brief (form có thể đang đóng). Brief đề xuất:', 'I have a brief draft but could not write it into the form, perhaps because the form is closed. Suggested brief:'));
             addChatMessage('agent', reply);
             setChatActions(friendlySupportActions());
           }
         } else {
-          addChatMessage('agent', ftr('Mình chưa gọi được Agent AI để viết brief lúc này. Bạn có thể tự gõ ý tưởng vào ô brief, hoặc thử lại sau.', 'I could not reach the AI Agent right now. You can type your idea into the brief field directly, or try again later.'));
-          setNpcSpeech(ftr('Agent AI tạm không phản hồi.', 'AI Agent is temporarily unavailable.'));
+          addChatMessage('agent', friendlyCopy('Mình chưa gọi được Agent AI để viết brief lúc này. Bạn có thể tự gõ ý tưởng vào ô brief, hoặc thử lại sau.', 'I cannot reach the AI Agent to write the brief right now. You can type the idea into the brief field or try again later.'));
+          setNpcSpeech(friendlyCopy('Agent AI tạm không phản hồi.', 'The AI Agent is not responding right now.'));
           setChatActions(friendlySupportActions());
         }
       });
@@ -1552,18 +1651,18 @@
     // Đặt TRƯỚC các nhánh rule-based "brief/owner/..." để không bị nuốt thành prompt field.
     if (isAdviceIntent(value)) {
       var ctxForAdvice = currentLaunchContextForChat();
-      addChatMessage('agent', ftr('Mình đang xem brief, readiness và rủi ro để góp ý cụ thể cho bạn...', 'Reviewing the brief, readiness, and risks to give you specific feedback...'));
-      setNpcSpeech(ftr('Đang xin góp ý từ Agent AI dựa trên brief và rủi ro hiện tại.', 'Asking AI Agent for feedback on the current brief and risks.'));
-      updateGuidance('Đang chờ Agent AI trả lời...');
+      addChatMessage('agent', friendlyCopy('Mình đang xem brief, readiness và rủi ro để góp ý cụ thể cho bạn...', 'I am reviewing the brief, readiness, and risks to give specific feedback...'));
+      setNpcSpeech(friendlyCopy('Đang xin góp ý từ Agent AI dựa trên brief và rủi ro hiện tại.', 'Asking the AI Agent for feedback based on the current brief and risks.'));
+      updateGuidance(friendlyCopy('Đang chờ Agent AI trả lời...', 'Waiting for the AI Agent reply...'));
       callAssistantForChat(value, ctxForAdvice, function (reply) {
         if (reply) {
           addChatMessage('agent', reply);
-          setNpcSpeech(ftr('Agent AI vừa góp ý dựa trên brief launch hiện tại.', 'AI Agent just gave feedback on the current launch brief.'));
-          updateGuidance('Bạn có thể hỏi tiếp về rủi ro, Red Team, checklist hoặc bấm Chạy phân tích.');
+          setNpcSpeech(friendlyCopy('Agent AI vừa góp ý dựa trên brief launch hiện tại.', 'The AI Agent just gave feedback based on the current launch brief.'));
+          updateGuidance(friendlyCopy('Bạn có thể hỏi tiếp về rủi ro, Red Team, checklist hoặc bấm Chạy phân tích.', 'You can ask more about risks, Red Team, checklist, or click Run analysis.'));
         } else {
-          addChatMessage('agent', ftr('Mình chưa gọi được Agent AI lúc này (backend hoặc mạng có thể tạm gián đoạn). Bạn có thể bấm "Chạy phân tích" để chấm rủi ro local, hoặc hỏi lại sau.', 'I could not reach the AI Agent right now (backend or network may be down). You can click "Run analysis" to score locally, or try again later.'));
-          setNpcSpeech(ftr('Agent AI tạm không phản hồi, dùng local fallback.', 'AI Agent unavailable, using local fallback.'));
-          updateGuidance('Gợi ý: bấm Chạy phân tích hoặc hỏi lại.');
+          addChatMessage('agent', friendlyCopy('Mình chưa gọi được Agent AI lúc này (backend hoặc mạng có thể tạm gián đoạn). Bạn có thể bấm "Chạy phân tích" để chấm rủi ro local, hoặc hỏi lại sau.', 'I cannot reach the AI Agent right now (backend or network may be interrupted). Click "Run analysis" for local risk scoring, or ask again later.'));
+          setNpcSpeech(friendlyCopy('Agent AI tạm không phản hồi, dùng local fallback.', 'The AI Agent is not responding, using local fallback.'));
+          updateGuidance(friendlyCopy('Gợi ý: bấm Chạy phân tích hoặc hỏi lại.', 'Hint: click Run analysis or ask again.'));
         }
         setChatActions(friendlySupportActions());
       });
@@ -1578,62 +1677,69 @@
         handleFriendlyAction('save');
       } else if (finalLow.indexOf('xem') !== -1 || finalLow.indexOf('review') !== -1) {
         addChatMessage('agent', briefReviewText());
-        addChatMessage('agent', ftr('Nếu đã ổn, gõ "phân tích". Nếu cần sửa, gõ "sửa".', 'If it looks good, type "analyze". If you need changes, type "edit".'));
+        addChatMessage('agent', friendlyCopy('Nếu đã ổn, gõ "phân tích". Nếu cần sửa, gõ "sửa".', 'If it looks good, type "analyze". If you need changes, type "edit".'));
       } else if (finalLow.indexOf('sua') !== -1 || finalLow.indexOf('chinh') !== -1) {
         showEditActions();
-        addChatMessage('agent', ftr('Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.', 'Which part do you want to edit first? Pick a button or type directly.'));
+        addChatMessage('agent', friendlyCopy('Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.', 'Which part do you want to edit first? Pick a button or type directly.'));
       } else {
-        addChatMessage('agent', ftr('Mình chưa rõ. Bạn gõ "phân tích", "xem lại", hoặc "sửa" nhé.', 'I am not sure. Try typing "analyze", "review", or "edit".'));
+        addChatMessage('agent', friendlyCopy('Mình chưa rõ. Bạn gõ "phân tích", "xem lại", hoặc "sửa" nhé.', 'I am not sure yet. Type "analyze", "review", or "edit".'));
       }
       return;
     }
 
     if (chatAwaiting && isSkipText(value)) {
-      finishField('Giữ nguyên mục này.', chatAwaiting);
+      finishField(friendlyCopy('Giữ nguyên mục này.', 'Keeping this field unchanged.'), chatAwaiting);
       return;
     }
 
     if (chatAwaiting === 'type') {
       var typeValue = optionValueFromText('launchType', value);
-      if (typeValue && setRealField('launchType', typeValue)) finishField('Đã cập nhật phân loại launch.', 'type');
-      else addChatMessage('agent', ftr('Mình chưa khớp được phân loại này. Bạn có thể gõ "Sự kiện game", "Chiến dịch marketing", "Ra mắt tính năng"...', 'I could not match that type. Try "Game event", "Marketing campaign", "Feature launch"...'));
+      if (typeValue && setRealField('launchType', typeValue)) finishField(friendlyCopy('Đã cập nhật phân loại launch.', 'Launch type updated.'), 'type');
+      else addChatMessage('agent', friendlyCopy('Mình chưa khớp được phân loại này. Bạn có thể gõ "Sự kiện game", "Chiến dịch marketing", "Ra mắt tính năng"...', 'I could not match this type. You can type "Game event", "Marketing campaign", "Feature release"...'));
       return;
     }
 
     if (chatAwaiting === 'status') {
       var statusValue = statusValueFromText(value);
-      if (statusValue && setRealField('launchStatus', statusValue)) finishField('Đã cập nhật trạng thái launch.', 'status');
-      else addChatMessage('agent', ftr('Mình chưa khớp được trạng thái. Bạn gõ Sắp chạy, Đang chạy, hoặc Đã chạy nhé.', 'I could not match that status. Try Upcoming, Running, or Completed.'));
+      var statusError = statusValue ? validateFriendlySchedule({ status: statusValue }) : '';
+      if (statusError) addChatMessage('agent', statusError);
+      else if (statusValue && setRealField('launchStatus', statusValue)) finishField(friendlyCopy('Đã cập nhật trạng thái launch.', 'Launch status updated.'), 'status');
+      else addChatMessage('agent', friendlyCopy('Mình chưa khớp được trạng thái. Bạn gõ Sắp chạy, Đang chạy, hoặc Đã chạy nhé.', 'I could not match that status. Type Upcoming, Running, or Completed.'));
       return;
     }
 
     if (chatAwaiting === 'name') {
-      if (setRealField('launchName', value)) finishField('Đã cập nhật tên launch.', 'name');
+      if (setRealField('launchName', value)) finishField(friendlyCopy('Đã cập nhật tên launch.', 'Launch name updated.'), 'name');
       return;
     }
     if (chatAwaiting === 'owner') {
-      if (setRealField('launchOwner', value)) finishField('Đã cập nhật owner và hiển thị ngay trên Chi tiết launch.', 'owner');
+      if (setRealField('launchOwner', value)) finishField(friendlyCopy('Đã cập nhật owner và hiển thị ngay trên Chi tiết launch.', 'Owner updated and shown in Launch details.'), 'owner');
       return;
     }
     if (chatAwaiting === 'dates') {
       var dates = parseDates(value);
       var changedDates = false;
+      var dateError = dates.start && dates.end ? validateFriendlySchedule({ targetDate: dates.start, endDate: dates.end }) : '';
+      if (dateError) {
+        addChatMessage('agent', dateError);
+        return;
+      }
       if (dates.start) changedDates = setRealField('launchTargetDate', dates.start) || changedDates;
       if (dates.end) changedDates = setRealField('launchEndDate', dates.end) || changedDates;
-      if (changedDates) finishField('Đã cập nhật thời gian launch.', 'dates');
-      else addChatMessage('agent', ftr('Mình chưa đọc được thời gian. Bạn gõ theo dạng 12/06/2026 - 14/06/2026 nhé.', 'I could not read the dates. Please type them as 12/06/2026 - 14/06/2026.'));
+      if (changedDates) finishField(friendlyCopy('Đã cập nhật thời gian launch.', 'Launch schedule updated.'), 'dates');
+      else addChatMessage('agent', friendlyCopy('Mình chưa đọc được đủ ngày giờ. Bạn gõ theo dạng 12/06/2026 08:30 - 14/06/2026 23:59 nhé.', 'I could not read the full date and time. Type it like 12/06/2026 08:30 - 14/06/2026 23:59.'));
       return;
     }
     if (chatAwaiting === 'brief') {
-      if (setRealField('briefInput', text)) finishField('Đã nhận brief. Khi sẵn sàng, bạn có thể bấm Chạy phân tích.', 'brief');
+      if (setRealField('briefInput', text)) finishField(friendlyCopy('Đã nhận brief. Khi sẵn sàng, bạn có thể bấm Chạy phân tích.', 'Brief received. When ready, click Run analysis.'), 'brief');
       return;
     }
     if (chatAwaiting === 'postResult') {
-      if (setRealField('postResultInput', text)) finishField('Đã nhận kết quả sau launch. Bạn có thể thêm bài học hoặc lưu lại.', 'postResult');
+      if (setRealField('postResultInput', text)) finishField(friendlyCopy('Đã nhận kết quả sau launch. Bạn có thể thêm bài học hoặc lưu lại.', 'Post-launch result received. You can add a lesson or save it.'), 'postResult');
       return;
     }
     if (chatAwaiting === 'lesson') {
-      if (setRealField('lessonInput', text)) finishField('Đã nhận bài học mới. Bấm Lưu kết quả / bài học để ghi lại.', 'lesson');
+      if (setRealField('lessonInput', text)) finishField(friendlyCopy('Đã nhận bài học mới. Bấm Lưu kết quả / bài học để ghi lại.', 'New lesson received. Click Save results / lessons to record it.'), 'lesson');
       return;
     }
 
@@ -1642,7 +1748,7 @@
       clickRealButton('newLaunch');
     } else if (fold(value).indexOf('sua launch') !== -1 || fold(value).indexOf('chinh launch') !== -1) {
       showEditActions();
-      addChatMessage('agent', ftr('Bạn muốn sửa phần nào của launch này? Chọn nút hoặc gõ trực tiếp.', 'Which part of this launch do you want to edit? Pick a button or type directly.'));
+      addChatMessage('agent', friendlyCopy('Bạn muốn sửa phần nào của launch này? Chọn nút hoặc gõ trực tiếp.', 'Which part of this launch do you want to edit? Pick a button or type directly.'));
     } else if (fold(value).indexOf('phan tich') !== -1 || fold(value).indexOf('chay phan tich') !== -1) {
       showPreAnalyzeDecision();
     } else if (fold(value).indexOf('demo') !== -1) {
@@ -1661,7 +1767,7 @@
       beginPostLaunchFlow('lesson');
     }
     else {
-      addChatMessage('agent', ftr('Mình có thể tạo launch, sửa tên, phân loại, owner, thời gian, brief, hoặc chạy phân tích. Bạn chọn một nút nhanh nhé.', 'I can create a launch, edit name, type, owner, dates, brief, or run analysis. Pick a quick button.'));
+      addChatMessage('agent', friendlyCopy('Mình có thể tạo launch, sửa tên, phân loại, owner, thời gian, brief, hoặc chạy phân tích. Bạn chọn một nút nhanh nhé.', 'I can create a launch, edit name/type/owner/schedule/brief, or run analysis. Pick a quick action.'));
       showHomeActions();
     }
   }
@@ -1675,9 +1781,9 @@
     scheduleFriendlySaveCleanup(activeFriendlyDraftId, activeRealLaunchId());
     if (clickRealButton('analyzeBrief')) {
       setStep(0);
-      addChatMessage('agent', ftr('Mình đang chạy phân tích trước launch. Khi xong, readiness, Red Team và checklist sẽ cập nhật bằng dữ liệu thật.', 'Running pre-launch analysis. When done, readiness, Red Team, and checklist will update with real data.'));
-      setNpcSpeech(ftr('Đang phân tích trước launch từ brief đã chốt.', 'Running pre-launch analysis from the finalized brief.'));
-      updateGuidance(ftr('Gợi ý tiếp theo: chờ phân tích xong rồi xem readiness, phản biện và checklist.', 'Next suggestion: wait for analysis to finish, then review readiness, red team, and checklist.'));
+      addChatMessage('agent', friendlyCopy('Mình đang chạy phân tích trước launch. Khi xong, readiness, Red Team và checklist sẽ cập nhật bằng dữ liệu thật.', 'I am running pre-launch analysis. When it finishes, readiness, Red Team, and checklist will update with real data.'));
+      setNpcSpeech(friendlyCopy('Đang phân tích trước launch từ brief đã chốt.', 'Running pre-launch analysis from the finalized brief.'));
+      updateGuidance(friendlyCopy('Gợi ý tiếp theo: chờ phân tích xong rồi xem readiness, phản biện và checklist.', 'Next hint: wait for analysis, then review readiness, red team, and checklist.'));
       setChatActions([
         { label: 'Xem readiness', action: 'step', value: '1' },
         { label: 'Xem Red Team', action: 'step', value: '2' },
@@ -1695,25 +1801,25 @@
     lessonAwaiting = target || 'postResult';
     refreshPostLaunchPanel();
     if (!isPostLaunchOpen()) {
-      addLessonMessage('agent', ftr('Launch này chưa ở trạng thái Đã chạy. Sau khi launch chạy xong, quay lại đây để nhập kết quả sau launch, phân tích sau launch, thêm bài học rồi lưu.', 'This launch is not completed yet. Once it finishes, come back to enter post-launch results, run post-launch review, add a lesson, and save.'));
-      setNpcSpeech(ftr('Chưa mở flow sau launch vì launch chưa hoàn tất.', 'Post-launch flow is not open yet because the launch is not completed.'));
+      addLessonMessage('agent', friendlyCopy('Launch này chưa ở trạng thái Đã chạy. Sau khi launch chạy xong, quay lại đây để nhập kết quả sau launch, phân tích sau launch, thêm bài học rồi lưu.', 'This launch is not Completed yet. After it finishes, come back to enter post-launch results, run post-launch analysis, add a lesson, and save.'));
+      setNpcSpeech(friendlyCopy('Chưa mở flow sau launch vì launch chưa hoàn tất.', 'Post-launch flow is locked because the launch is not complete.'));
       return;
     }
     if (lessonAwaiting === 'lesson') {
       if (!postResultText()) {
-        addLessonMessage('agent', ftr('Cần nhập kết quả sau launch trước. Sau đó mình mới phân tích và mở bước thêm bài học.', 'Post-launch result is required first. Then I can review and open the add-lesson step.'));
+        addLessonMessage('agent', friendlyCopy('Cần nhập kết quả sau launch trước. Sau đó mình mới phân tích và mở bước thêm bài học.', 'Enter post-launch results first. Then I can analyze and open the lesson step.'));
         lessonAwaiting = 'postResult';
       } else if (!postReviewDone) {
         runPostLaunchReview();
       } else {
-        addLessonMessage('agent', ftr('Bạn nhập bài học rút ra sau launch nhé.', 'Enter a lesson learned from this launch.'));
+        addLessonMessage('agent', friendlyCopy('Bạn nhập bài học rút ra sau launch nhé.', 'Enter the lesson learned after the launch.'));
       }
     } else {
-      addLessonMessage('agent', ftr('Bạn nhập kết quả sau launch thực tế trước. Đây là lần phân tích bắt buộc thứ hai, sau khi launch đã chạy.', 'Enter the actual post-launch result first. This is the required second review, after the launch has run.'));
+      addLessonMessage('agent', friendlyCopy('Bạn nhập kết quả sau launch thực tế trước. Đây là lần phân tích bắt buộc thứ hai, sau khi launch đã chạy.', 'Enter the real post-launch result first. This is the required second analysis after the launch has run.'));
     }
     var input = byId('friendlyLessonChatInput');
     if (input) {
-      input.placeholder = lessonAwaiting === 'lesson' ? ftr('Nhập bài học rút ra sau launch', 'Enter lesson learned') : ftr('Nhập kết quả sau launch', 'Enter post-launch result');
+      input.placeholder = lessonAwaiting === 'lesson' ? friendlyCopy('Nhập bài học rút ra sau launch', 'Enter the lesson learned after launch') : friendlyCopy('Nhập kết quả sau launch', 'Enter post-launch results');
       try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
     }
     setLessonActionState();
@@ -1724,20 +1830,20 @@
     if (!value) return;
     addLessonMessage('human', value);
     if (!isPostLaunchOpen()) {
-      addLessonMessage('agent', ftr('Flow sau launch đang bị khóa. Khi launch chuyển sang Đã chạy, bạn quay lại nhập kết quả sau launch.', 'Post-launch flow is locked. Once the launch status changes to Completed, come back to enter the result.'));
+      addLessonMessage('agent', friendlyCopy('Flow sau launch đang bị khóa. Khi launch chuyển sang Đã chạy, bạn quay lại nhập kết quả sau launch.', 'Post-launch flow is locked. When the launch is Completed, come back to enter post-launch results.'));
       return;
     }
     if (lessonAwaiting === 'lesson') {
       if (setRealField('lessonInput', text)) {
-        addLessonMessage('agent', ftr('Đã nhận bài học. Bây giờ bạn có thể lưu kết quả / bài học.', 'Lesson received. You can now save the result and lesson.'));
-        setNpcSpeech(ftr('Đã có bài học, sẵn sàng lưu.', 'Lesson ready. Ready to save.'));
+        addLessonMessage('agent', friendlyCopy('Đã nhận bài học. Bây giờ bạn có thể lưu kết quả / bài học.', 'Lesson received. You can now save results / lessons.'));
+        setNpcSpeech(friendlyCopy('Đã có bài học, sẵn sàng lưu.', 'Lesson received, ready to save.'));
       }
       refreshPostLaunchPanel();
       return;
     }
     if (setRealField('postResultInput', text)) {
       setRealField('postResultStatus', 'completed');
-      addLessonMessage('agent', ftr('Đã nhận kết quả sau launch. Mình sẽ phân tích sau launch và đưa đề xuất.', 'Post-launch result received. I will run the post-launch review and add suggestions.'));
+      addLessonMessage('agent', friendlyCopy('Đã nhận kết quả sau launch. Mình sẽ phân tích sau launch và đưa đề xuất.', 'Post-launch result received. I will analyze it and provide suggestions.'));
       runPostLaunchReview();
       refreshPostLaunchPanel();
     }
@@ -1746,39 +1852,39 @@
   function handleFriendlyAction(action, value) {
     if (!action) return;
     if (action === 'new') {
-      addChatMessage('human', ftr('Tạo launch mới', 'New launch'));
+      addChatMessage('human', friendlyCopy('Tạo launch mới', 'New launch'));
       clickRealButton('newLaunch');
       return;
     }
     if (action === 'edit') {
-      addChatMessage('human', ftr('Sửa launch này', 'Edit this launch'));
+      addChatMessage('human', friendlyCopy('Sửa launch này', 'Edit this launch'));
       showEditActions();
-      addChatMessage('agent', ftr('Bạn muốn sửa phần nào? Chọn một mục bên dưới hoặc gõ trực tiếp, ví dụ: đổi owner thành PM LiveOps.', 'Which part do you want to change? Pick one below or type directly, e.g. change owner to PM LiveOps.'));
-      setNpcSpeech(ftr('Đang chờ Human chọn phần cần sửa của launch này.', 'Waiting for you to pick a field to edit.'));
+      addChatMessage('agent', friendlyCopy('Bạn muốn sửa phần nào? Chọn một mục bên dưới hoặc gõ trực tiếp, ví dụ: đổi owner thành PM LiveOps.', 'Which part do you want to edit? Choose a field below or type directly, e.g. change owner to PM LiveOps.'));
+      setNpcSpeech(friendlyCopy('Đang chờ Human chọn phần cần sửa của launch này.', 'Waiting for Human to choose which part to edit.'));
       focusFriendlyFirstInput();
       return;
     }
     if (action === 'edit-sequential') {
-      addChatMessage('human', ftr('Rà soát tuần tự', 'Sequential review'));
+      addChatMessage('human', friendlyCopy('Rà soát tuần tự', 'Sequential review'));
       beginEditLaunchFlow();
       return;
     }
     if (action === 'summarize') {
-      addChatMessage('human', ftr('Tổng hợp launch', 'Summarize launch'));
+      addChatMessage('human', friendlyCopy('Tổng hợp launch', 'Summarize launch'));
       addChatMessage('agent', launchSummaryText());
-      setNpcSpeech(ftr('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarising the current launch status.'));
+      setNpcSpeech(friendlyCopy('Đang tổng hợp tình trạng launch hiện tại cho Human.', 'Summarizing the current launch status for Human.'));
       setChatActions(friendlySupportActions());
       return;
     }
     if (action === 'support') {
-      addChatMessage('human', ftr('Hỗ trợ / giải thích', 'Support / explain'));
+      addChatMessage('human', friendlyCopy('Hỗ trợ / giải thích', 'Help / explain'));
       addChatMessage('agent', supportText(''));
-      setNpcSpeech(ftr('Đang mở chế độ hỗ trợ, giải thích cách dùng và rule LaunchOps.', 'Opening support mode, explaining usage and LaunchOps rules.'));
+      setNpcSpeech(friendlyCopy('Đang mở chế độ hỗ trợ, giải thích cách dùng và rule LaunchOps.', 'Opening help mode to explain LaunchOps usage and rules.'));
       setChatActions(friendlySupportActions());
       return;
     }
     if (action === 'support-topic') {
-      addChatMessage('human', value === 'readiness' ? 'Giải thích rule readiness' : 'Giải thích ' + (value || 'LaunchOps'));
+      addChatMessage('human', value === 'readiness' ? friendlyCopy('Giải thích rule readiness', 'Explain readiness rule') : friendlyCopy('Giải thích ', 'Explain ') + (value || 'LaunchOps'));
       addChatMessage('agent', supportText(value));
       setChatActions(friendlySupportActions());
       return;
@@ -1788,24 +1894,26 @@
       return;
     }
     if (action === 'set-type') {
-      if (setRealField('launchType', value)) finishField('Đã cập nhật phân loại launch.', 'type');
+      if (setRealField('launchType', value)) finishField(friendlyCopy('Đã cập nhật phân loại launch.', 'Launch type updated.'), 'type');
       return;
     }
     if (action === 'set-status') {
-      if (setRealField('launchStatus', value)) finishField('Đã cập nhật trạng thái launch.', 'status');
+      var quickStatusError = validateFriendlySchedule({ status: value });
+      if (quickStatusError) addChatMessage('agent', quickStatusError);
+      else if (setRealField('launchStatus', value)) finishField(friendlyCopy('Đã cập nhật trạng thái launch.', 'Launch status updated.'), 'status');
       return;
     }
     if (action === 'sample') {
-      addChatMessage('human', ftr('Nạp Brief Mẫu', 'Load Sample Brief'));
+      addChatMessage('human', friendlyCopy('Nạp Brief Mẫu', 'Load Sample Brief'));
       if (clickRealButton('loadBadBrief')) {
         setTimeout(function () {
           syncFriendlyFormFromReal();
           persistActiveFriendlySession(true);
           refreshFriendlyDetailPreview();
           refreshChatSummary();
-          addChatMessage('agent', ftr('Đã nạp brief mẫu. Bạn có thể sửa brief hoặc chạy phân tích.', 'Sample brief loaded. You can edit the brief or run analysis.'));
-          setNpcSpeech(ftr('Brief mẫu đã được nạp, tôi đang chờ bạn kiểm tra lại.', 'Sample brief is loaded. I am waiting for you to review it.'));
-          updateGuidance(ftr('Gợi ý tiếp theo: kiểm tra brief rồi bấm Chạy phân tích.', 'Next suggestion: review the brief, then click Run analysis.'));
+          addChatMessage('agent', friendlyCopy('Đã nạp brief mẫu. Bạn có thể sửa brief hoặc chạy phân tích.', 'Sample brief loaded. You can edit the brief or run analysis.'));
+          setNpcSpeech(friendlyCopy('Brief mẫu đã được nạp, tôi đang chờ bạn kiểm tra lại.', 'Sample brief loaded. I am waiting for your review.'));
+          updateGuidance(friendlyCopy('Gợi ý tiếp theo: kiểm tra brief rồi bấm Chạy phân tích.', 'Next hint: review the brief, then click Run analysis.'));
         }, 100);
       }
       return;
@@ -1815,8 +1923,8 @@
       persistActiveFriendlySession(false);
       activeFriendlyDraftId = '';
       if (clickRealButton('demoMode')) {
-        addChatMessage('agent', ftr('Demo mode nạp một launch mẫu và tự tạo đủ readiness, Red Team, checklist, bài học để quay hoặc review nhanh.', 'Demo mode loads a sample launch and generates readiness, Red Team, checklist, and lessons so you can record or review quickly.'));
-        setNpcSpeech(ftr('Đang nạp flow demo mẫu.', 'Loading demo flow.'));
+        addChatMessage('agent', friendlyCopy('Demo mode nạp một launch mẫu và tự tạo đủ readiness, Red Team, checklist, bài học để quay hoặc review nhanh.', 'Demo mode loads a sample launch and fills readiness, Red Team, checklist, and lessons for quick recording or review.'));
+        setNpcSpeech(friendlyCopy('Đang nạp flow demo mẫu.', 'Loading the sample demo flow.'));
         [500, 1300, 2300].forEach(function (ms) { setTimeout(updateFromDom, ms); });
       }
       return;
@@ -1826,37 +1934,37 @@
       syncLaunchFieldsFromFriendly();
       persistActiveFriendlySession(false);
       if (clickRealButton('exportReport')) {
-        addChatMessage('agent', ftr('Report Markdown đã được xuất bằng nút thật. Nếu trình duyệt không hiện popup, hãy kiểm tra thư mục Downloads hoặc clipboard.', 'Markdown report exported via the real button. If the browser did not show a popup, check your Downloads folder or clipboard.'));
-        setNpcSpeech(ftr('Đã gửi lệnh xuất report cho launch đang mở.', 'Triggered export report for the current launch.'));
+        addChatMessage('agent', friendlyCopy('Report Markdown đã được xuất bằng nút thật. Nếu trình duyệt không hiện popup, hãy kiểm tra thư mục Downloads hoặc clipboard.', 'Markdown report export was triggered through the real button. If no popup appears, check Downloads or clipboard.'));
+        setNpcSpeech(friendlyCopy('Đã gửi lệnh xuất report cho launch đang mở.', 'Report export command sent for the open launch.'));
       }
       return;
     }
     if (action === 'save') {
-      addChatMessage('human', ftr('Lưu launch', 'Save launch'));
+      addChatMessage('human', friendlyCopy('Lưu launch', 'Save launch'));
       syncLaunchFieldsFromFriendly();
       persistActiveFriendlySession(true);
       scheduleFriendlySaveCleanup(activeFriendlyDraftId, activeRealLaunchId());
       if (clickRealButton('saveLaunch')) {
-        addChatMessage('agent', ftr('Mình đã gửi lệnh lưu bằng nút Lưu launch thật.', 'I triggered the real Save launch button.'));
-        setNpcSpeech(ftr('Đang lưu launch vào dữ liệu thật.', 'Saving the launch into real data.'));
+        addChatMessage('agent', friendlyCopy('Mình đã gửi lệnh lưu bằng nút Lưu launch thật.', 'I triggered save using the real Save launch button.'));
+        setNpcSpeech(friendlyCopy('Đang lưu launch vào dữ liệu thật.', 'Saving the launch into real data.'));
       }
       return;
     }
     if (action === 'delete') {
-      addChatMessage('human', ftr('Xóa launch này', 'Delete launch'));
+      addChatMessage('human', friendlyCopy('Xóa launch này', 'Delete this launch'));
       var deleteBtn = byId('deleteLaunch');
       if (!deleteBtn) {
-        addChatMessage('agent', ftr('Mình không tìm thấy nút xóa thật trên giao diện. Có thể launch này không hỗ trợ xóa, hoặc bạn cần mở Pro mode để thao tác trực tiếp.', 'I could not find the real delete button. This launch may not support deletion, or you may need Pro mode to act directly.'));
-        setNpcSpeech(ftr('Không tìm thấy nút xóa.', 'Delete button not found.'));
+        addChatMessage('agent', friendlyCopy('Mình không tìm thấy nút xóa thật trên giao diện. Có thể launch này không hỗ trợ xóa, hoặc bạn cần mở Pro mode để thao tác trực tiếp.', 'I cannot find the real delete button. This launch may not support delete, or you may need Pro mode for direct action.'));
+        setNpcSpeech(friendlyCopy('Không tìm thấy nút xóa.', 'Delete button not found.'));
         return;
       }
       if (deleteBtn.disabled) {
-        addChatMessage('agent', ftr('Launch này hiện chưa xóa được, thường vì launch nháp chưa có id hoặc dữ liệu chưa lưu. Hãy lưu launch rồi thử lại trong Pro mode nếu cần.', 'This launch cannot be deleted yet, usually because a draft has no id or saved data. Save it first, then try again in Pro mode if needed.'));
-        setNpcSpeech(ftr('Quyền xóa bị khóa.', 'Delete is locked.'));
+        addChatMessage('agent', friendlyCopy('Launch này hiện chưa xóa được, thường vì launch nháp chưa có id hoặc dữ liệu chưa lưu. Hãy lưu launch rồi thử lại trong Pro mode nếu cần.', 'This launch cannot be deleted yet, usually because the draft has no id or data is not saved. Save it, then try again in Pro mode if needed.'));
+        setNpcSpeech(friendlyCopy('Quyền xóa bị khóa.', 'Delete is locked.'));
         return;
       }
-      addChatMessage('agent', ftr('Mình đang gửi lệnh xóa launch này. Trình duyệt sẽ hỏi xác nhận — bạn bấm OK nếu chắc chắn muốn xóa.', 'I am sending the delete command. The browser will ask for confirmation; click OK only if you are sure.'));
-      setNpcSpeech(ftr('Đang xóa launch hiện tại theo lệnh.', 'Deleting the current launch as requested.'));
+      addChatMessage('agent', friendlyCopy('Mình đang gửi lệnh xóa launch này. Trình duyệt sẽ hỏi xác nhận — bạn bấm OK nếu chắc chắn muốn xóa.', 'I am sending the delete command. The browser will ask for confirmation; click OK only if you are sure.'));
+      setNpcSpeech(friendlyCopy('Đang xóa launch hiện tại theo lệnh.', 'Deleting the current launch as requested.'));
       // app.js gắn handler vào click → sẽ confirm() rồi xóa
       deleteBtn.click();
       // Refresh chat sau khi xóa xong (DOM đã đổi launch khác)
@@ -1868,26 +1976,26 @@
       return;
     }
     if (action === 'analyze') {
-      addChatMessage('human', ftr('Chạy phân tích', 'Run analysis'));
+      addChatMessage('human', friendlyCopy('Chạy phân tích', 'Run analysis'));
       showPreAnalyzeDecision();
       return;
     }
     if (action === 'final-analyze') {
-      addChatMessage('human', ftr('Phân tích ngay', 'Analyze now'));
+      addChatMessage('human', friendlyCopy('Phân tích ngay', 'Analyze now'));
       runPreLaunchAnalyze();
       return;
     }
     if (action === 'final-review') {
-      addChatMessage('human', ftr('Xem lại brief', 'Review brief'));
+      addChatMessage('human', friendlyCopy('Xem lại brief', 'Review brief'));
       addChatMessage('agent', briefReviewText());
-      addChatMessage('agent', ftr('Nếu đã ổn, gõ "phân tích" hoặc bấm Phân tích ngay. Nếu cần sửa, gõ "sửa".', 'If it looks good, type "analyze" or click Analyze now. If it needs changes, type "edit".'));
+      addChatMessage('agent', friendlyCopy('Nếu đã ổn, gõ "phân tích" hoặc bấm Phân tích ngay. Nếu cần sửa, gõ "sửa".', 'If it looks good, type "analyze" or click Analyze now. If you need changes, type "edit".'));
       chatAwaiting = 'finalDecision';
       return;
     }
     if (action === 'final-edit') {
-      addChatMessage('human', ftr('Chỉnh sửa lại', 'Edit again'));
+      addChatMessage('human', friendlyCopy('Chỉnh sửa lại', 'Edit again'));
       showEditActions();
-      addChatMessage('agent', ftr('Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.', 'Which part should we edit first? Pick a button or type directly.'));
+      addChatMessage('agent', friendlyCopy('Bạn muốn sửa phần nào trước? Chọn nút hoặc gõ trực tiếp.', 'Which part do you want to edit first? Pick a button or type directly.'));
       return;
     }
     if (action === 'lesson') {
@@ -1907,28 +2015,48 @@
     }
     if (action === 'save-lesson') {
       if (!isPostLaunchOpen()) {
-        addLessonMessage('agent', ftr('Chưa thể lưu. Launch cần ở trạng thái Đã chạy trước.', 'Cannot save yet. The launch must be in Completed status first.'));
+        addLessonMessage('agent', friendlyCopy('Chưa thể lưu. Launch cần ở trạng thái Đã chạy trước.', 'Cannot save yet. The launch must be Completed first.'));
         return;
       }
       if (!postResultText()) {
-        addLessonMessage('agent', ftr('Chưa thể lưu. Bạn cần nhập kết quả sau launch trước.', 'Cannot save yet. Please enter the post-launch result first.'));
+        addLessonMessage('agent', friendlyCopy('Chưa thể lưu. Bạn cần nhập kết quả sau launch trước.', 'Cannot save yet. Enter post-launch results first.'));
         beginPostLaunchFlow('postResult');
         return;
       }
       if (!postReviewDone) {
-        addLessonMessage('agent', ftr('Chưa thể lưu. Mình cần phân tích sau launch và đưa đề xuất trước.', 'Cannot save yet. I need to run the post-launch review and add suggestions first.'));
+        addLessonMessage('agent', friendlyCopy('Chưa thể lưu. Mình cần phân tích sau launch và đưa đề xuất trước.', 'Cannot save yet. I need to run post-launch analysis and provide suggestions first.'));
         runPostLaunchReview();
         return;
       }
       if (!lessonText()) {
-        addLessonMessage('agent', ftr('Chưa thể lưu. Bạn cần thêm ít nhất một bài học ngắn.', 'Cannot save yet. Please add at least one short lesson.'));
+        addLessonMessage('agent', friendlyCopy('Chưa thể lưu. Bạn cần thêm ít nhất một bài học ngắn.', 'Cannot save yet. Add at least one short lesson.'));
         beginPostLaunchFlow('lesson');
         return;
       }
       syncLessonFieldsFromFriendly();
       if (clickRealButton('saveLesson')) {
-        addLessonMessage('agent', ftr('Mình đã gửi lệnh lưu kết quả / bài học bằng nút thật.', 'I triggered the real save result / lesson button.'));
-        setNpcSpeech(ftr('Đang lưu kết quả và bài học.', 'Saving result and lesson.'));
+        addLessonMessage('agent', friendlyCopy('Mình đã gửi lệnh lưu kết quả / bài học bằng nút thật.', 'I triggered save using the real Save results / lessons button.'));
+        setNpcSpeech(friendlyCopy('Đang lưu kết quả và bài học.', 'Saving results and lessons.'));
+      }
+      return;
+    }
+    if (action === 'propose-learning') {
+      setStep(4);
+      var apiCreate = learningApi();
+      if (apiCreate && typeof apiCreate.create === 'function') {
+        addLessonMessage('human', friendlyCopy('Tạo proposal template', 'Create template proposal'));
+        addLessonMessage('agent', friendlyCopy('Mình đang tạo proposal từ kết quả/bài học đã nhập. Sau đó bạn xem diff rồi duyệt hoặc từ chối.', 'I am creating a proposal from the saved result/lesson. Review the diff, then approve or reject it.'));
+        apiCreate.create();
+      }
+      return;
+    }
+    if (action === 'approve-proposal' || action === 'reject-proposal') {
+      setStep(4);
+      var apiReview = learningApi();
+      var approving = action === 'approve-proposal';
+      if (apiReview && typeof apiReview[approving ? 'approve' : 'reject'] === 'function') {
+        addLessonMessage('human', approving ? friendlyCopy('Duyệt proposal', 'Approve proposal') : friendlyCopy('Từ chối proposal', 'Reject proposal'));
+        apiReview[approving ? 'approve' : 'reject'](value);
       }
       return;
     }
@@ -1945,7 +2073,7 @@
     var lessonInput = byId('friendlyLessonChatInput');
     if (chatSeeded || !form || !actions || !input) return;
     chatSeeded = true;
-    addChatMessage('agent', ftr('Bạn muốn tạo launch mới, sửa launch đang chọn, hay chạy phân tích? Mình sẽ hỏi từng bước và tự điền vào LaunchOps.', 'Do you want to create a new launch, edit the selected launch, or run analysis? I will ask step by step and fill LaunchOps for you.'));
+    addChatMessage('agent', friendlyCopy('Bạn muốn tạo launch mới, sửa launch đang chọn, hay chạy phân tích? Mình sẽ hỏi từng bước và tự điền vào LaunchOps.', 'Do you want to create a new launch, edit the selected launch, or run analysis? I will ask step by step and fill LaunchOps for you.'));
     showHomeActions();
     refreshChatSummary();
 
@@ -2025,6 +2153,7 @@
     var decision = ownText(byId('decisionTitle')).toLowerCase();
     if (!decision) return false;
     if (decision.indexOf('chưa có phân tích') !== -1 || decision.indexOf('chua co phan tich') !== -1) return false;
+    if (decision.indexOf('no analysis') !== -1) return false;
     return true;
   }
 
@@ -2043,18 +2172,18 @@
   }
 
   function colorText(state) {
-    if (state === 'green') return ftr('Xanh', 'Green');
-    if (state === 'red') return ftr('Đỏ', 'Red');
-    if (state === 'yellow') return ftr('Vàng', 'Yellow');
-    return ftr('Chưa rõ', 'Unknown');
+    if (state === 'green') return friendlyCopy('Xanh', 'Green');
+    if (state === 'red') return friendlyCopy('Đỏ', 'Red');
+    if (state === 'yellow') return friendlyCopy('Vàng', 'Yellow');
+    return friendlyCopy('Chưa rõ', 'Unknown');
   }
 
   function verdictText(state) {
-    if (state === 'green') return ftr('Có thể launch', 'Ready to launch');
-    if (state === 'yellow') return ftr('Cần sửa trước khi launch', 'Fix before launch');
-    if (state === 'red') return ftr('Dừng để xử lý rủi ro', 'Stop and fix risks');
-    if (state === 'thinking') return ftr('Đang phân tích', 'Analyzing');
-    return ftr('Chưa phân tích', 'Not analyzed');
+    if (state === 'green') return friendlyCopy('Có thể launch', 'Safe enough to launch');
+    if (state === 'yellow') return friendlyCopy('Cần sửa trước khi launch', 'Fix before launch');
+    if (state === 'red') return friendlyCopy('Dừng để xử lý rủi ro', 'Stop and handle risk');
+    if (state === 'thinking') return friendlyCopy('Đang phân tích', 'Analyzing');
+    return friendlyCopy('Chưa phân tích', 'No analysis yet');
   }
 
   function cleanAnalysisLine(value) {
@@ -2066,7 +2195,7 @@
 
   function briefGoal(text) {
     var lines = String(text || '').split(/\n+/).map(normalize).filter(Boolean);
-    if (!lines.length) return ftr('Brief đang trống. Hãy nhập hoặc chọn launch có brief trước khi chạy phân tích.', 'Brief is empty. Enter or select a launch with a brief before running analysis.');
+    if (!lines.length) return friendlyCopy('Brief đang trống. Hãy nhập hoặc chọn launch có brief trước khi chạy phân tích.', 'The brief is empty. Enter or select a launch with a brief before running analysis.');
     for (var i = 0; i < lines.length; i++) {
       if (lines[i].charAt(0) !== '-' && lines[i].charAt(0) !== '*') return shorten(lines[i], 150);
     }
@@ -2078,10 +2207,10 @@
     return nodes.map(function (node) {
       var parsed = parseScore(firstText(node, '.risk-score'));
       return {
-        label: firstText(node, 'strong') || ftr('Nhóm rủi ro', 'Risk group'),
+        label: firstText(node, 'strong') || friendlyCopy('Nhóm rủi ro', 'Risk group'),
         score: parsed.score,
         max: parsed.max,
-        detail: firstText(node, 'small') || firstText(node, '.risk-meaning') || ftr('Cần kiểm tra thêm.', 'Needs more review.')
+        detail: firstText(node, 'small') || firstText(node, '.risk-meaning') || friendlyCopy('Cần kiểm tra thêm.', 'Needs more review.')
       };
     }).filter(function (item) {
       return item.label && item.label.toLowerCase().indexOf('chưa có') === -1;
@@ -2128,10 +2257,10 @@
     return (topRisks || []).slice(0, 3).map(function (risk, index) {
       return {
         initials: 'R' + (index + 1),
-        persona: ftr('Nhóm phản biện', 'Review group'),
+        persona: friendlyCopy('Nhóm phản biện', 'Red-team group'),
         worry: risk,
-        evidence: ftr('Rủi ro này đang đứng trong top risks của analysis.', 'This risk appears in the analysis top risks.'),
-        fix: ftr('Cần chốt cách xử lý trong brief hoặc checklist.', 'Lock the mitigation in the brief or checklist.'),
+        evidence: friendlyCopy('Rủi ro này đang đứng trong top risks của analysis.', 'This risk is listed among the top risks from analysis.'),
+        fix: friendlyCopy('Cần chốt cách xử lý trong brief hoặc checklist.', 'Lock the mitigation in the brief or checklist.'),
         summary: risk
       };
     });
@@ -2144,7 +2273,7 @@
       var status = firstText(card, '.status-chip strong');
       var deadline = firstText(card, '.timeline-date');
       return {
-        name: firstText(card, 'h4') || ftr('Việc cần làm', 'Task'),
+        name: firstText(card, 'h4') || friendlyCopy('Việc cần làm', 'Task'),
         meta: [owner, deadline || status].filter(Boolean).join(' - ')
       };
     }).filter(function (item) {
@@ -2159,19 +2288,19 @@
       var title = firstText(first, 'h3');
       var item = firstText(first, 'li');
       return {
-        memo: title || ftr('Đã có câu hỏi post-mortem', 'Post-mortem questions are ready'),
-        detail: item || ftr('Dùng phần bài học sau launch để ghi lại quyết định và kết quả thật.', 'Use the post-launch lesson area to record decisions and real results.')
+        memo: title || friendlyCopy('Đã có câu hỏi post-mortem', 'Post-mortem questions ready'),
+        detail: item || friendlyCopy('Dùng phần bài học sau launch để ghi lại quyết định và kết quả thật.', 'Use the post-launch lesson area to save decisions and real outcomes.')
       };
     }
     if (topRisks && topRisks.length) {
       return {
-      memo: ftr('Đã gom rủi ro chính', 'Main risks collected'),
+        memo: friendlyCopy('Đã gom rủi ro chính', 'Main risks collected'),
         detail: shorten(topRisks[0], 150)
       };
     }
     return {
-      memo: ftr('Kết quả phân tích đã sẵn sàng', 'Analysis result is ready'),
-      detail: ftr('Bài học, rủi ro và quyết định sẽ được lưu lại để lần launch sau an toàn hơn.', 'Lessons, risks, and decisions will be saved so the next launch is safer.')
+      memo: friendlyCopy('Kết quả phân tích đã sẵn sàng', 'Analysis result is ready'),
+      detail: friendlyCopy('Bài học, rủi ro và quyết định sẽ được lưu lại để lần launch sau an toàn hơn.', 'Lessons, risks, and decisions will be saved so the next launch is safer.')
     };
   }
 
@@ -2180,7 +2309,7 @@
     var topRisks = collectTopRisks();
     var state = detectState();
     var brief = byId('briefInput') ? byId('briefInput').value : '';
-    var launchName = (byId('launchName') && byId('launchName').value) || ownText(byId('detailTitle')) || ftr('Launch chưa đặt tên', 'Untitled launch');
+    var launchName = (byId('launchName') && byId('launchName').value) || ownText(byId('detailTitle')) || friendlyCopy('Launch chưa đặt tên', 'Unnamed launch');
     var launchType = selectedText(byId('launchType')) || 'Launch';
     var lesson = collectLessonText(topRisks);
 
@@ -2193,7 +2322,7 @@
       launchName: normalize(launchName),
       launchType: launchType,
       briefGoal: briefGoal(brief),
-      decision: ownText(byId('decisionTitle')) || ftr('Chưa có phân tích', 'No analysis yet'),
+      decision: ownText(byId('decisionTitle')) || friendlyCopy('Chưa có phân tích', 'No analysis yet'),
       gate: ownText(byId('launchGate')) || verdictText(state),
       topRisks: topRisks,
       risks: collectRisks(),
@@ -2224,7 +2353,7 @@
     var box = byId('friendlyVizRiskBars');
     if (!box) return;
     clearNode(box);
-    var items = risks && risks.length ? risks : [{ label: ftr('Chưa có điểm rủi ro', 'No risk score yet'), score: 0, max: 2, detail: '' }];
+    var items = risks && risks.length ? risks : [{ label: friendlyCopy('Chưa có điểm rủi ro', 'No risk score yet'), score: 0, max: 2, detail: '' }];
     items.slice(0, 6).forEach(function (risk) {
       var row = makeEl('div', 'friendly-viz-bar');
       var label = makeEl('span', '', shorten(risk.label, 38));
@@ -2247,7 +2376,7 @@
     var box = byId('friendlyVizScoreTopRisks');
     if (!box) return;
     clearNode(box);
-    var items = topRisks && topRisks.length ? topRisks.slice(0, 3) : [ftr('Chưa có top risk rõ ràng', 'No clear top risk yet')];
+    var items = topRisks && topRisks.length ? topRisks.slice(0, 3) : [friendlyCopy('Chưa có top risk rõ ràng', 'No clear top risk yet')];
     items.forEach(function (item) {
       box.appendChild(makeEl('span', 'friendly-viz-score-chip', shorten(item, 54)));
     });
@@ -2257,16 +2386,16 @@
     var box = byId('friendlyVizVoices');
     if (!box) return;
     clearNode(box);
-    var items = voices && voices.length ? voices : [{ initials: 'RT', persona: 'Red Team', worry: ftr('Chạy phân tích để xem các góc phản biện.', 'Run analysis to see red-team perspectives.'), evidence: ftr('Khi có kết quả thật, từng vai phản biện sẽ hiển thị đầy đủ.', 'When a real result exists, each reviewer role will be shown.'), fix: ftr('Mở brief và bổ sung phần còn thiếu trước launch.', 'Open the brief and add missing parts before launch.'), summary: ftr('Chạy phân tích để xem các góc phản biện.', 'Run analysis to see red-team perspectives.') }];
+    var items = voices && voices.length ? voices : [{ initials: 'RT', persona: 'Red Team', worry: friendlyCopy('Chạy phân tích để xem các góc phản biện.', 'Run analysis to see red-team perspectives.'), evidence: friendlyCopy('Khi có kết quả thật, từng vai phản biện sẽ hiển thị đầy đủ.', 'When real results are available, each review role will be shown.'), fix: friendlyCopy('Mở brief và bổ sung phần còn thiếu trước launch.', 'Open the brief and fill missing parts before launch.'), summary: friendlyCopy('Chạy phân tích để xem các góc phản biện.', 'Run analysis to see red-team perspectives.') }];
     items.slice(0, 5).forEach(function (voice, index) {
       var row = makeEl('div', 'friendly-viz-voice');
       row.style.animationDelay = (index * 0.16) + 's';
       row.appendChild(makeEl('div', 'friendly-viz-avatar', shorten(voice.initials || 'RT', 3)));
       var body = makeEl('div', 'friendly-viz-voice-body');
       body.appendChild(makeEl('b', '', voice.persona || 'Red Team'));
-      body.appendChild(makeVoiceLine(ftr('Lo ngại', 'Concern'), voice.worry || voice.concern || ''));
-      if (voice.evidence) body.appendChild(makeVoiceLine(ftr('Dấu hiệu', 'Evidence'), voice.evidence));
-      if (voice.fix) body.appendChild(makeVoiceLine(ftr('Cách xử lý', 'Fix'), voice.fix));
+      body.appendChild(makeVoiceLine(friendlyCopy('Lo ngại', 'Concern'), voice.worry || voice.concern || ''));
+      if (voice.evidence) body.appendChild(makeVoiceLine(friendlyCopy('Dấu hiệu', 'Signal'), voice.evidence));
+      if (voice.fix) body.appendChild(makeVoiceLine(friendlyCopy('Cách xử lý', 'Mitigation'), voice.fix));
       if (voice.summary) body.appendChild(makeEl('p', 'friendly-viz-voice-summary', shorten(voice.summary, 170)));
       row.appendChild(body);
       box.appendChild(row);
@@ -2277,7 +2406,7 @@
     var box = byId('friendlyVizTasks');
     if (!box) return;
     clearNode(box);
-    var items = tasks && tasks.length ? tasks : [{ name: ftr('Chạy phân tích để tạo checklist', 'Run analysis to create checklist'), meta: 'Agent' }];
+    var items = tasks && tasks.length ? tasks : [{ name: friendlyCopy('Chạy phân tích để tạo checklist', 'Run analysis to generate the checklist'), meta: 'Agent' }];
     items.slice(0, 5).forEach(function (task, index) {
       var row = makeEl('div', 'friendly-viz-task');
       row.style.animationDelay = (index * 0.18) + 's';
@@ -2302,6 +2431,31 @@
     return line;
   }
 
+  function renderBriefMissing(items) {
+    var box = byId('friendlyVizBriefMissing');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!items || !items.length) {
+      box.className = 'friendly-viz-miss is-empty';
+      box.textContent = friendlyCopy('Agent sẽ đọc phần còn thiếu sau khi có kết quả.', 'The Agent will read missing parts once results are available.');
+      return;
+    }
+
+    box.className = 'friendly-viz-miss has-items';
+    var title = document.createElement('span');
+    title.className = 'friendly-viz-miss-title';
+    title.textContent = friendlyCopy('Điểm cần bổ sung trước launch', 'Items to add before launch');
+    box.appendChild(title);
+
+    items.slice(0, 3).forEach(function (item) {
+      var chip = document.createElement('span');
+      chip.className = 'friendly-viz-miss-chip';
+      chip.textContent = shorten(item || '', 118);
+      chip.title = item || '';
+      box.appendChild(chip);
+    });
+  }
+
   function renderSnapshot(snapshot) {
     var visual = byId('friendlyVisualize');
     var rail = byId('friendlyVizRail');
@@ -2313,13 +2467,13 @@
     if (lights) lights.setAttribute('data-on', snapshot.state === 'idle' ? 'idle' : snapshot.state);
 
     setText('friendlyVizVerdict', verdictText(snapshot.state));
-    setText('friendlyVizScore', snapshot.state === 'idle' ? ftr('Chưa có điểm', 'No score yet') : snapshot.score.text + ' - ' + snapshot.scoreLabel);
-    setText('friendlyVizScoreDecision', snapshot.decision || ftr('Chưa có phân tích', 'No analysis yet'));
+    setText('friendlyVizScore', snapshot.state === 'idle' ? friendlyCopy('Chưa có điểm', 'No score yet') : snapshot.score.text + ' - ' + snapshot.scoreLabel);
+    setText('friendlyVizScoreDecision', snapshot.decision || friendlyCopy('Chưa có phân tích', 'No analysis yet'));
     setText('friendlyVizScoreGate', snapshot.gate || verdictText(snapshot.state));
-    setText('friendlyVizScoreReason', snapshot.scoreReason || snapshot.decision || ftr('Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.', 'Run analysis to see score reasons, verdict, and missing parts.'));
+    setText('friendlyVizScoreReason', snapshot.scoreReason || snapshot.decision || friendlyCopy('Chạy phân tích để xem lý do điểm, kết luận và phần còn thiếu.', 'Run analysis to see score reasons, verdict, and missing parts.'));
     setText('friendlyVizBriefTitle', snapshot.launchName + ' - ' + snapshot.launchType);
     setText('friendlyVizBriefGoal', snapshot.briefGoal);
-    setText('friendlyVizBriefMissing', snapshot.topRisks.length ? ftr('Thiếu: ', 'Missing: ') + snapshot.topRisks.slice(0, 3).map(function (item) { return shorten(item, 48); }).join(' | ') : ftr('Agent sẽ đọc phần còn thiếu sau khi có kết quả.', 'The Agent will identify missing parts after analysis.'));
+    renderBriefMissing(snapshot.topRisks);
     setText('friendlyVizGaugeNumber', Math.round(snapshot.score.score));
     setText('friendlyVizGaugeMax', '/ ' + Math.round(snapshot.score.max) + ' - ' + snapshot.scoreLabel);
     renderTopRiskChips(snapshot.topRisks);
@@ -2337,26 +2491,26 @@
     var agent = byId('friendlyVizAgentName');
     if (agent) agent.textContent = (STEPS[step] || 'LaunchOps') + ' Agent';
 
-    var speech = ftr('Đang chờ lệnh. Nếu bạn nhập gì, tôi sẽ gắn vào launch đang mở.', 'Waiting for your command. If you type something, I will apply it to the open launch.');
+    var speech = friendlyCopy('Đang chờ lệnh. Nếu bạn nhập gì, tôi sẽ gắn vào launch đang mở.', 'Waiting for a command. If you type something, I will attach it to the open launch.');
     if (snapshot.state === 'thinking') {
-      speech = ftr('Đang tập trung đọc brief và gom tín hiệu rủi ro.', 'Reading the brief and collecting risk signals.');
+      speech = friendlyCopy('Đang tập trung đọc brief và gom tín hiệu rủi ro.', 'Reading the brief and collecting risk signals.');
     } else if (snapshot.state !== 'idle') {
-      if (step === 0) speech = ftr('Đang soi brief của ', 'Reviewing the ') + snapshot.launchType + ftr(', ưu tiên phần còn mơ hồ.', ' brief, starting with unclear parts.');
-      if (step === 1) speech = ftr('Đang nhìn readiness: ', 'Reviewing readiness: ') + snapshot.score.text + ftr(', trạng thái ', ', status ') + snapshot.scoreLabel + '.';
-      if (step === 2) speech = ftr('Đang bật chế độ phản biện, ưu tiên câu hỏi khó.', 'Running red-team mode and prioritizing hard questions.');
-      if (step === 3) speech = ftr('Đang gom việc cần owner và deadline rõ ràng.', 'Collecting tasks that need clear owners and deadlines.');
-      if (step === 4) speech = ftr('Đang chuẩn bị lưu quyết định và bài học cho lần sau.', 'Preparing to save decisions and lessons for next time.');
+      if (step === 0) speech = friendlyCopy('Đang soi brief của ', 'Reviewing the brief for ') + snapshot.launchType + friendlyCopy(', ưu tiên phần còn mơ hồ.', ', prioritizing unclear parts.');
+      if (step === 1) speech = friendlyCopy('Đang nhìn readiness: ', 'Reading readiness: ') + snapshot.score.text + friendlyCopy(', trạng thái ', ', status ') + snapshot.scoreLabel + '.';
+      if (step === 2) speech = friendlyCopy('Đang bật chế độ phản biện, ưu tiên câu hỏi khó.', 'Turning on red-team mode and prioritizing hard questions.');
+      if (step === 3) speech = friendlyCopy('Đang gom việc cần owner và deadline rõ ràng.', 'Collecting tasks that need clear owners and deadlines.');
+      if (step === 4) speech = friendlyCopy('Đang chuẩn bị lưu quyết định và bài học cho lần sau.', 'Preparing to save decisions and lessons for next time.');
     }
     if (friendlySpeechOverride) speech = friendlySpeechOverride;
     setText('friendlyVizSpeech', speech);
   }
 
   function manualStepSpeech(step) {
-    if (step === 1) return ftr('Tôi đang nhìn đồng hồ readiness, chưa tự chuyển bước.', 'I am reviewing the readiness gauge and staying on this step.');
-    if (step === 2) return ftr('Tôi đang bật mặt khó tính của Red Team.', 'I am switching into Red Team mode.');
-    if (step === 3) return ftr('Tôi đang lọc việc nào cần chủ sở hữu rõ ràng.', 'I am filtering tasks that need clear ownership.');
-    if (step === 4) return ftr('Tôi đang giữ chỗ cho kết quả và bài học sau launch.', 'I am holding space for post-launch results and lessons.');
-    return ftr('Tôi đang ở Mission Control, chờ thao tác cấu hình launch.', 'I am at Mission Control, waiting for launch setup actions.');
+    if (step === 1) return friendlyCopy('Tôi đang nhìn đồng hồ readiness, chưa tự chuyển bước.', 'I am watching the readiness gauge and not auto-advancing.');
+    if (step === 2) return friendlyCopy('Tôi đang bật mặt khó tính của Red Team.', 'I am turning on the Red Team critic mode.');
+    if (step === 3) return friendlyCopy('Tôi đang lọc việc nào cần chủ sở hữu rõ ràng.', 'I am filtering tasks that need clear owners.');
+    if (step === 4) return friendlyCopy('Tôi đang giữ chỗ cho kết quả và bài học sau launch.', 'I am holding space for post-launch results and lessons.');
+    return friendlyCopy('Tôi đang ở Mission Control, chờ thao tác cấu hình launch.', 'I am at Mission Control, waiting for launch setup actions.');
   }
 
   function clearEffects() {
@@ -2495,16 +2649,16 @@
     }
     if ((kind === 'success' || kind === 'error') && runToken !== lastPlayedToken && hasRealAnalysis()) {
       lastPlayedToken = runToken;
-      addChatMessage('agent', ftr('Phân tích đã xong. Kết quả thật đã cập nhật vào readiness, Red Team và checklist.', 'Analysis is complete. The real result updated readiness, Red Team, and checklist.'));
+      addChatMessage('agent', friendlyCopy('Phân tích đã xong. Kết quả thật đã cập nhật vào readiness, Red Team và checklist.', 'Analysis is complete. Real results updated readiness, Red Team, and checklist.'));
       if (analysisAutoAdvancePending) {
         analysisAutoAdvancePending = false;
         setStep(1);
-        addChatMessage('agent', ftr('Mình đưa bạn sang Chấm điểm để xem kết luận và lý do điểm trước.', 'I moved you to Scoring so you can review the verdict and score reason first.'));
-        setNpcSpeech(ftr('Phân tích xong, đang ở bước Chấm điểm.', 'Analysis complete, now on the Scoring step.'));
-        updateGuidance(ftr('Gợi ý tiếp theo: đọc lý do điểm, top risks, rồi chuyển sang Phản biện.', 'Next suggestion: read the score reason and top risks, then move to Red Team.'));
+        addChatMessage('agent', friendlyCopy('Mình đưa bạn sang Chấm điểm để xem kết luận và lý do điểm trước.', 'I moved you to Scoring so you can review the verdict and score reason first.'));
+        setNpcSpeech(friendlyCopy('Phân tích xong, đang ở bước Chấm điểm.', 'Analysis is done, now on the Scoring step.'));
+        updateGuidance(friendlyCopy('Gợi ý tiếp theo: đọc lý do điểm, top risks, rồi chuyển sang Phản biện.', 'Next hint: read the score reason and top risks, then move to Red Team.'));
       } else {
-        setNpcSpeech(ftr('Phân tích xong, kết quả đã đồng bộ vào Friendly.', 'Analysis complete, result synced into Friendly.'));
-        updateGuidance(ftr('Gợi ý tiếp theo: dùng Trước/Tiếp ở rail trái để xem readiness, phản biện và checklist.', 'Next suggestion: use Back/Next on the left rail to review readiness, red-team notes, and checklist.'));
+        setNpcSpeech(friendlyCopy('Phân tích xong, kết quả đã đồng bộ vào Friendly.', 'Analysis is done, results are synced into Friendly.'));
+        updateGuidance(friendlyCopy('Gợi ý tiếp theo: dùng Trước/Tiếp ở rail trái để xem readiness, phản biện và checklist.', 'Next hint: use Back/Next on the left rail to review readiness, red team, and checklist.'));
       }
     }
     lastStatusKind = kind;
@@ -2634,7 +2788,7 @@
     if (replay) replay.addEventListener('click', function () {
       stopAutoplay();
       setStep(0);
-      addChatMessage('agent', ftr('Mình đã đưa bạn về bước Đọc brief. Bạn có thể tiếp tục chat để tạo hoặc sửa launch.', 'I moved you back to Read brief. You can keep chatting to create or edit the launch.'));
+      addChatMessage('agent', friendlyCopy('Mình đã đưa bạn về bước Đọc brief. Bạn có thể tiếp tục chat để tạo hoặc sửa launch.', 'I moved you back to Read brief. You can keep chatting to create or edit the launch.'));
     });
     if (prev) prev.addEventListener('click', function () {
       stopAutoplay();
@@ -2697,14 +2851,17 @@
     setupLaunchListObserver();
     setupControls();
     updateFromDom();
+    renderFriendlyControlledLearning();
     setStep(0);
 
     var observer = new MutationObserver(function () {
       updateFromDom();
+      renderFriendlyControlledLearning();
     });
-    ['launchMemoryStats', 'readinessMetric', 'scoreValue', 'scoreColor', 'decisionTitle', 'launchGate', 'redTeamCards', 'topRisks', 'riskBreakdown', 'checklistRows', 'postmortemDraft', 'lessonsPanel', 'analysisRunStatus'].forEach(function (id) {
+    ['launchMemoryStats', 'readinessMetric', 'scoreValue', 'scoreColor', 'decisionTitle', 'launchGate', 'redTeamCards', 'topRisks', 'riskBreakdown', 'checklistRows', 'postmortemDraft', 'lessonsPanel', 'lessonSuggestions', 'analysisRunStatus'].forEach(function (id) {
       observeElement(observer, id);
     });
+    window.addEventListener('launchops:controlled-learning', renderFriendlyControlledLearning);
 
     // Đổi mode Pro/Friendly (class trên body) thì gỡ/khôi phục draft card ngay,
     // không chờ observer của #launchGroups (nó không bắt sự kiện đổi mode).

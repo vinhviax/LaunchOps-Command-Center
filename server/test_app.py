@@ -32,25 +32,10 @@ class DetectBriefLanguageTests(unittest.TestCase):
         self.assertEqual(app.detect_brief_language(""), "vi")
 
     def test_ascii_vietnamese_without_diacritics_defaults_vi(self):
-        self.assertEqual(app.detect_brief_language("Su kien quay thuong cuoi tuan"), "vi")
+        self.assertEqual(app.detect_brief_language("Su kien quay thuong cuoi tuan chua co nguoi phu trach"), "vi")
 
-    def test_english_prompt_requires_english_output(self):
-        prompt = app.build_prompt(
-            "Lucky Spin event. No owner, no rollback plan, no CS FAQ.",
-            {"name": "Lucky Spin", "type": "lucky_spin_event"},
-            "readiness",
-        )
-        self.assertIn("MUST be written in English", prompt)
-        self.assertNotIn("PHẢI viết bằng tiếng Việt", prompt)
-
-    def test_non_english_prompt_requires_vietnamese_output(self):
-        prompt = app.build_prompt(
-            "Campana de ruleta sin owner claro ni plan rollback.",
-            {"name": "Lucky Spin", "type": "lucky_spin_event"},
-            "readiness",
-        )
-        self.assertIn("PHẢI viết bằng tiếng Việt", prompt)
-        self.assertNotIn("MUST be written in English", prompt)
+    def test_unknown_ascii_defaults_vi(self):
+        self.assertEqual(app.detect_brief_language("abc xyz qwerty"), "vi")
 
 
 class LegacyEncodingRepairTests(unittest.TestCase):
@@ -194,6 +179,38 @@ class NormalizeAndSlugTests(unittest.TestCase):
     def test_slugify_length_limit(self):
         self.assertEqual(len(app.slugify("a" * 100)), 72)
 
+    def test_schedule_rejects_end_before_start(self):
+        result = app.validate_launch_schedule_rules({
+            "status": "upcoming",
+            "targetDate": "20/06/2026 08:30",
+            "endDate": "19/06/2026 23:59",
+        }, now=app.datetime(2026, 6, 17, 12, 0))
+        self.assertEqual(result["error"], "end_before_start")
+
+    def test_schedule_rejects_running_or_upcoming_when_end_is_past(self):
+        result = app.validate_launch_schedule_rules({
+            "status": "running",
+            "targetDate": "15/06/2026 08:30",
+            "endDate": "16/06/2026 23:59",
+        }, now=app.datetime(2026, 6, 17, 12, 0))
+        self.assertEqual(result["error"], "end_in_past_status")
+
+    def test_schedule_rejects_upcoming_when_start_is_past(self):
+        result = app.validate_launch_schedule_rules({
+            "status": "upcoming",
+            "targetDate": "16/06/2026 08:30",
+            "endDate": "18/06/2026 23:59",
+        }, now=app.datetime(2026, 6, 17, 12, 0))
+        self.assertEqual(result["error"], "start_in_past_upcoming")
+
+    def test_schedule_allows_completed_past_launch(self):
+        result = app.validate_launch_schedule_rules({
+            "status": "completed",
+            "targetDate": "15/06/2026 08:30",
+            "endDate": "16/06/2026 23:59",
+        }, now=app.datetime(2026, 6, 17, 12, 0))
+        self.assertIsNone(result)
+
 
 class ToolAliasTests(unittest.TestCase):
     def test_normalize_tool_name_accepts_main_tool_and_alias(self):
@@ -216,6 +233,8 @@ class ToolAliasTests(unittest.TestCase):
         self.assertIn("lcc_update_launch", names)
         self.assertIn("lcc_analyze_launch", names)
         self.assertIn("lcc_set_launch_template", names)
+        self.assertIn("lcc_select_product", names)
+        self.assertIn("lcc_catalog", names)
 
 class LccDocsToolTests(unittest.TestCase):
     def test_docs_tool_in_definitions_and_registry(self):
@@ -230,17 +249,95 @@ class LccDocsToolTests(unittest.TestCase):
         doc = out["doc"]
         self.assertIn("LaunchOps Command Center", doc)
         self.assertIn("lcc_list_launches", doc)
+        self.assertIn("lcc docs", doc)
+        self.assertIn("lcc_select_product", doc)
+        self.assertIn("lcc_catalog", doc)
+        self.assertIn("Human Admin", doc)
         self.assertIn("Markdown", doc)
 
     def test_docs_topic_filter(self):
         out = app.execute_launchops_tool("lcc_docs", {"topic": "tools"})
         self.assertIn("Khi nào dùng tool nào", out["doc"])
 
+    def test_chatbot_docs_command_routes(self):
+        command, argument, legacy = app.parse_chatbot_command("lcc docs tools")
+        self.assertEqual(command, "docs")
+        self.assertEqual(argument, "tools")
+        self.assertFalse(legacy)
+
+    def test_chatbot_docs_reply_contains_tool_guide(self):
+        result = app.handle_chatbot_payload("generic", {"chatId": "test", "text": "lcc docs tools"})
+        self.assertTrue(result["ok"])
+        self.assertIn("Khi nào dùng tool nào", result["reply"])
+        self.assertIn("lcc_create_launch", result["reply"])
+
     def test_docs_tool_leaks_no_secret_values(self):
         doc = app.execute_launchops_tool("lcc_docs", {})["doc"].lower()
         # No real config/secret values, env var names, base URLs, or key patterns.
         for marker in ("launchops_", "maas-llm", "vngcloud", "sk-", "bearer ", "gw-58", ".env", "api_key="):
             self.assertNotIn(marker, doc)
+
+
+class LccProductToolTests(unittest.TestCase):
+    def test_select_demo_product_is_allowed(self):
+        out = app.execute_launchops_tool("lcc_select_product", {"product": "Demo", "language": "en"})
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["selected"], "demo")
+        self.assertIn("available", out["message"].lower())
+
+    def test_product_xyz_is_locked(self):
+        out = app.execute_launchops_tool("lcc_select_product", {"product": "Sản Phẩm XYZ", "language": "vi"})
+        self.assertFalse(out["ok"])
+        self.assertTrue(out["locked"])
+        self.assertIn("liên hệ Admin", out["message"])
+
+    def test_unknown_product_returns_catalog_instead_of_selecting_demo(self):
+        out = app.execute_launchops_tool("lcc_select_product", {"product": "Unknown Product", "language": "en"})
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["field"], "product")
+        self.assertIn("products", out["catalog"])
+        self.assertEqual(out["catalog"]["products"][0]["id"], "demo")
+
+    def test_chatbot_product_command_routes(self):
+        command, argument, legacy = app.parse_chatbot_command("lcc product Product XYZ")
+        self.assertEqual(command, "product")
+        self.assertEqual(argument, "Product XYZ")
+        self.assertFalse(legacy)
+
+    def test_assistant_product_fallback_english(self):
+        reply = app.assistant_fallback_reply("select Product XYZ", language="en")
+        self.assertIn("Product XYZ is locked", reply)
+        self.assertIn("Admin", reply)
+
+
+class LccCatalogToolTests(unittest.TestCase):
+    def test_catalog_tool_returns_immutable_admin_only_values(self):
+        out = app.execute_launchops_tool("lcc_catalog", {"language": "en"})
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["immutable"])
+        self.assertTrue(out["adminOnlyConfiguration"])
+        self.assertIn({"id": "demo", "name": "Demo", "status": "available"}, out["products"])
+        self.assertTrue(any(item["id"] == "lucky_spin_event" for item in out["classifications"]))
+        self.assertTrue(any(item["classificationId"] == "lucky_spin_event" for item in out["templates"]))
+        self.assertIn("Human Admin", out["message"])
+
+    def test_catalog_section_filter(self):
+        out = app.execute_launchops_tool("lcc_catalog", {"section": "classifications"})
+        self.assertTrue(out["ok"])
+        self.assertIn("classifications", out)
+        self.assertNotIn("products", out)
+
+    def test_chatbot_catalog_command_routes(self):
+        command, argument, legacy = app.parse_chatbot_command("lcc catalog classifications")
+        self.assertEqual(command, "catalog")
+        self.assertEqual(argument, "classifications")
+        self.assertFalse(legacy)
+
+    def test_chatbot_catalog_reply_contains_valid_classifications(self):
+        result = app.handle_chatbot_payload("generic", {"chatId": "test", "text": "lcc catalog classifications"})
+        self.assertTrue(result["ok"])
+        self.assertIn("classifications", result["reply"])
+        self.assertIn("lucky_spin_event", result["reply"])
 
 
 class LaunchOpsMcpToolTests(unittest.TestCase):
@@ -253,6 +350,7 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
             "LAUNCHOPS_STORAGE_BACKEND": "local",
             "LAUNCHOPS_LLM_ENABLED": "false",
             "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+            "LAUNCHOPS_MCP_ADMIN_TOOLS_ENABLED": "true",
         }, clear=False)
         self.env_patch.start()
 
@@ -261,12 +359,24 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         self.dir_patch.stop()
         self.tempdir.cleanup()
 
-    def test_create_get_update_and_analyze_launch_via_tool(self):
-        created = app.execute_launchops_tool("lcc_create_launch", {
+    def required_launch_args(self, **overrides):
+        payload = {
             "name": "Golden Spin Tool Test",
             "type": "lucky_spin_event",
-            "brief": "Golden Spin. No owner, no rollback plan, no CS FAQ.",
-        })
+            "owner": "LiveOps Lead",
+            "targetDate": "15/07/2099 08:30",
+            "endDate": "17/07/2099 23:59",
+            "brief": "Golden Spin. Owner ready, rollback planned, CS FAQ drafted.",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_create_get_update_and_analyze_launch_via_tool(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Golden Spin Tool Test",
+            type="lucky_spin_event",
+            brief="Golden Spin. No owner, no rollback plan, no CS FAQ.",
+        ))
         self.assertTrue(created["ok"])
         launch_id = created["launch"]["id"]
 
@@ -294,11 +404,133 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         self.assertGreater(len({card["fix"] for card in red_team}), 1)
         self.assertEqual(analyzed["summary"]["analysisCount"], 1)
 
-    def test_set_launch_template_updates_launch_template_versions(self):
+    def test_create_launch_rejects_invalid_classification_and_returns_catalog(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Bad Classification Launch",
+            type="Lucky Wheel",
+            brief="Golden Spin. No owner.",
+            language="en",
+        ))
+        self.assertFalse(created["ok"])
+        self.assertEqual(created["error"], "invalid_classification")
+        self.assertIn("classifications", created["catalog"])
+        self.assertTrue(any(item["id"] == "lucky_spin_event" for item in created["catalog"]["classifications"]))
+
+    def test_create_launch_rejects_missing_required_fields_for_channel_bots(self):
         created = app.execute_launchops_tool("lcc_create_launch", {
-            "name": "Template Test Launch",
-            "brief": "No owner, no rollback.",
+            "name": "Missing Fields Launch",
+            "brief": "Golden Spin. Owner ready.",
+            "language": "vi",
         })
+
+        self.assertFalse(created["ok"])
+        self.assertEqual(created["error"], "missing_required_launch_fields")
+        self.assertEqual(created["fields"], ["type", "owner", "targetDate", "endDate"])
+        self.assertIn("Ngày Bắt Đầu", created["message"])
+        self.assertIn("dd/mm/yyyy hh:mm", created["message"])
+
+    def test_create_launch_accepts_catalog_alias_and_saves_canonical_type(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Good Classification Launch",
+            type="Sự kiện Lucky Spin",
+            brief="Golden Spin. Owner ready.",
+        ))
+        self.assertTrue(created["ok"])
+        self.assertEqual(created["launch"]["type"], "lucky_spin_event")
+
+    def test_create_launch_rejects_date_without_time_for_bots(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Date Only Launch",
+            targetDate="15/06/2026",
+            endDate="17/06/2026 23:59",
+            brief="Golden Spin. Owner ready.",
+            language="en",
+        ))
+        self.assertFalse(created["ok"])
+        self.assertEqual(created["error"], "missing_launch_time")
+        self.assertEqual(created["field"], "targetDate")
+        self.assertIn("dd/mm/yyyy hh:mm", created["message"])
+
+    def test_create_launch_accepts_required_date_time_for_bots(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Date Time Launch",
+            targetDate="15/06/2099 08:30",
+            endDate="17/06/2099 23:59",
+            brief="Golden Spin. Owner ready.",
+        ))
+        self.assertTrue(created["ok"])
+        self.assertEqual(created["launch"]["targetDate"], "15/06/2099 08:30")
+        self.assertEqual(created["launch"]["endDate"], "17/06/2099 23:59")
+
+    def test_create_launch_user_message_uses_launch_name_not_id(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Summer Launch",
+            type="lucky_spin_event",
+            targetDate="15/07/2099 08:30",
+            endDate="17/07/2099 23:59",
+            owner="LiveOps",
+            brief="Gift all users with clear rollback and CS FAQ.",
+            language="vi",
+        ))
+
+        self.assertTrue(created["ok"])
+        self.assertIn("Tên Launch: Summer Launch", created["userMessage"])
+        self.assertIn("Ngày Bắt Đầu: 15/07/2099 08:30", created["userMessage"])
+        self.assertNotIn("ID:", created["userMessage"])
+
+        content = app.mcp_tool_content(created)["content"]
+        self.assertEqual(content[0]["text"], created["userMessage"])
+
+    def test_update_launch_rejects_invalid_classification_and_returns_catalog(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Update Classification Launch",
+            brief="Golden Spin. Owner ready.",
+        ))
+        updated = app.execute_launchops_tool("lcc_update_launch", {
+            "launchId": created["launch"]["id"],
+            "type": "Wrong Type",
+        })
+        self.assertFalse(updated["ok"])
+        self.assertEqual(updated["error"], "invalid_classification")
+        self.assertIn("classifications", updated["catalog"])
+
+    def test_update_launch_rejects_date_without_time_for_bots(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Update Date Time Launch",
+            brief="Golden Spin. Owner ready.",
+        ))
+        updated = app.execute_launchops_tool("lcc_update_launch", {
+            "launchId": created["launch"]["id"],
+            "endDate": "17/06/2026",
+        })
+        self.assertFalse(updated["ok"])
+        self.assertEqual(updated["error"], "missing_launch_time")
+        self.assertEqual(updated["field"], "endDate")
+
+    def test_update_launch_user_message_uses_launch_name_not_id(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Editable Launch",
+            brief="Golden Spin. Owner ready.",
+        ))
+        updated = app.execute_launchops_tool("lcc_update_launch", {
+            "launchId": created["launch"]["id"],
+            "newName": "Editable Launch v2",
+            "targetDate": "20/07/2099 08:30",
+            "endDate": "21/07/2099 23:59",
+            "owner": "PM LiveOps",
+            "language": "en",
+        })
+
+        self.assertTrue(updated["ok"])
+        self.assertIn("Launch Name: Editable Launch v2", updated["userMessage"])
+        self.assertIn("Start Launch: 20/07/2099 08:30", updated["userMessage"])
+        self.assertNotIn("ID:", updated["userMessage"])
+
+    def test_set_launch_template_updates_launch_template_versions(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Template Test Launch",
+            brief="No owner, no rollback.",
+        ))
         result = app.execute_launchops_tool("lcc_set_launch_template", {
             "launchId": created["launch"]["id"],
             "templateName": "Strict Webshop Template",
@@ -307,12 +539,164 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
                 "CS readiness",
             ],
             "redTeamPersonas": ["CS lead", "Tech on-call", "Business owner"],
+            "adminConfirmation": "HUMAN_ADMIN",
         })
         self.assertTrue(result["ok"])
         self.assertEqual(result["template"]["maxScore"], 5)
         self.assertEqual(result["launch"]["name"], "Template Test Launch")
         self.assertEqual(result["launch"]["template"]["name"], "Strict Webshop Template")
         self.assertEqual(len(result["launch"]["templateVersions"]), 1)
+
+    def test_mcp_admin_configuration_tools_are_blocked_for_channel_bot_by_default(self):
+        with patch.dict(os.environ, {"LAUNCHOPS_MCP_ADMIN_TOOLS_ENABLED": "false"}, clear=False):
+            result = app.execute_launchops_tool("lcc_create_type", {
+                "name": "Bot Created Type",
+                "riskGroups": ["Owner readiness"],
+                "adminConfirmation": "HUMAN_ADMIN",
+            })
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "admin_only_configuration")
+        self.assertIn("lcc_catalog", result["message"])
+        self.assertTrue(result["catalog"]["adminOnlyConfiguration"])
+
+    def test_controlled_learning_proposal_does_not_change_active_template(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Learning Draft Launch",
+            brief="Golden Spin had traffic spikes and missing scale owner.",
+            template={
+                "name": "Base Template",
+                "riskGroups": [{"label": "Owner readiness", "maxScore": 2}],
+                "redTeamPersonas": ["CS lead", "Tech lead", "Biz owner", "QA lead", "Marketing lead"],
+            },
+        ))
+        launch_id = created["launch"]["id"]
+        with patch.object(app, "call_llm_raw", return_value=({
+            "addRiskGroups": [{"label": "Scalability", "maxScore": 2}],
+            "addPersonas": ["Scalability Engineer"],
+            "rationale": "Traffic spike lesson requires scale review.",
+        }, {"source": "llm", "model": "m", "latencyMs": 10, "schemaAccepted": True})) as mocked:
+            result = app.execute_launchops_tool("lcc_propose_template_update", {
+                "launchId": launch_id,
+                "lesson": "Post-mortem: traffic spike overloaded reward API. apikey=shhh 0901234567",
+                "adminConfirmation": "HUMAN_ADMIN",
+            }, force_fast=False)
+
+        self.assertTrue(result["ok"])
+        mocked.assert_called_once()
+        reloaded = app.get_launch(launch_id)
+        self.assertEqual(reloaded["template"]["riskGroups"], [{"label": "Owner readiness", "maxScore": 2}])
+        self.assertEqual(len(reloaded["templateVersions"]), 0)
+        self.assertEqual(len(reloaded["lessonSuggestions"]), 1)
+        proposal = result["proposal"]
+        self.assertEqual(proposal["status"], "proposed")
+        self.assertEqual(proposal["delta"]["addRiskGroups"], [{"label": "Scalability", "maxScore": 2}])
+        self.assertEqual(proposal["delta"]["addPersonas"], ["Scalability Engineer"])
+        self.assertNotIn("shhh", json.dumps(proposal, ensure_ascii=False))
+        self.assertNotIn("0901234567", json.dumps(proposal, ensure_ascii=False))
+
+    def test_controlled_learning_validation_rejects_bad_delta(self):
+        template = {"riskGroups": [{"label": "Scalability", "maxScore": 2}], "redTeamPersonas": ["CS lead"]}
+        result = app.validate_template_delta({
+            "addRiskGroups": [
+                {"label": "", "maxScore": 2},
+                {"label": "Scalability", "maxScore": 3},
+                {"label": "Cost", "maxScore": 99},
+            ],
+            "addPersonas": ["CS lead", ""],
+            "rationale": "bad",
+        }, template)
+        self.assertFalse(result["ok"])
+        self.assertIn("risk_label_required", result["errors"])
+        self.assertIn("risk_group_duplicate:Scalability", result["errors"])
+        self.assertIn("risk_max_score_invalid:Cost", result["errors"])
+        self.assertIn("persona_duplicate:CS lead", result["errors"])
+        self.assertIn("persona_label_required", result["errors"])
+
+    def test_controlled_learning_approve_creates_new_template_version(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Learning Approve Launch",
+            brief="Owner named. Rollback ready. Need scale review.",
+            template={
+                "name": "Base Template",
+                "riskGroups": [{"label": "Owner readiness", "maxScore": 2}],
+                "redTeamPersonas": ["CS lead", "Tech lead", "Biz owner", "QA lead", "Marketing lead"],
+            },
+        ))
+        launch_id = created["launch"]["id"]
+        with patch.object(app, "call_llm_raw", return_value=({
+            "addRiskGroups": [{"label": "Scalability", "maxScore": 2}],
+            "addPersonas": ["Scalability Engineer"],
+            "rationale": "Scale risk should be reviewed before launch.",
+        }, {"source": "llm", "model": "m", "latencyMs": 10, "schemaAccepted": True})):
+            proposed = app.execute_launchops_tool("lcc_propose_template_update", {
+                "launchId": launch_id,
+                "lesson": "Need scale owner and load test.",
+                "adminConfirmation": "HUMAN_ADMIN",
+            }, force_fast=False)
+
+        approved = app.execute_launchops_tool("lcc_approve_template_version", {
+            "launchId": launch_id,
+            "proposalId": proposed["proposal"]["id"],
+            "adminConfirmation": "HUMAN_ADMIN",
+        })
+        self.assertTrue(approved["ok"])
+        self.assertEqual(approved["proposal"]["status"], "approved")
+        self.assertEqual(approved["template"]["maxScore"], 4)
+        self.assertEqual([g["label"] for g in approved["template"]["riskGroups"]], ["Owner readiness", "Scalability"])
+        self.assertIn("Scalability Engineer", approved["template"]["redTeamPersonas"])
+        self.assertEqual(len(approved["launch"]["templateVersions"]), 1)
+
+        analyzed = app.execute_launchops_tool("lcc_analyze_launch", {"launchId": launch_id}, force_fast=True)
+        self.assertEqual(analyzed["result"]["decision"]["maxScore"], 4)
+
+    def test_controlled_learning_force_fast_does_not_call_llm(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Learning Fast Launch",
+            brief="Traffic spike hit reward API.",
+        ))
+        with patch.object(app, "call_llm_raw") as mocked:
+            result = app.execute_launchops_tool("lcc_propose_template_update", {
+                "launchId": created["launch"]["id"],
+                "lesson": "Traffic spike overloaded the reward API.",
+                "adminConfirmation": "HUMAN_ADMIN",
+            }, force_fast=True)
+        self.assertTrue(result["ok"])
+        mocked.assert_not_called()
+        self.assertEqual(result["proposal"]["source"], "deterministic")
+
+    def test_controlled_learning_reject_keeps_template_unchanged(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Learning Reject Launch",
+            brief="Traffic spike hit reward API.",
+            template={
+                "name": "Base Template",
+                "riskGroups": [{"label": "Owner readiness", "maxScore": 2}],
+                "redTeamPersonas": ["CS lead", "Tech lead", "Biz owner", "QA lead", "Marketing lead"],
+            },
+        ))
+        launch_id = created["launch"]["id"]
+        with patch.object(app, "call_llm_raw", return_value=({
+            "addRiskGroups": [{"label": "Scalability", "maxScore": 2}],
+            "addPersonas": ["Scalability Engineer"],
+            "rationale": "Scale risk should be reviewed.",
+        }, {"source": "llm", "model": "m", "latencyMs": 10, "schemaAccepted": True})):
+            proposed = app.execute_launchops_tool("lcc_propose_template_update", {
+                "launchId": launch_id,
+                "lesson": "Need scale owner.",
+                "adminConfirmation": "HUMAN_ADMIN",
+            }, force_fast=False)
+
+        rejected = app.execute_launchops_tool("lcc_approve_template_version", {
+            "launchId": launch_id,
+            "proposalId": proposed["proposal"]["id"],
+            "approve": False,
+            "adminConfirmation": "HUMAN_ADMIN",
+        })
+        self.assertTrue(rejected["ok"])
+        self.assertEqual(rejected["proposal"]["status"], "rejected")
+        reloaded = app.get_launch(launch_id)
+        self.assertEqual(reloaded["template"]["riskGroups"], [{"label": "Owner readiness", "maxScore": 2}])
+        self.assertEqual(len(reloaded["templateVersions"]), 0)
 
     def test_save_launch_payload_preserves_ui_progress_metadata(self):
         saved = app.save_launch_payload({
@@ -330,7 +714,7 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         self.assertEqual(updated["checklistProgress"], {"write-faq|cs|t-1": True})
 
     def test_delete_launch_requires_explicit_confirmation(self):
-        created = app.execute_launchops_tool("lcc_create_launch", {"name": "Delete Me"})
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(name="Delete Me"))
         launch_id = created["launch"]["id"]
         blocked = app.execute_launchops_tool("lcc_delete_launch", {"launchId": launch_id})
         self.assertFalse(blocked["ok"])
@@ -700,6 +1084,29 @@ class BuildPromptTests(unittest.TestCase):
         en = app.build_prompt("Lucky Wheel weekend. No owner, no rollback, payment untested.", self.CTX, "redteam")
         self.assertIn("English", en)
 
+    def test_language_rule_covers_all_agent_prompts(self):
+        english_brief = "Lucky Wheel weekend event. No owner, no rollback plan, payment untested."
+        for step in ("readiness", "redteam", "checklist", "postmortem", None):
+            with self.subTest(step=step or "default"):
+                prompt = app.build_prompt(english_brief, self.CTX, step)
+                self.assertIn("MUST be written in English", prompt)
+
+    def test_language_rule_treats_ascii_vietnamese_as_vi(self):
+        prompt = app.build_prompt("Su kien quay thuong cuoi tuan chua co nguoi phu trach", self.CTX, "checklist")
+        self.assertIn("tiếng Việt", prompt)
+
+    def test_rule_readiness_follows_english_brief_language(self):
+        brief = "Lucky Wheel weekend event. No owner, no rollback plan, payment untested."
+        result = app.readiness_agent(brief, {"brief": brief, "template": app.build_default_template()}, force_fast=True)
+        self.assertIn("Not safe enough", result["decision"]["title"])
+        self.assertIn("deterministic template rules", result["decision"]["reason"])
+        self.assertNotIn("Đang dùng fallback", result["decision"]["reason"])
+
+    def test_rule_readiness_keeps_ascii_vietnamese_in_vi(self):
+        brief = "Su kien quay thuong cuoi tuan chua co nguoi phu trach"
+        result = app.readiness_agent(brief, {"brief": brief, "template": app.build_default_template()}, force_fast=True)
+        self.assertIn("Chưa đủ", result["decision"]["title"])
+
 
 class RagTests(unittest.TestCase):
     """WS1: RAG knowledge recall + prompt grounding."""
@@ -935,6 +1342,105 @@ class RateLimitTests(unittest.TestCase):
             self.assertTrue(app.rate_limit_check("a")["allowed"])
             self.assertTrue(app.rate_limit_check("b")["allowed"])
             self.assertFalse(app.rate_limit_check("a")["allowed"])
+
+
+class AssistantLanguageTests(unittest.TestCase):
+    def test_english_fallback_uses_ui_language_not_vietnamese_local_reply(self):
+        reply = app.assistant_fallback_reply(
+            "Explain readiness",
+            {"launchName": "Golden Spin", "launchType": "Lucky Spin Event"},
+            local_reply="Toi co the ho tro bang tieng Viet.",
+            language="en",
+        )
+
+        self.assertIn("readiness", reply.lower())
+        self.assertIn("Golden Spin", reply)
+        self.assertNotIn("Toi co the", reply)
+
+    def test_english_out_of_scope_fallback_stays_in_launchops_scope(self):
+        reply = app.assistant_fallback_reply("What is the weather today?", language="en")
+
+        self.assertIn("LaunchOps Command Center", reply)
+        self.assertIn("launch brief", reply)
+        self.assertNotIn("Tôi", reply)
+
+    def test_missing_assistant_config_returns_english_fallback_when_requested(self):
+        with patch.dict(os.environ, {
+            "LAUNCHOPS_ASSISTANT_API_KEY": "",
+            "LAUNCHOPS_AGENTBASE_API_KEY": "",
+            "LAUNCHOPS_LLM_API_KEY": "",
+        }, clear=False):
+            result = app.call_assistant(
+                "What can you help with?",
+                {"launchName": "Golden Spin"},
+                local_reply="Toi co the ho tro bang tieng Viet.",
+                language="en",
+            )
+
+        self.assertEqual(result["source"], "fallback")
+        self.assertIn("Golden Spin", result["reply"])
+        self.assertIn("LaunchOps", result["reply"])
+        self.assertNotIn("Toi co the", result["reply"])
+
+    def test_assistant_prompt_uses_requested_language_and_redacts_sensitive_context(self):
+        prompt = app.build_assistant_prompt(
+            "Help me",
+            {"launchName": "Golden Spin", "apiKey": "secret-value", "nested": {"token": "hidden-token"}},
+            language="en",
+        )
+
+        self.assertIn("Answer in English", prompt)
+        self.assertIn("Golden Spin", prompt)
+        self.assertIn("[REDACTED]", prompt)
+        self.assertNotIn("secret-value", prompt)
+        self.assertNotIn("hidden-token", prompt)
+
+
+class ChannelSkillTests(unittest.TestCase):
+    def test_channel_skill_manifest_supports_self_host_mcp_and_direct_tools(self):
+        manifest = app.channel_skill_manifest("http://127.0.0.1:8788", "vi")
+
+        self.assertTrue(manifest["ok"])
+        self.assertEqual(manifest["kind"], "launchops-channel-skill")
+        self.assertEqual(manifest["endpoints"]["mcp"], "http://127.0.0.1:8788/mcp")
+        self.assertEqual(manifest["endpoints"]["directToolCall"], "http://127.0.0.1:8788/tools/call")
+        self.assertEqual(manifest["endpoints"]["discordSkill"], "http://127.0.0.1:8788/discord/skill")
+        self.assertEqual(manifest["openClawMcpRemote"]["args"], ["-y", "mcp-remote", "http://127.0.0.1:8788/mcp"])
+        self.assertIn("OpenClaw", manifest["supportedChannels"])
+        self.assertIn(app.LCC_DOCS_TOOL, manifest["preferredToolOrder"])
+        self.assertTrue(any(tool["name"] == app.LCC_CATALOG_TOOL for tool in manifest["tools"]))
+
+    def test_channel_skill_manifest_lists_brief_extensions_and_admin_rules(self):
+        manifest = app.channel_skill_manifest("https://example.test", "vi")
+        prompt = manifest["systemPrompt"]
+
+        for ext in (".txt", ".md", ".json", ".csv", ".yaml", ".log", ".js", ".py", ".html", ".css", ".jpg", ".png", ".gif", ".webp"):
+            self.assertIn(ext, manifest["briefFileExtensions"])
+            self.assertIn(ext, prompt)
+        for ext in (".pdf", ".xls", ".xlsx", ".ppt", ".pptx"):
+            self.assertIn(ext, manifest["betaBriefFileExtensions"])
+            self.assertIn(ext, prompt)
+        self.assertIn("Human Admin", prompt)
+        self.assertIn("dd/mm/yyyy hh:mm", prompt)
+        self.assertIn("Không tiết lộ secret", prompt)
+
+    def test_channel_skill_prompt_can_be_english(self):
+        prompt = app.channel_skill_system_prompt("en")
+
+        self.assertIn("LaunchOps Command Center Channel Agent", prompt)
+        self.assertIn("Human Admin", prompt)
+        self.assertIn("date and time", prompt)
+        self.assertIn(".pptx", prompt)
+        self.assertIn("Start Launch and End Launch", prompt)
+        self.assertIn("do not accept it", prompt)
+        self.assertNotIn("Target Date:", prompt)
+
+    def test_channel_skill_routes_include_discord_aliases(self):
+        source = Path(app.__file__).read_text(encoding="utf-8")
+
+        self.assertIn("/discord/skill", source)
+        self.assertIn("/discord/system-prompt.txt", source)
+        self.assertIn("/discord/mcp-remote.json", source)
 
 
 class StorageBackendTests(unittest.TestCase):
