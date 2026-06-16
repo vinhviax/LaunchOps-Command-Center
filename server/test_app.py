@@ -1442,6 +1442,11 @@ class ChannelSkillTests(unittest.TestCase):
         self.assertIn("/discord/system-prompt.txt", source)
         self.assertIn("/discord/mcp-remote.json", source)
 
+    def test_do_get_does_not_shadow_parse_qs_before_channel_skill_routes(self):
+        source = Path(app.__file__).read_text(encoding="utf-8")
+
+        self.assertNotIn("from urllib.parse import parse_qs\n            query = parse_qs", source)
+
 
 class StorageBackendTests(unittest.TestCase):
     def test_storage_backend_defaults_local(self):

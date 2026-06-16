@@ -4946,7 +4946,6 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
 
         if len(parts) == 4 and parts[:2] == ["api", "product"] and parts[3] == "snapshot":
             # /api/product/<gameId>/snapshot?type=<launch_type>
-            from urllib.parse import parse_qs
             query = parse_qs(urlparse(self.path).query)
             launch_type = str((query.get('type') or [None])[0] or 'game_event_h5')
             snapshot = get_product_snapshot(parts[2], launch_type)
