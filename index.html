@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260617z">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260617z">
+  <link rel="stylesheet" href="styles.css?v=fix-20260618a">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260618a">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -141,7 +141,7 @@
       <div class="board-filters" aria-label="Lọc danh sách launch">
         <label class="board-search" for="launchSearch">
           <span>Tìm kiếm</span>
-          <input id="launchSearch" type="search" placeholder="Tên hoặc phân loại">
+          <input id="launchSearch" type="search" placeholder="Tên/Phân Loại/Template">
         </label>
         <label class="board-status-filter" for="launchStatusFilter">
           <span>Trạng thái</span>
@@ -705,12 +705,12 @@
         </div>
 
         <nav class="config-tabs" role="tablist" aria-label="Cấu hình phân loại">
+          <button type="button" role="tab" class="config-tab active" data-config-tab="catalog" aria-selected="true">Phân loại</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="risk" aria-selected="false">Rủi ro</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="persona" aria-selected="false">Phản biện</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="checklist" aria-selected="false">Checklist</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="lesson" aria-selected="false">Bài học</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="admin" aria-selected="false">Người thao tác</button>
-          <button type="button" role="tab" class="config-tab active" data-config-tab="catalog" aria-selected="true">Phân loại</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="archive" aria-selected="false">Lưu trữ</button>
         </nav>
 
@@ -718,16 +718,18 @@
           <div id="templateManager" class="config-workbench">
             <section class="content-card config-section template-catalog-section config-pane active" data-config-panel="catalog">
               <div class="card-head compact">
-                <div>
-                  <span class="section-kicker">Cấu hình chung</span>
-                  <h3>Phân loại & template gốc</h3>
+                <div class="catalog-heading">
+                  <div>
+                    <span class="section-kicker">Cấu hình chung</span>
+                    <h3>Phân loại & template gốc</h3>
+                  </div>
+                  <div class="catalog-explainer">
+                    <strong>Cách hiểu nhanh</strong>
+                    <p><b>Phân loại</b> là loại launch người dùng chọn, ví dụ Sự kiện game hoặc Ra mắt tính năng. <b>Template</b> là bộ luật đánh giá mà phân loại đó dùng. Một template có thể dùng lại cho nhiều phân loại.</p>
+                  </div>
                 </div>
               </div>
               <div class="template-catalog-grid">
-                <div class="catalog-explainer">
-                  <strong>Cách hiểu nhanh</strong>
-                  <p><b>Phân loại</b> là loại launch người dùng chọn, ví dụ Sự kiện game hoặc Ra mắt tính năng. <b>Template</b> là bộ luật đánh giá mà phân loại đó dùng. Một template có thể dùng lại cho nhiều phân loại.</p>
-                </div>
                 <div class="catalog-panel">
                   <div class="catalog-panel-head">
                     <div>
@@ -974,9 +976,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260617z"></script>
-  <script src="app.js?v=fix-20260617z"></script>
-  <script src="friendly-ui.js?v=fix-20260617z"></script>
-  <script src="i18n-clean.js?v=fix-20260617z"></script>
+  <script src="config.js?v=fix-20260618a"></script>
+  <script src="app.js?v=fix-20260618a"></script>
+  <script src="friendly-ui.js?v=fix-20260618a"></script>
+  <script src="i18n-clean.js?v=fix-20260618a"></script>
 </body>
 </html>

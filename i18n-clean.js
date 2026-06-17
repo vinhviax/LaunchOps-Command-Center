@@ -34,7 +34,7 @@ const CLEAN_I18N_DICT = {
     openTemplateConfig: "Cấu Hình",
     statusFilterLabel: "Trạng thái",
     searchLabel: "Tìm kiếm",
-    searchPlaceholder: "Tên hoặc phân loại",
+    searchPlaceholder: "Tên/Phân Loại/Template",
     dateFromLabel: "Từ ngày",
     dateToLabel: "Đến ngày",
     statusAll: "Tất cả",
@@ -192,7 +192,7 @@ const CLEAN_I18N_DICT = {
     openTemplateConfig: "Config",
     statusFilterLabel: "Status",
     searchLabel: "Search",
-    searchPlaceholder: "Name or type",
+    searchPlaceholder: "Name/Classification/Template",
     dateFromLabel: "From",
     dateToLabel: "To",
     statusAll: "All",
@@ -378,7 +378,15 @@ const CONFIG_TEXT = {
     maxScore: "Điểm tối đa",
     riskGroups: "Nhóm rủi ro",
     personas: "Góc phản biện",
-    tabs: ["Rủi ro", "Phản biện", "Checklist", "Bài học", "Người thao tác", "Phân loại", "Lưu trữ"],
+    tabs: {
+      catalog: "Phân loại",
+      risk: "Rủi ro",
+      persona: "Phản biện",
+      checklist: "Checklist",
+      lesson: "Bài học",
+      admin: "Người thao tác",
+      archive: "Lưu trữ"
+    },
     catalogKicker: "Cấu hình chung",
     catalogTitle: "Phân loại & template gốc",
     quickTitle: "Cách hiểu nhanh",
@@ -430,7 +438,15 @@ const CONFIG_TEXT = {
     maxScore: "Max score",
     riskGroups: "Risk groups",
     personas: "Red-team perspectives",
-    tabs: ["Risk", "Red team", "Checklist", "Lessons", "Operators", "Classification", "Archive"],
+    tabs: {
+      catalog: "Classification",
+      risk: "Risk",
+      persona: "Red team",
+      checklist: "Checklist",
+      lesson: "Lessons",
+      admin: "Operators",
+      archive: "Archive"
+    },
     catalogKicker: "Shared config",
     catalogTitle: "Classification & base template",
     quickTitle: "Quick mental model",
@@ -861,8 +877,9 @@ function applyCleanTranslations(lang) {
       if (statSpans[1]) statSpans[1].textContent = cfg.riskGroups;
       if (statSpans[2]) statSpans[2].textContent = cfg.personas;
     }
-    templateConfig.querySelectorAll(".config-tabs .config-tab").forEach((tab, index) => {
-      if (cfg.tabs[index]) tab.textContent = cfg.tabs[index];
+    templateConfig.querySelectorAll(".config-tabs .config-tab").forEach((tab) => {
+      const key = tab.dataset.configTab;
+      if (key && cfg.tabs[key]) tab.textContent = cfg.tabs[key];
     });
 
     const catalog = templateConfig.querySelector('[data-config-panel="catalog"]');

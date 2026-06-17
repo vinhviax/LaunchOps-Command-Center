@@ -46,7 +46,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260617z"
+UI_CACHE_VERSION = "fix-20260618a"
 HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
@@ -1734,7 +1734,7 @@ def summarize_launch(launch: dict[str, Any]) -> dict[str, Any]:
         "lessonCount": len(lessons),
         "templateName": (launch.get("template") or {}).get("name") if isinstance(launch.get("template"), dict) else "",
         "decision": decision,
-        "isSample": is_sample_launch_id(launch.get("id")),
+        "isSample": is_sample_launch(launch),
         "archived": bool(launch.get("archived")),
         "archivedAt": launch.get("archivedAt") or "",
     }
@@ -1793,19 +1793,23 @@ def list_archived_launches() -> list[dict[str, Any]]:
     return sorted(items, key=lambda item: str(item.get("archivedAt") or item.get("updatedAt") or ""), reverse=True)
 
 
-# Public review lock: when LAUNCHOPS_PUBLIC_LOCK is on (production during voting), block
-# config/template edits, template approval, and edits/deletes to seeded sample launches.
-# Default OFF so anyone cloning the repo keeps full admin/edit access.
-SAMPLE_LAUNCH_PREFIXES = ("golden-spin", "lucky-spin", "lucky-wheel", "midweek", "may-login")
-
-
+# Public review lock blocks configuration mutation. Seeded sample launches stay
+# immutable for API/tool callers so public demos can keep stable reference data.
 def public_lock_enabled() -> bool:
     return truthy_env("LAUNCHOPS_PUBLIC_LOCK", "false")
 
 
 def is_sample_launch_id(launch_id: Any) -> bool:
     lid = str(launch_id or "").strip().lower()
-    return any(lid.startswith(prefix) for prefix in SAMPLE_LAUNCH_PREFIXES)
+    return lid in DEMO_SAMPLE_IDS or lid in LEGACY_SAMPLE_IDS
+
+
+def is_sample_launch(launch: dict[str, Any] | None) -> bool:
+    if not isinstance(launch, dict):
+        return False
+    if launch.get("isSample") is True:
+        return True
+    return is_sample_launch_id(launch.get("id"))
 
 
 class PublicLockError(Exception):
@@ -1824,14 +1828,16 @@ def public_lock_error(action: str) -> dict[str, Any]:
     return {"ok": False, "error": err.code, "action": action, "message": err.message}
 
 
-def guard_sample_launch_mutation(launch_id: Any, action: str) -> None:
-    if public_lock_enabled() and is_sample_launch_id(launch_id):
+def guard_sample_launch_mutation(launch: Any, action: str) -> None:
+    if isinstance(launch, dict):
+        locked = is_sample_launch(launch)
+    else:
+        locked = is_sample_launch_id(launch)
+    if locked:
         raise PublicLockError(action)
 
 
 def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None) -> dict[str, Any]:
-    if existing_id is not None:
-        guard_sample_launch_mutation(existing_id, "update_launch")
     incoming = payload.get("launch") if isinstance(payload.get("launch"), dict) else payload
     incoming_name = str(incoming.get("name") or "").strip()
     launch_id = existing_id or str(incoming.get("id") or slugify(incoming_name or "Launch mới")).strip()
@@ -1839,6 +1845,8 @@ def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None)
         launch_id = slugify(launch_id)
 
     existing = get_launch(launch_id) or {}
+    if existing_id is not None:
+        guard_sample_launch_mutation(existing or existing_id, "update_launch")
     name = incoming_name or str(existing.get("name") or "Launch mới").strip()
     created = existing.get("createdAt") or now_iso()
     launch = {
@@ -1861,6 +1869,8 @@ def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None)
         "createdAt": created,
         "updatedAt": now_iso(),
     }
+    if existing.get("isSample") is True or incoming.get("isSample") is True:
+        launch["isSample"] = True
     ensure_launch_schedule_valid(launch)
     cloud_result = try_cloud_storage("save_launch", cloud_save_launch, launch)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
@@ -1891,7 +1901,7 @@ def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) 
 
 
 def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_context: dict[str, Any] | None = None) -> dict[str, Any]:
-    guard_sample_launch_mutation(launch.get("id"), "post_result")
+    guard_sample_launch_mutation(launch, "post_result")
     launch["status"] = normalize_status(payload.get("status") or launch.get("status") or "completed")
     launch["postLaunchResult"] = str(payload.get("postLaunchResult") or launch.get("postLaunchResult") or "").strip()
     lesson = str(payload.get("lesson") or "").strip()
@@ -1909,10 +1919,10 @@ def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_con
 
 
 def archive_launch(launch_id: str) -> dict[str, Any] | None:
-    guard_sample_launch_mutation(launch_id, "delete_launch")
     launch = get_launch(launch_id)
     if launch is None:
         return None
+    guard_sample_launch_mutation(launch, "delete_launch")
     stamp = now_iso()
     launch["archived"] = True
     launch["archivedAt"] = stamp
@@ -2458,7 +2468,7 @@ LCC_DOC_SECTIONS: dict[str, str] = {
         "| Xem trạng thái workspace/demo | `lcc_list_launches` rồi tóm tắt | `lcc status` |\n"
         "| Liệt kê launch gần đây | `lcc_list_launches` | `lcc list` |\n"
         "| Xem chi tiết một launch | `lcc_get_launch` với `launchId` hoặc `name` | hỏi tên launch, rồi gọi tool |\n"
-        "| Tạo launch mới | `lcc_create_launch` | hỏi thiếu tên, phân loại, owner, ngày giờ Start/End đủ `dd/mm/yyyy hh:mm`, brief |\n"
+        "| Tạo launch mới | `lcc_create_launch` | hỏi thiếu tên, owner, phân loại, template, trạng thái, xác nhận owner, ngày giờ Start/End đủ `dd/mm/yyyy hh:mm`, brief |\n"
         "| Sửa launch | `lcc_update_launch` | hỏi field cần sửa và giá trị mới |\n"
         "| Phân tích lại launch đã lưu | `lcc_analyze_launch` | hỏi launchId/tên nếu chưa rõ |\n"
         "| Xóa launch | `lcc_delete_launch` với `confirm = DELETE <launchId>` | luôn hỏi xác nhận rõ |\n"
@@ -2473,7 +2483,7 @@ LCC_DOC_SECTIONS: dict[str, str] = {
         "1. Đọc yêu cầu, ánh xạ sang đúng tool ở bảng trên.\n"
         "2. Nếu người dùng dán một brief hoặc gửi file brief mà không nói rõ, mặc định gọi `lcc` để phân tích. Khi trả lời, chỉ nhắc các đuôi file hỗ trợ: `.txt`, `.md`, `.json`, `.csv`, `.yaml`, `.log`, `.js`, `.py`, `.html`, `.css`, `.jpg`, `.png`, `.gif`, `.webp`; Beta: `.pdf`, `.xls`, `.xlsx`, `.ppt`, `.pptx`.\n"
         "3. Trước khi tạo/sửa launch, dùng `lcc_catalog` nếu user nói sản phẩm/phân loại/template không rõ. Nếu sai, trả catalog hợp lệ và hỏi họ chọn lại.\n"
-        "4. Nếu người dùng muốn tạo launch, hỏi lần lượt: Tên Launch, phân loại hợp lệ, owner, Ngày Bắt Đầu và Ngày Kết Thúc theo đúng `dd/mm/yyyy hh:mm` (bắt buộc có giờ phút), brief, rồi gọi tool tạo launch. Không dùng nhãn mơ hồ `Ngày mục tiêu`. Nếu họ chỉ đưa ngày mà thiếu giờ/phút, hỏi lại ngay, không tự mặc định giờ. Nếu họ hỏi thêm về LCC/Launch trong lúc tạo, trả lời ngắn gọn và tiếp tục hỏi field còn thiếu.\n"
+        "4. Nếu người dùng muốn tạo launch, hỏi lần lượt: Tên Launch, owner, phân loại hợp lệ, template, trạng thái, xác nhận owner/chỉnh lại owner, Ngày Bắt Đầu và Ngày Kết Thúc theo đúng `dd/mm/yyyy hh:mm` (bắt buộc có giờ phút), brief, rồi gọi tool tạo launch. Không dùng nhãn mơ hồ `Ngày mục tiêu`. Nếu họ chỉ đưa ngày mà thiếu giờ/phút, hỏi lại ngay, không tự mặc định giờ. Nếu trạng thái và thời gian bị lệch, trả lời kèm nút/hướng dẫn `Sửa trạng thái`, `Sửa Start Launch`, `Sửa End Launch`, `Quay lại xác nhận`. Nếu họ hỏi thêm về LCC/Launch trong lúc tạo, trả lời ngắn gọn và tiếp tục hỏi field còn thiếu.\n"
         "5. Nếu thiếu tham số bắt buộc (vd `brief`, `launchId`, `name`), hỏi lại người dùng ngắn gọn thay vì đoán.\n"
         "6. Luôn kiểm tra rule thời gian/trạng thái trước khi lưu hoặc phân tích: End Launch không được sớm hơn Start Launch; nếu End Launch đã qua thì không được chọn Đang chạy/Sắp chạy; nếu Start Launch đã qua thì không được chọn Sắp chạy.\n"
         "7. Trình bày kết quả gọn, dễ đọc; với readiness nêu rõ màu Green/Yellow/Red, điểm số, lý do và 3 việc cần làm trước.\n"
@@ -2598,7 +2608,7 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         launch, suggestions = resolve_launch_from_args(args)
         if launch is None:
             return launch_reference_error(args, suggestions)
-        if public_lock_enabled() and is_sample_launch_id(launch.get("id")):
+        if is_sample_launch(launch):
             return public_lock_error(tool_name)
         updates: dict[str, Any] = {"id": launch.get("id")}
         field_map = {
@@ -2655,8 +2665,8 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         result["guardrailTrace"] = guardrail_trace(gcheck)
         if not force_fast:
             result = record_analysis_memory(brief, analysis_context, result)
-        if public_lock_enabled() and is_sample_launch_id(launch.get("id")):
-            updated = launch  # public lock: show result but do not persist into sample history
+        if is_sample_launch(launch):
+            updated = launch  # Show result but do not persist into seeded sample history.
         else:
             updated = append_analysis(launch, result, brief)
         return {"ok": True, "tool": tool_name, "result": result, "launch": updated, "summary": summarize_launch(updated)}
@@ -2665,7 +2675,7 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         launch, suggestions = resolve_launch_from_args(args)
         if launch is None:
             return launch_reference_error(args, suggestions)
-        if public_lock_enabled() and is_sample_launch_id(launch.get("id")):
+        if is_sample_launch(launch):
             return public_lock_error(tool_name)
         expected = f"DELETE {launch['id']}"
         if str(args.get("confirm") or "").strip() != expected:
@@ -2811,7 +2821,7 @@ def channel_skill_system_prompt(language: str = "vi") -> str:
             "When unsure which tool to use, call `lcc_docs` first. If the user asks about products, classifications, or templates, call `lcc_catalog` and only present valid catalog values.",
             "Products, classifications, and templates are immutable for channel bots. Bots may read the catalog only. Creation, deletion, or configuration changes require a Human Admin in Web UI/Admin flow.",
             "If the user sends a brief or a supported file, call `lcc` or `lcc_analyze_launch`. Supported extensions: " + extensions + ". Beta: " + beta_extensions + ".",
-            "When creating or updating a launch, ask explicitly for Start Launch and End Launch with date and time: `dd/mm/yyyy hh:mm` or ISO with time. Never say vague labels like Target Date, never accept date-only values, and never invent the time.",
+            "When creating a launch, ask in this order: Launch Name, Owner, Classification, Template, Status, confirm/edit Owner, Start Launch, End Launch, Brief, then confirmation. Start Launch and End Launch must include date and time: `dd/mm/yyyy hh:mm` or ISO with time. Never say vague labels like Target Date, never accept date-only values, and never invent the time. If schedule and status conflict, provide actions: Edit status, Edit Start Launch, Edit End Launch, Back to confirmation.",
             "If the user gives an invalid classification/type/template/product, do not accept it. Call `lcc_catalog`, show valid catalog values, and ask the user to choose again.",
             "When confirming a created or updated launch to the user, show user-facing fields like Launch Name, Classification, Start Launch, End Launch, and Owner. Do not show ID unless the user asks for it or needs it for deletion.",
             "Before saving or analyzing a saved launch, enforce schedule/status rules: End Launch must not be earlier than Start Launch; if End Launch is in the past, status cannot be Running or Upcoming; if Start Launch is in the past, status cannot be Upcoming; if Start Launch is still in the future, status cannot be Running or Completed.",
@@ -2824,7 +2834,7 @@ def channel_skill_system_prompt(language: str = "vi") -> str:
         "Khi chưa chắc nên dùng tool nào, gọi `lcc_docs` trước. Nếu user hỏi sản phẩm, phân loại hoặc template, gọi `lcc_catalog` và chỉ đưa các giá trị hợp lệ trong catalog.",
         "Sản phẩm, phân loại và template là cấu hình bất biến với channel bot. Bot chỉ được đọc catalog. Tạo, xóa hoặc sửa cấu hình chỉ dành cho Human Admin trong Web UI/Admin flow.",
         "Nếu user gửi brief hoặc file hỗ trợ, gọi `lcc` hoặc `lcc_analyze_launch`. Đuôi file hỗ trợ: " + extensions + ". Beta: " + beta_extensions + ".",
-        "Khi tạo hoặc sửa launch, bắt buộc hỏi rõ Ngày Bắt Đầu và Ngày Kết Thúc đủ ngày giờ: `dd/mm/yyyy hh:mm` hoặc ISO có giờ. Không dùng nhãn mơ hồ như Ngày mục tiêu, không nhận date-only và không tự đoán giờ.",
+        "Khi tạo launch, hỏi đúng thứ tự: Tên Launch, Owner, Phân loại, Template, Trạng thái, xác nhận/chỉnh lại Owner, Ngày Bắt Đầu, Ngày Kết Thúc, Brief, rồi xác nhận. Ngày Bắt Đầu/Ngày Kết Thúc phải đủ ngày giờ: `dd/mm/yyyy hh:mm` hoặc ISO có giờ. Không dùng nhãn mơ hồ như Ngày mục tiêu, không nhận date-only và không tự đoán giờ. Nếu thời gian và trạng thái bị lệch, đưa nút/hướng dẫn: Sửa trạng thái, Sửa Start Launch, Sửa End Launch, Quay lại xác nhận.",
         "Nếu user nhập sai phân loại/template/sản phẩm, không được nhận. Gọi `lcc_catalog`, đưa danh sách hợp lệ và hỏi user chọn lại.",
         "Khi xác nhận đã tạo hoặc sửa launch cho user, chỉ hiển thị các field user-facing như Tên Launch, Phân loại, Ngày Bắt Đầu, Ngày Kết Thúc, Owner. Không ghi ID trừ khi user hỏi ID hoặc cần ID để xóa.",
         "Trước khi lưu hoặc phân tích launch đã lưu, enforce rule thời gian/trạng thái: End Launch không được sớm hơn Start Launch; nếu End Launch đã qua thì status không được là Đang chạy hoặc Sắp chạy; nếu Start Launch đã qua thì status không được là Sắp chạy; nếu Start Launch còn ở tương lai thì status không được là Đang chạy hoặc Đã chạy.",
@@ -5787,7 +5797,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 result = orchestrate_launchops_analysis(brief, analysis_context)
                 result = record_analysis_memory(brief, analysis_context, result)
                 result["guardrailTrace"] = guardrail_trace(gcheck)
-                if not (public_lock_enabled() and is_sample_launch_id(launch.get("id"))):
+                if not is_sample_launch(launch):
                     launch = append_analysis(launch, result, brief)
                 json_response(
                     self,
@@ -5798,7 +5808,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 write_backend_log(f"Launch analyze handler crashed: {type(exc).__name__}")
                 write_backend_log(traceback.format_exc())
                 result = fallback_result(f"Backend lỗi nhưng đã fallback: {type(exc).__name__}.")
-                if not (public_lock_enabled() and is_sample_launch_id(launch.get("id"))):
+                if not is_sample_launch(launch):
                     launch = append_analysis(launch, result, brief)
                 json_response(
                     self,

@@ -3268,9 +3268,17 @@ textarea {
   min-width: 0;
 }
 
+.catalog-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.95fr);
+  gap: 14px;
+  align-items: start;
+  width: 100%;
+}
+
 .template-catalog-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   align-items: start;
 }
@@ -3320,6 +3328,18 @@ textarea {
 .catalog-list {
   display: grid;
   gap: 8px;
+}
+
+.classification-template-list {
+  display: grid;
+  gap: 7px;
+}
+
+.classification-template-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(74px, auto);
+  gap: 7px;
+  align-items: center;
 }
 
 .catalog-row {
@@ -4176,6 +4196,10 @@ body.is-analyzing #traceConsoleBody::after {
   }
 
   .template-catalog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-heading {
     grid-template-columns: minmax(0, 1fr);
   }
 }

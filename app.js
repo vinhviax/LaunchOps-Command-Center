@@ -284,22 +284,38 @@ const TEMPLATE_OPERATORS = [
 const TEMPLATE_EDITING_LOCKED = false;
 const ROLE_SWITCH_LOCKED = false;
 const LOCKED_LAUNCH_ROLE = "human";
-// Public review lock: mirrors server LAUNCHOPS_PUBLIC_LOCK (read from /api/version at boot).
-// When true: config/template + approval are view-only and sample launches cannot be edited/deleted.
+// Public review lock mirrors the server flag. Sample data stays protected for normal sessions.
 let PUBLIC_LOCK = false;
-const SAMPLE_LAUNCH_PREFIXES = ["golden-spin", "lucky-spin", "lucky-wheel", "midweek", "may-login"];
+const SAMPLE_LAUNCH_IDS = [
+  "golden-spin-may-retro",
+  "golden-spin-weekend-risk",
+  "golden-spin-weekend-v2-ready",
+  "golden-spin-demo-01-retro",
+  "golden-spin-demo-02-risk",
+  "golden-spin-demo-03-ready",
+  "monsoon-shop-retro",
+  "monsoon-shop-live",
+  "monsoon-shop-ready",
+  "hero-login-retro",
+  "hero-login-live",
+  "hero-login-ready",
+  "lucky-wheel-weekend",
+  "midweek-topup-campaign",
+  "may-login-streak",
+  "lucky-wheel-weekend-test"
+];
 function launchIsSample(launch) {
   if (launch && typeof launch.isSample === "boolean") return launch.isSample;
   const id = String(launch?.id || "").toLowerCase();
-  return SAMPLE_LAUNCH_PREFIXES.some((prefix) => id.startsWith(prefix));
+  return SAMPLE_LAUNCH_IDS.includes(id);
 }
 function currentLaunchIsSample() {
   return launchIsSample(currentLaunch);
 }
 function sampleLaunchLocked() {
-  return PUBLIC_LOCK && currentLaunchIsSample();
+  return currentLaunchIsSample() && !adminSessionEnabled();
 }
-// Admin bật bằng URL ?role=admin (nhớ trong session); ?role=human để tắt.
+// Internal maintainer sessions may unlock sample data for debugging.
 const roleQueryParam = new URLSearchParams(window.location.search).get("role");
 if (roleQueryParam === "admin") window.sessionStorage.setItem("launchops_admin", "1");
 else if (roleQueryParam === "human") window.sessionStorage.removeItem("launchops_admin");
@@ -1648,7 +1664,7 @@ function syncLaunchRoleLock() {
   if (!launchOperator) return;
   launchOperator.value = activeLaunchRole();
   launchOperator.disabled = true;
-  launchOperator.title = tr("Quyền Admin mở bằng tham số nội bộ ?role=admin.", "Admin access is enabled by the internal ?role=admin parameter.");
+  launchOperator.title = tr("Quyền nâng cao chỉ dành cho phiên nội bộ của tác giả.", "Advanced access is reserved for internal maintainer sessions.");
 }
 
 function isLaunchAdmin() {
@@ -1935,6 +1951,14 @@ function renderClassificationEditor(editable = canEditTemplate()) {
   classificationEditor.innerHTML = launchTypes.map((type) => {
     const protectedType = PROTECTED_LAUNCH_TYPES.includes(type);
     const removable = editable && !protectedType && launchTypes.length > 1;
+    const templateIds = templateIdsForType(type);
+    const hasUnusedTemplate = BASE_TEMPLATE_OPTIONS.some(({ id }) => !templateIds.includes(id));
+    const templateRows = templateIds.map((templateId, index) => `
+      <div class="classification-template-row" data-type-template-row="${index}">
+        <select data-type-template data-type-template-index="${index}"${disabledAttr(editable)}>${baseOptions}</select>
+        <button type="button" data-remove-type-template="${escapeHTML(type)}" data-type-template-index="${index}"${editable && index > 0 ? "" : " disabled"}>${configTerm("delete")}</button>
+      </div>
+    `).join("");
     return `
       <article class="catalog-row classification-row" data-launch-type="${escapeHTML(type)}">
         <label>
@@ -1943,16 +1967,17 @@ function renderClassificationEditor(editable = canEditTemplate()) {
         </label>
         <label>
           <span>${configTerm("templateForClassification")}</span>
-          <select data-type-template${disabledAttr(editable)}>${baseOptions}</select>
+          <div class="classification-template-list">${templateRows}</div>
         </label>
-        <button type="button" data-add-template-for-type="${escapeHTML(type)}"${editable ? "" : " disabled"} title="${escapeHTML(tr("Thêm template cho phân loại này", "Add template for this classification"))}">+</button>
+        <button type="button" data-add-template-for-type="${escapeHTML(type)}"${editable && hasUnusedTemplate ? "" : " disabled"} title="${escapeHTML(tr("Thêm template có sẵn cho phân loại này", "Attach an existing template to this classification"))}">+</button>
         <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>${configTerm("delete")}</button>
       </article>
     `;
   }).join("");
   classificationEditor.querySelectorAll("[data-type-template]").forEach((select) => {
     const type = select.closest("[data-launch-type]")?.dataset.launchType;
-    select.value = baseTemplateIdForType(type);
+    const index = Number(select.dataset.typeTemplateIndex || 0);
+    select.value = templateIdsForType(type)[index] || baseTemplateIdForType(type);
   });
 }
 
@@ -3479,6 +3504,8 @@ function launchMatchesBoardFilter(launch) {
   const searchText = normalizeText([
     launch.name,
     typeLabel(launch.type),
+    launch.templateName,
+    templateDisplayName(launch.template || defaultTemplateForType(launch.type || "Game event")),
     STATUS_LABELS[status],
     launch.owner
   ].filter(Boolean).join(" "));
@@ -3689,7 +3716,7 @@ function renderTemplatePermissionState() {
   const title = allowed ? tr("Full quyền chỉnh cấu hình", "Full config access") : tr("Chỉ xem cấu hình", "Read-only config");
   const detail = allowed
     ? tr("Admin nội bộ có thể sửa, lưu, khôi phục và duyệt đề xuất template.", "Internal admin can edit, save, restore, and approve template proposals.")
-    : tr("Muốn mở quyền Admin nội bộ, dùng tham số ?role=admin. Bản review public vẫn khóa mọi mutation.", "Internal admin access uses ?role=admin. Public review mode still blocks mutations.");
+    : tr("Quyền nâng cao chỉ dành cho phiên nội bộ của tác giả. Bản review public vẫn bảo vệ dữ liệu mẫu.", "Advanced access is reserved for internal maintainer sessions. Public review mode still protects sample data.");
 
   templatePermissionState.className = `permission-state ${stateClass}`;
   templatePermissionState.innerHTML = `
@@ -5187,9 +5214,9 @@ async function analyze() {
   }
 
   analyzeButton.disabled = true;
-  analyzeButton.textContent = tr("Đang phân tích...", "Analyzing...");
+  analyzeButton.textContent = tr("Đang phân tích... tốn từ 2-5' tùy Brief", "Analyzing... takes 2-5 min depending on the brief");
   analysisSource.textContent = tr("Đang gọi AI...", "Calling AI...");
-  setAnalysisRunStatus("running", tr("Đang phân tích brief...", "Analyzing brief..."));
+  setAnalysisRunStatus("running", tr("Đang phân tích... tốn từ 2-5' tùy Brief", "Analyzing... takes 2-5 min depending on the brief"));
   document.body.classList.add("is-analyzing");
   const startedAt = Date.now();
   logRunEvent("info", "analyze", `Bắt đầu phân tích "${currentLaunch?.name || "Launch mới"}" (backend=${backendAvailable ? "có" : "không"}).`);
@@ -5470,31 +5497,26 @@ function addBaseTemplate() {
   analysisSource.textContent = tr("Đã thêm template mới. Bạn có thể đổi tên rồi gán cho phân loại cần dùng.", "New template added. You can rename it and assign it to a type.");
 }
 
-function addTemplateForLaunchType(type) {
+function addExistingTemplateForLaunchType(type) {
   if (!canEditTemplate()) {
     analysisSource.textContent = tr("Bản review public chỉ cho xem cấu hình, chưa cho thêm template.", "Public review mode is read-only; templates cannot be added.");
     return;
   }
   if (!launchTypeExists(type)) return;
-  const id = uniqueBaseTemplateId();
-  const template = normalizeTemplate({
-    ...defaultTemplateForType(type),
-    name: `Custom Template ${BASE_TEMPLATE_OPTIONS.length - PROTECTED_BASE_TEMPLATE_IDS.length + 1}`,
-    customized: false
-  }, type);
-  BASE_TEMPLATE_OPTIONS.push({ id, template });
-  TEMPLATE_NAME_LABELS[template.name] = "Template mới";
-  TEMPLATE_NAME_LABELS_EN[template.name] = "New template";
-  bindTemplateToType(type, id);
-  selectedConfigTemplateId = id;
+  const existingIds = templateIdsForType(type);
+  const nextTemplate = BASE_TEMPLATE_OPTIONS.find(({ id }) => !existingIds.includes(id));
+  if (!nextTemplate) {
+    analysisSource.textContent = tr("Phân loại này đã có toàn bộ template hiện có.", "This classification already has every existing template.");
+    return;
+  }
+  TYPE_TEMPLATE_IDS[type] = [...existingIds, nextTemplate.id];
   if (currentLaunch?.type === type) {
-    currentLaunch.template = normalizeTemplate(template, type);
-    renderLaunchTemplateOptions(id);
+    renderLaunchTemplateOptions(baseTemplateIdForLaunch(currentLaunch));
   }
   renderTemplateConfig();
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = tr(`Đã thêm template mới cho ${typeLabel(type)}.`, `New template added for ${typeLabel(type)}.`);
+  analysisSource.textContent = tr(`Đã gắn thêm template có sẵn cho ${typeLabel(type)}.`, `Attached an existing template to ${typeLabel(type)}.`);
 }
 
 function removeBaseTemplate(id) {
@@ -5579,15 +5601,34 @@ function updateLaunchTypeTemplate(select) {
   if (!canEditTemplate()) return;
   const type = select.closest("[data-launch-type]")?.dataset.launchType;
   if (!launchTypeExists(type)) return;
-  const template = baseTemplateById(select.value);
-  bindTemplateToType(type, select.value);
+  const index = Number(select.dataset.typeTemplateIndex || 0);
+  const ids = templateIdsForType(type);
+  ids[index] = select.value;
+  const dedupedIds = Array.from(new Set(ids.filter((id) => baseTemplateById(id))));
+  TYPE_TEMPLATE_IDS[type] = dedupedIds.length ? dedupedIds : [firstBaseTemplateId()];
+  const primaryId = TYPE_TEMPLATE_IDS[type][0];
+  const template = baseTemplateById(primaryId);
+  LAUNCH_TEMPLATES[type] = normalizeTemplate(template, type);
   if (currentLaunch?.type === type) {
     currentLaunch.template = normalizeTemplate(template, type);
-    renderLaunchTemplateOptions(select.value);
+    renderLaunchTemplateOptions(baseTemplateIdForLaunch(currentLaunch));
   }
+  renderClassificationEditor();
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
   analysisSource.textContent = tr(`Đã đổi bộ template gốc cho ${typeLabel(type)}.`, `Changed the base template for ${typeLabel(type)}.`);
+}
+
+function removeTemplateFromLaunchType(type, index) {
+  if (!canEditTemplate()) return;
+  if (!launchTypeExists(type) || index <= 0) return;
+  const ids = templateIdsForType(type);
+  ids.splice(index, 1);
+  TYPE_TEMPLATE_IDS[type] = ids.length ? ids : [firstBaseTemplateId()];
+  renderTemplateConfig();
+  renderLaunchWorkspace();
+  renderLatestAnalysisOrPreview();
+  analysisSource.textContent = tr(`Đã bỏ template phụ khỏi ${typeLabel(type)}.`, `Removed the extra template from ${typeLabel(type)}.`);
 }
 
 function removeLaunchType(type) {
@@ -5615,7 +5656,7 @@ function removeLaunchType(type) {
 function handleTemplateCatalogChange(event) {
   const addTemplateButton = event.target.closest("[data-add-template-for-type]");
   if (addTemplateButton) {
-    addTemplateForLaunchType(addTemplateButton.dataset.addTemplateForType);
+    addExistingTemplateForLaunchType(addTemplateButton.dataset.addTemplateForType);
     return;
   }
 
@@ -6120,13 +6161,23 @@ function assistantConfirmOptions() {
 function assistantCreateEditOptions() {
   return [
     { label: "Tên launch", value: "wizard:create:field:name" },
+    { label: "Owner", value: "wizard:create:field:owner" },
     { label: "Phân loại", value: "wizard:create:field:type" },
     { label: "Template", value: "wizard:create:field:template" },
-    { label: "Owner", value: "wizard:create:field:owner" },
+    { label: "Trạng thái", value: "wizard:create:field:status" },
     { label: "Start Launch", value: "wizard:create:field:targetDate" },
     { label: "End Launch", value: "wizard:create:field:endDate" },
-    { label: "Trạng thái", value: "wizard:create:field:status" },
     { label: "Nội dung brief", value: "wizard:create:field:brief" },
+    { label: "Quay lại xác nhận", value: "wizard:create:backConfirm" },
+    { label: "Hủy", value: "assistant:cancel" }
+  ];
+}
+
+function assistantScheduleFixOptions() {
+  return [
+    { label: "Sửa trạng thái", value: "wizard:create:field:status" },
+    { label: "Sửa Start Launch", value: "wizard:create:field:targetDate" },
+    { label: "Sửa End Launch", value: "wizard:create:field:endDate" },
     { label: "Quay lại xác nhận", value: "wizard:create:backConfirm" },
     { label: "Hủy", value: "assistant:cancel" }
   ];
@@ -6316,6 +6367,16 @@ function handleCreateWizardInput(rawText) {
     };
   }
 
+  if (value.startsWith("wizard:create:field:") && assistantWizard.step !== "editField" && assistantWizard.step !== "ownerConfirm") {
+    assistantWizard.step = "editField";
+    return handleCreateWizardInput(value);
+  }
+
+  if (value === "wizard:create:backConfirm" && assistantWizard.step !== "editField") {
+    assistantWizard.step = "confirm";
+    return { reply: formatAssistantDraftSummary(draft), options: assistantConfirmOptions() };
+  }
+
   if (assistantWizard.step === "editField") {
     if (value === "wizard:create:backConfirm") {
       assistantWizard.step = "confirm";
@@ -6420,7 +6481,7 @@ function handleCreateWizardInput(rawText) {
     }
     const validation = validateLaunchScheduleRules({ ...draft, status: draft.status || "upcoming" });
     if (!validation.ok) {
-      return { reply: validation.message, options: assistantCreateEditOptions() };
+      return { reply: validation.message, options: assistantScheduleFixOptions() };
     }
     syncAssistantDraftPreview(draft);
     assistantWizard.previewActive = true;
@@ -6435,9 +6496,20 @@ function handleCreateWizardInput(rawText) {
     draft.name = cleanAssistantField(value) || "Launch mới từ Assistant";
     syncAssistantDraftPreview(draft);
     assistantWizard.previewActive = true;
+    assistantWizard.step = "owner";
+    return {
+      reply: `Đã ghi tên launch: ${draft.name}.\n\nOwner/người phụ trách launch này là ai?`,
+      options: assistantCancelOptions()
+    };
+  }
+
+  if (assistantWizard.step === "owner") {
+    draft.owner = cleanAssistantField(value);
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "type";
     return {
-      reply: `Đã ghi tên launch: ${draft.name}.\n\nLaunch này thuộc phân loại/function nào?`,
+      reply: `Đã cập nhật owner: ${draft.owner || "chưa có"}.\n\nLaunch này thuộc phân loại/function nào?`,
       options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()]
     };
   }
@@ -6469,63 +6541,9 @@ function handleCreateWizardInput(rawText) {
     draft.template = cloneData(template);
     syncAssistantDraftPreview(draft);
     assistantWizard.previewActive = true;
-    assistantWizard.step = "owner";
-    return {
-      reply: `Đã chọn template: ${draft.templateName}.\n\nOwner/người phụ trách launch này là ai?`,
-      options: assistantCancelOptions()
-    };
-  }
-
-  if (assistantWizard.step === "owner") {
-    draft.owner = cleanAssistantField(value);
-    syncAssistantDraftPreview(draft);
-    assistantWizard.previewActive = true;
-    assistantWizard.step = "targetDate";
-    return {
-      reply: "Start Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
-      options: assistantCancelOptions()
-    };
-  }
-
-  if (assistantWizard.step === "targetDate") {
-    const dateValue = normalizeAssistantDateTime(value);
-    if (!dateValue) {
-      return {
-        reply: "Tôi chưa đọc được Start Launch đủ ngày giờ. Hãy nhập đúng dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
-        options: assistantCancelOptions()
-      };
-    }
-    draft.targetDate = dateValue;
-    syncAssistantDraftPreview(draft);
-    assistantWizard.previewActive = true;
-    assistantWizard.step = "endDate";
-    return {
-      reply: "End Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
-      options: assistantCancelOptions()
-    };
-  }
-
-  if (assistantWizard.step === "endDate") {
-    const dateValue = normalizeAssistantDateTime(value);
-    if (!dateValue) {
-      return {
-        reply: "Tôi chưa đọc được End Launch đủ ngày giờ. Hãy nhập đúng dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
-        options: assistantCancelOptions()
-      };
-    }
-    draft.endDate = dateValue;
-    const validation = validateLaunchScheduleRules({ ...draft, status: draft.status || "upcoming" });
-    if (!validation.ok) {
-      return {
-        reply: validation.message,
-        options: assistantCancelOptions()
-      };
-    }
-    syncAssistantDraftPreview(draft);
-    assistantWizard.previewActive = true;
     assistantWizard.step = "status";
     return {
-      reply: "Chọn trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.",
+      reply: `Đã chọn template: ${draft.templateName}.\n\nChọn trạng thái launch trước khi nhập thời gian: Sắp chạy, Đang chạy, hoặc Đã chạy.`,
       options: [
         { label: "Đã chạy", value: "completed" },
         { label: "Đang chạy", value: "running" },
@@ -6549,20 +6567,75 @@ function handleCreateWizardInput(rawText) {
         ]
       };
     }
-    const status = statusValueFromText(value);
-    const validation = validateLaunchScheduleRules({ ...draft, status });
-    if (!validation.ok) {
+    draft.status = statusValueFromText(value);
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
+    assistantWizard.step = "ownerConfirm";
+    return {
+      reply: `Trạng thái đã là ${STATUS_LABELS[draft.status]}.\n\nOwner hiện là "${draft.owner || "chưa có"}". Giữ owner này hay nhập owner mới?`,
+      options: [
+        { label: "Giữ owner", value: "wizard:create:ownerConfirm:keep" },
+        { label: "Sửa owner", value: "wizard:create:field:owner" },
+        ...assistantCancelOptions()
+      ]
+    };
+  }
+
+  if (assistantWizard.step === "ownerConfirm") {
+    if (value === "wizard:create:field:owner") {
+      assistantWizard.step = "ownerConfirm";
       return {
-        reply: validation.message,
-        options: [
-          { label: "Đã chạy", value: "completed" },
-          { label: "Đang chạy", value: "running" },
-          { label: "Sắp chạy", value: "upcoming" },
-          ...assistantCancelOptions()
-        ]
+        reply: "Nhập owner mới cho launch này.",
+        options: assistantCancelOptions()
       };
     }
-    draft.status = status;
+    if (value !== "wizard:create:ownerConfirm:keep" && !/(giu|keep)/.test(normalized)) {
+      draft.owner = cleanAssistantField(value) || draft.owner;
+    }
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
+    assistantWizard.step = "targetDate";
+    return {
+      reply: "Start Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
+      options: assistantCancelOptions()
+    };
+  }
+
+  if (assistantWizard.step === "targetDate") {
+    const dateValue = normalizeAssistantDateTime(value);
+    if (!dateValue) {
+      return {
+        reply: "Tôi chưa đọc được Start Launch đủ ngày giờ. Hãy nhập đúng dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
+        options: assistantScheduleFixOptions()
+      };
+    }
+    draft.targetDate = dateValue;
+    const validation = validateLaunchScheduleRules({ ...draft, status: draft.status || "upcoming" });
+    if (!validation.ok) {
+      return { reply: validation.message, options: assistantScheduleFixOptions() };
+    }
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
+    assistantWizard.step = "endDate";
+    return {
+      reply: "End Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
+      options: assistantCancelOptions()
+    };
+  }
+
+  if (assistantWizard.step === "endDate") {
+    const dateValue = normalizeAssistantDateTime(value);
+    if (!dateValue) {
+      return {
+        reply: "Tôi chưa đọc được End Launch đủ ngày giờ. Hãy nhập đúng dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
+        options: assistantScheduleFixOptions()
+      };
+    }
+    draft.endDate = dateValue;
+    const validation = validateLaunchScheduleRules({ ...draft, status: draft.status || "upcoming" });
+    if (!validation.ok) {
+      return { reply: validation.message, options: assistantScheduleFixOptions() };
+    }
     syncAssistantDraftPreview(draft);
     assistantWizard.previewActive = true;
     assistantWizard.step = "brief";
@@ -6597,7 +6670,7 @@ function handleCreateWizardInput(rawText) {
       if (!validation.ok) {
         return {
           reply: validation.message,
-          options: assistantCreateEditOptions()
+          options: assistantScheduleFixOptions()
         };
       }
       const payload = {
@@ -7486,7 +7559,15 @@ if (classificationEditor) {
   classificationEditor.addEventListener("click", (event) => {
     const addTemplateButton = event.target.closest("[data-add-template-for-type]");
     if (addTemplateButton) {
-      addTemplateForLaunchType(addTemplateButton.dataset.addTemplateForType);
+      addExistingTemplateForLaunchType(addTemplateButton.dataset.addTemplateForType);
+      return;
+    }
+    const removeTemplateButton = event.target.closest("[data-remove-type-template]");
+    if (removeTemplateButton) {
+      removeTemplateFromLaunchType(
+        removeTemplateButton.dataset.removeTypeTemplate,
+        Number(removeTemplateButton.dataset.typeTemplateIndex || 0)
+      );
       return;
     }
     const removeButton = event.target.closest("[data-remove-launch-type]");
@@ -7623,7 +7704,7 @@ const LAUNCHOPS_LANG_MAP = {
     statusCompleted: "Đã chạy",
     statusUpcoming: "Sắp chạy",
     searchLabel: "Tìm kiếm",
-    searchPlaceholder: "Tên hoặc phân loại",
+    searchPlaceholder: "Tên/Phân Loại/Template",
     dateFromLabel: "Từ ngày",
     dateToLabel: "Đến ngày",
     statusLabel: "Trạng thái",
@@ -7727,7 +7808,7 @@ const LAUNCHOPS_LANG_MAP = {
     errNoBriefStatus: "No brief available for analysis. Enter a brief and try again.",
     statusUpcoming: "Upcoming",
     searchLabel: "Search",
-    searchPlaceholder: "Name or type",
+    searchPlaceholder: "Name/Classification/Template",
     dateFromLabel: "From",
     dateToLabel: "To",
     statusLabel: "Status",

@@ -840,6 +840,7 @@ class PublicReviewLockTests(unittest.TestCase):
             **app.default_sample_launches()[0],
             "id": "golden-spin-review-lock",
             "name": "Golden Spin Review Lock",
+            "isSample": True,
             "targetDate": "15/07/2099 08:30",
             "endDate": "17/07/2099 23:59",
             "analyses": [{
@@ -1659,9 +1660,68 @@ class WebAssistantFlowContractTests(unittest.TestCase):
         source = (SERVER_DIR.parent / "friendly-ui.js").read_text(encoding="utf-8")
 
         self.assertIn(
-            "var LAUNCH_CONFIG_FLOW = ['name', 'type', 'template', 'owner', 'targetDate', 'endDate', 'status', 'brief'];",
+            "var LAUNCH_CONFIG_FLOW = ['name', 'owner', 'type', 'template', 'status', 'ownerConfirm', 'targetDate', 'endDate', 'brief'];",
             source,
         )
+
+    def test_config_catalog_tab_is_first_and_active(self):
+        source = (SERVER_DIR.parent / "index.html").read_text(encoding="utf-8")
+        nav_start = source.index('<nav class="config-tabs"')
+        first_catalog = source.index('data-config-tab="catalog"', nav_start)
+        first_risk = source.index('data-config-tab="risk"', nav_start)
+
+        self.assertLess(first_catalog, first_risk)
+        self.assertIn('class="config-tab active" data-config-tab="catalog"', source)
+        i18n_source = (SERVER_DIR.parent / "i18n-clean.js").read_text(encoding="utf-8")
+        self.assertIn('catalog: "Phân loại"', i18n_source)
+        self.assertIn("const key = tab.dataset.configTab;", i18n_source)
+
+    def test_search_placeholder_and_filter_include_template(self):
+        index_source = (SERVER_DIR.parent / "index.html").read_text(encoding="utf-8")
+        app_source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+        i18n_source = (SERVER_DIR.parent / "i18n-clean.js").read_text(encoding="utf-8")
+
+        self.assertIn('placeholder="Tên/Phân Loại/Template"', index_source)
+        self.assertIn('searchPlaceholder: "Tên/Phân Loại/Template"', app_source)
+        self.assertIn('searchPlaceholder: "Tên/Phân Loại/Template"', i18n_source)
+        self.assertIn("launch.templateName", app_source)
+
+    def test_classification_plus_uses_existing_template_pool(self):
+        source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("function addExistingTemplateForLaunchType(type)", source)
+        self.assertNotIn("function addTemplateForLaunchType(type)", source)
+        self.assertNotIn("BASE_TEMPLATE_OPTIONS.push({ id, template });\n  TEMPLATE_NAME_LABELS[template.name] = \"Template mới\";\n  TEMPLATE_NAME_LABELS_EN[template.name] = \"New template\";\n  bindTemplateToType(type, id);", source)
+
+    def test_public_copy_does_not_reveal_admin_query_param(self):
+        readme_vi = (SERVER_DIR.parent / "README.md").read_text(encoding="utf-8")
+        readme_en = (SERVER_DIR.parent / "README_EN.md").read_text(encoding="utf-8")
+        app_source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertNotIn("?role=admin", readme_vi)
+        self.assertNotIn("?role=admin", readme_en)
+        self.assertNotIn("Quyền Admin mở bằng tham số", app_source)
+        self.assertNotIn("Internal admin access uses", app_source)
+
+    def test_analyze_status_copy_mentions_expected_duration(self):
+        source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("Đang phân tích... tốn từ 2-5' tùy Brief", source)
+        self.assertIn("Analyzing... takes 2-5 min depending on the brief", source)
+
+    def test_replay_to_step_one_restores_home_actions(self):
+        source = (SERVER_DIR.parent / "friendly-ui.js").read_text(encoding="utf-8")
+
+        self.assertIn("function resetFriendlyStepOneActions()", source)
+        self.assertIn("resetFriendlyStepOneActions();", source)
+        for label in ("Tạo launch mới", "Sửa launch này", "Lưu launch", "Xóa launch", "Tổng hợp launch", "Hỗ trợ / giải thích", "Nạp Brief Mẫu", "Chạy phân tích", "Demo mode", "Export report", "Bài học"):
+            self.assertIn(label, source)
+
+    def test_channel_docs_create_launch_order_matches_bot_flow(self):
+        doc = app.execute_launchops_tool("lcc_docs", {"topic": "workflow"})["doc"]
+
+        self.assertIn("Tên Launch, owner, phân loại hợp lệ, template, trạng thái, xác nhận owner", doc)
+        self.assertIn("Sửa trạng thái", doc)
 
     def test_pro_create_wizard_starts_from_name_and_removes_objective_step(self):
         source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")

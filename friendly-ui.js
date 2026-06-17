@@ -125,7 +125,7 @@
   var savingFriendlyEditId = '';
   var renderingFriendlyDraftCards = false;
   var FRIENDLY_STATUS_ORDER = ['running', 'upcoming', 'completed'];
-  var LAUNCH_CONFIG_FLOW = ['name', 'type', 'template', 'owner', 'targetDate', 'endDate', 'status', 'brief'];
+  var LAUNCH_CONFIG_FLOW = ['name', 'owner', 'type', 'template', 'status', 'ownerConfirm', 'targetDate', 'endDate', 'brief'];
   var NEW_LAUNCH_FLOW = LAUNCH_CONFIG_FLOW.slice();
   var EDIT_LAUNCH_FLOW = LAUNCH_CONFIG_FLOW.slice();
 
@@ -947,6 +947,7 @@
     if (field === 'type') return friendlyCopy('chọn phân loại để dùng đúng bộ luật đánh giá.', 'choose the launch type so the right scoring rules are used.');
     if (field === 'template') return friendlyCopy('chọn template để bot bám đúng playbook/rubric của phân loại này.', 'choose the template so the bot follows the right playbook and rubric.');
     if (field === 'owner') return friendlyCopy('nhập owner chính để checklist có người chịu trách nhiệm.', 'add the main owner so checklist items have accountability.');
+    if (field === 'ownerConfirm') return friendlyCopy('xác nhận owner lần nữa trước khi nhập thời gian để tránh nhầm trạng thái với lịch.', 'confirm the owner again before dates to avoid mixing status and schedule.');
     if (field === 'targetDate') return friendlyCopy('nhập Start Launch đầy đủ ngày giờ theo dạng dd/mm/yyyy hh:mm.', 'enter Start Launch with full date and time as dd/mm/yyyy hh:mm.');
     if (field === 'endDate') return friendlyCopy('nhập End Launch đầy đủ ngày giờ theo dạng dd/mm/yyyy hh:mm.', 'enter End Launch with full date and time as dd/mm/yyyy hh:mm.');
     if (field === 'status') return friendlyCopy('chọn trạng thái đúng với thời gian Start/End hiện tại.', 'choose a status that matches the current Start/End schedule.');
@@ -1167,6 +1168,17 @@
     ]);
   }
 
+  function resetFriendlyStepOneActions() {
+    chatAwaiting = '';
+    chatFlow = '';
+    chatFlowSteps = [];
+    chatFlowIndex = -1;
+    lessonAwaiting = '';
+    showHomeActions();
+    updateGuidance(friendlyCopy('Gợi ý tiếp theo: xử lý điểm còn thiếu hoặc chọn một thao tác nhanh bên dưới.', 'Next hint: handle missing items or choose a quick action below.'));
+    setNpcSpeech(friendlyCopy('Đã mở lại launch nháp. Bạn có thể tiếp tục cấu hình hoặc lưu.', 'I reopened the draft launch. You can continue configuring or save it.'));
+  }
+
   function showEditActions() {
     chatAwaiting = '';
     chatFlow = 'edit';
@@ -1176,15 +1188,24 @@
     updateGuidance(friendlyCopy('Gợi ý tiếp theo: chọn một mục cần sửa, mình sẽ cập nhật ngay trong Chi tiết launch.', 'Next hint: choose a field to edit and I will update Launch details immediately.'));
     setChatActions([
       { label: 'Tên launch', action: 'field', value: 'name' },
+      { label: 'Owner', action: 'field', value: 'owner' },
       { label: 'Phân loại', action: 'field', value: 'type' },
       { label: 'Template', action: 'field', value: 'template' },
-      { label: 'Owner', action: 'field', value: 'owner' },
+      { label: 'Trạng thái', action: 'field', value: 'status' },
       { label: 'Start Launch', action: 'field', value: 'targetDate' },
       { label: 'End Launch', action: 'field', value: 'endDate' },
-      { label: 'Trạng thái', action: 'field', value: 'status' },
       { label: 'Brief', action: 'field', value: 'brief' },
       { label: 'Rà soát tuần tự', action: 'edit-sequential' },
       { label: 'Lưu launch', action: 'save' }
+    ]);
+  }
+
+  function showScheduleFixActions() {
+    setChatActions([
+      { label: 'Sửa trạng thái', action: 'field', value: 'status' },
+      { label: 'Sửa Start Launch', action: 'field', value: 'targetDate' },
+      { label: 'Sửa End Launch', action: 'field', value: 'endDate' },
+      { label: 'Quay lại xác nhận', action: 'final-review' }
     ]);
   }
 
@@ -1272,6 +1293,11 @@
       addChatMessage('agent', friendlyCopy('Ai là owner chính của launch này?', 'Who is the main owner for this launch?'));
       chatInputPlaceholder('Ví dụ: PM LiveOps');
       setNpcSpeech(friendlyCopy('Đang chờ owner để cập nhật phần chi tiết launch.', 'Waiting for the owner so I can update the launch details.'));
+    } else if (field === 'ownerConfirm') {
+      var currentOwner = normalize((byId('launchOwner') && byId('launchOwner').value) || '');
+      addChatMessage('agent', friendlyCopy('Owner hiện là "' + (currentOwner || 'chưa có') + '". Gõ "giữ nguyên" hoặc nhập owner mới trước khi mình hỏi thời gian.', 'Current owner is "' + (currentOwner || 'not set') + '". Type "keep" or enter a new owner before I ask for the schedule.'));
+      chatInputPlaceholder(friendlyCopy('Gõ "giữ nguyên" hoặc owner mới', 'Type "keep" or a new owner'));
+      setNpcSpeech(friendlyCopy('Đang xác nhận owner trước khi nhập thời gian launch.', 'Confirming owner before entering launch schedule.'));
     } else if (field === 'targetDate') {
       addChatMessage('agent', friendlyCopy('Gõ Start Launch đầy đủ ngày giờ. Ví dụ: 12/06/2026 08:30.', 'Type Start Launch with full date and time. Example: 12/06/2026 08:30.'));
       chatInputPlaceholder('12/06/2026 08:30');
@@ -1779,7 +1805,10 @@
     if (chatAwaiting === 'status') {
       var statusValue = statusValueFromText(value);
       var statusError = statusValue ? validateFriendlySchedule({ status: statusValue }) : '';
-      if (statusError) addChatMessage('agent', statusError);
+      if (statusError) {
+        addChatMessage('agent', statusError);
+        showScheduleFixActions();
+      }
       else if (statusValue && setRealField('launchStatus', statusValue)) finishField(friendlyCopy('Đã cập nhật trạng thái launch.', 'Launch status updated.'), 'status');
       else addChatMessage('agent', friendlyCopy('Mình chưa khớp được trạng thái. Bạn gõ Sắp chạy, Đang chạy, hoặc Đã chạy nhé.', 'I could not match that status. Type Upcoming, Running, or Completed.'));
       return;
@@ -1793,11 +1822,16 @@
       if (setRealField('launchOwner', value)) finishField(friendlyCopy('Đã cập nhật owner và hiển thị ngay trên Chi tiết launch.', 'Owner updated and shown in Launch details.'), 'owner');
       return;
     }
+    if (chatAwaiting === 'ownerConfirm') {
+      if (setRealField('launchOwner', value)) finishField(friendlyCopy('Đã xác nhận owner trước khi nhập thời gian.', 'Owner confirmed before schedule entry.'), 'ownerConfirm');
+      return;
+    }
     if (chatAwaiting === 'targetDate') {
       var startDate = parseSingleFriendlyDateTime(value);
       var startDateError = startDate ? validateFriendlySchedule({ targetDate: startDate }) : '';
       if (startDateError) {
         addChatMessage('agent', startDateError);
+        showScheduleFixActions();
         return;
       }
       if (startDate && setRealField('launchTargetDate', startDate)) finishField(friendlyCopy('Đã cập nhật Start Launch.', 'Start Launch updated.'), 'targetDate');
@@ -1809,6 +1843,7 @@
       var endDateError = endDate ? validateFriendlySchedule({ endDate: endDate }) : '';
       if (endDateError) {
         addChatMessage('agent', endDateError);
+        showScheduleFixActions();
         return;
       }
       if (endDate && setRealField('launchEndDate', endDate)) finishField(friendlyCopy('Đã cập nhật End Launch.', 'End Launch updated.'), 'endDate');
@@ -2906,6 +2941,7 @@
     if (replay) replay.addEventListener('click', function () {
       stopAutoplay();
       setStep(0);
+      resetFriendlyStepOneActions();
       addChatMessage('agent', friendlyCopy('Mình đã đưa bạn về bước Đọc brief. Bạn có thể tiếp tục chat để tạo hoặc sửa launch.', 'I moved you back to Read brief. You can keep chatting to create or edit the launch.'));
     });
     if (prev) prev.addEventListener('click', function () {
