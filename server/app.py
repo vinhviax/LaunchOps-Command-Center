@@ -5354,6 +5354,12 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         parts = [part for part in path.split("/") if part]
 
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            return
+
         if path in ("/health", "/api/health"):
             json_response(self, 200, {"ok": True, "service": "launchops-local-backend", "role": current_agent_role()})
             return
