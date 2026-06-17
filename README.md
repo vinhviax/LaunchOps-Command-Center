@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 17/06/2026 — production chạy trên VNG AgentBase: image `v35`, runtime version 48, UI cache `fix-20260617p`, storage `cloud`, mode `remote_agents`.
+> Cập nhật 17/06/2026 — production chạy trên VNG AgentBase: image `v36`, runtime version 49, UI cache `fix-20260617s`, storage `cloud`, mode `remote_agents`, public-review lock ON.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 

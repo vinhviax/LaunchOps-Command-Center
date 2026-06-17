@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-17 — production runs on VNG AgentBase: image `v35`, runtime version 48, UI cache `fix-20260617p`, storage `cloud`, mode `remote_agents`.
+> Updated 2026-06-17 — production runs on VNG AgentBase: image `v36`, runtime version 49, UI cache `fix-20260617s`, storage `cloud`, mode `remote_agents`, public-review lock ON.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
