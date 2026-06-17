@@ -527,6 +527,15 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
   font-weight:600;
 }
 
+.friendly-viz-miss-list{
+  display:grid;
+  gap:6px;
+  max-height:104px;
+  overflow-y:auto;
+  padding-right:2px;
+  scrollbar-gutter:stable;
+}
+
 .friendly-viz-brief .friendly-viz-miss.is-empty{
   display:block;
   margin-top:0;
@@ -609,6 +618,7 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
   display:flex;
   flex-direction:column;
   min-height:360px;
+  max-height:460px;
   overflow:hidden;
 }
 
@@ -662,10 +672,12 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
   gap:6px;
   flex:1;
   min-height:172px;
+  max-height:252px;
   height:auto;
   margin-top:10px;
   overflow:auto;
   padding-right:3px;
+  scrollbar-gutter:stable;
 }
 
 .friendly-chat-message{

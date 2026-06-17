@@ -2600,13 +2600,15 @@
     title.textContent = friendlyCopy('Điểm cần bổ sung trước launch', 'Items to add before launch');
     box.appendChild(title);
 
-    items.slice(0, 3).forEach(function (item) {
+    var list = document.createElement('div');
+    list.className = 'friendly-viz-miss-list';
+    items.forEach(function (item) {
       var chip = document.createElement('span');
       chip.className = 'friendly-viz-miss-chip';
       chip.textContent = shorten(item || '', 118);
-      chip.title = item || '';
-      box.appendChild(chip);
+      list.appendChild(chip);
     });
+    box.appendChild(list);
   }
 
   function renderSnapshot(snapshot) {

@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260618a">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260618a">
+  <link rel="stylesheet" href="styles.css?v=fix-20260618b">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260618b">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -122,7 +122,7 @@
     <div class="topbar-actions">
       <span id="analysisSource" class="sync-status">Bản local đã sẵn sàng</span>
       <button id="changeProduct" type="button" class="topbar-config-button">Đổi sản phẩm</button>
-      <button id="openTemplateConfig" type="button" class="topbar-config-button pro-only">Cấu Hình</button>
+      <button id="openTemplateConfig" type="button" class="topbar-config-button">Cấu Hình</button>
       <div class="lang-switch" role="group" aria-label="Language / Ngôn ngữ"><button id="langViBtn" type="button" class="mode-btn active" data-lang="vi">VI</button><button id="langEnBtn" type="button" class="mode-btn" data-lang="en">EN</button></div>
       <div class="mode-switch" role="group" aria-label="Chọn giao diện">
         <button id="modeFriendlyBtn" type="button" class="mode-btn" data-mode="friendly" aria-pressed="false">Friendly</button>
@@ -666,7 +666,7 @@
               <span class="section-kicker">Cấu Hình</span>
               <div class="title-row">
                 <h3>Cách Agent đánh giá từng phân loại</h3>
-                <button class="help-button" type="button" aria-label="Giải thích cấu hình phân loại" data-tooltip="Mỗi phân loại launch dùng một bộ luật đánh giá. Bạn có thể đổi tên phân loại, chọn template gốc, rồi chỉnh nhóm rủi ro, phản biện, checklist và câu hỏi bài học.">?</button>
+                <button class="help-button config-title-help" type="button" aria-label="Giải thích cấu hình phân loại" data-tooltip="Mỗi phân loại launch dùng một bộ luật đánh giá. Bạn có thể đổi tên phân loại, chọn template gốc, rồi chỉnh nhóm rủi ro, phản biện, checklist và câu hỏi bài học.">?</button>
               </div>
             </div>
             <div class="template-actions">
@@ -727,6 +727,10 @@
                     <strong>Cách hiểu nhanh</strong>
                     <p><b>Phân loại</b> là loại launch người dùng chọn, ví dụ Sự kiện game hoặc Ra mắt tính năng. <b>Template</b> là bộ luật đánh giá mà phân loại đó dùng. Một template có thể dùng lại cho nhiều phân loại.</p>
                   </div>
+                  <div class="catalog-explainer template-explainer">
+                    <strong>Cách hiểu nhanh về Template</strong>
+                    <p><b>Template</b> là bộ khung Agent dùng để chấm điểm, phản biện, tạo checklist và hỏi bài học. Khi phân loại trỏ đúng template, launch mới sẽ dùng đúng bộ luật ngay từ đầu.</p>
+                  </div>
                 </div>
               </div>
               <div class="template-catalog-grid">
@@ -782,7 +786,7 @@
               <div class="card-head compact">
                 <div>
                   <span class="section-kicker">Nhóm phản biện</span>
-                  <h3>Góc phản biện</h3>
+                  <h3>Góc phản biện <button class="help-button inline" type="button" aria-label="Giải thích góc phản biện" data-tooltip="Các vai phản biện giúp Agent soi launch từ nhiều góc nhìn như người dùng, vận hành, kỹ thuật, CS hoặc kinh doanh để bắt rủi ro trước khi chạy.">?</button></h3>
                 </div>
                 <button id="addPersona" type="button">Thêm người phản biện</button>
               </div>
@@ -793,7 +797,7 @@
               <div class="card-head compact">
                 <div>
                   <span class="section-kicker">Thực thi</span>
-                  <h3>Checklist mẫu</h3>
+                  <h3>Checklist mẫu <button class="help-button inline" type="button" aria-label="Giải thích checklist mẫu" data-tooltip="Checklist mẫu là danh sách việc Agent dùng làm khung mặc định khi biến phân tích thành việc cần làm có owner, deadline, trạng thái và mức rủi ro.">?</button></h3>
                 </div>
                 <button id="addChecklistItem" type="button">Thêm việc</button>
               </div>
@@ -804,7 +808,7 @@
               <div class="card-head compact">
                 <div>
                   <span class="section-kicker">Bài học</span>
-                  <h3>Câu hỏi bài học</h3>
+                  <h3>Câu hỏi bài học <button class="help-button inline" type="button" aria-label="Giải thích câu hỏi bài học" data-tooltip="Các câu hỏi này dùng sau launch để nhắc team ghi kết quả thật, lỗi phát sinh và bài học để lần launch sau Agent có thêm ngữ cảnh.">?</button></h3>
                 </div>
                 <button id="addLessonBlock" type="button">Thêm block</button>
               </div>
@@ -976,9 +980,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260618a"></script>
-  <script src="app.js?v=fix-20260618a"></script>
-  <script src="friendly-ui.js?v=fix-20260618a"></script>
-  <script src="i18n-clean.js?v=fix-20260618a"></script>
+  <script src="config.js?v=fix-20260618b"></script>
+  <script src="app.js?v=fix-20260618b"></script>
+  <script src="friendly-ui.js?v=fix-20260618b"></script>
+  <script src="i18n-clean.js?v=fix-20260618b"></script>
 </body>
 </html>

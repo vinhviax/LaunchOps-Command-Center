@@ -4669,7 +4669,7 @@ function renderLessons() {
 
   lessonsPanel.innerHTML = `
     <section class="lesson-box">
-      <h3>${tr("Kết quả sau launch", "Post-launch results")}</h3>
+      <h3>${tr("Kết quả sau launch", "Post-launch results")} <button class="help-button inline" type="button" aria-label="${tr("Giải thích kết quả sau launch", "Explain post-launch results")}" data-tooltip="${tr("Ghi kết quả thực tế sau khi launch chạy xong: đạt/chưa đạt mục tiêu, lỗi phát sinh, phản hồi người dùng hoặc số liệu chính.", "Record what actually happened after the launch: goal hit/miss, incidents, user feedback, or key metrics.")}">?</button></h3>
       <textarea id="postResultInput" spellcheck="false">${escapeHTML(postResult)}</textarea>
       <label class="field">
         <span>${tr("Đổi trạng thái sau khi lưu", "Status after saving")}</span>
@@ -4681,7 +4681,7 @@ function renderLessons() {
       </label>
     </section>
     <section class="lesson-box">
-      <h3>${tr("Bài học rút ra", "Lessons learned")}</h3>
+      <h3>${tr("Bài học rút ra", "Lessons learned")} <button class="help-button inline" type="button" aria-label="${tr("Giải thích bài học rút ra", "Explain lessons learned")}" data-tooltip="${tr("Lưu điều cần nhớ cho lần sau. Agent có thể dùng các bài học này làm ngữ cảnh khi phân tích launch tương tự.", "Save what should be remembered next time. The Agent can reuse these lessons as context for similar launches.")}">?</button></h3>
       <div class="lesson-list">${lessonItems}</div>
       <label class="field brief-field">
         <span>${tr("Thêm bài học mới", "Add a new lesson")}</span>

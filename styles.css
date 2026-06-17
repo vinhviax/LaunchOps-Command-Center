@@ -493,6 +493,22 @@ button:disabled:hover {
   visibility: visible;
 }
 
+.config-title-help::after {
+  left: calc(100% + 12px);
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+}
+
+.config-title-help::before {
+  left: calc(100% + 2px);
+  top: 50%;
+  bottom: auto;
+  border-color: transparent;
+  border-right-color: var(--ink-deep-2);
+  transform: translateY(-50%);
+}
+
 /* Tooltip role-help trên topbar thả xuống dưới cho khỏi tràn */
 .topbar-actions .role-help::after {
   bottom: auto;
@@ -3290,11 +3306,20 @@ textarea {
   background: var(--accent-soft);
 }
 
+.catalog-explainer.template-explainer {
+  border-color: rgba(74, 132, 91, 0.24);
+  background: linear-gradient(180deg, rgba(246, 252, 247, 0.98), rgba(250, 253, 248, 0.92));
+}
+
 .catalog-explainer strong {
   display: block;
   margin-bottom: 5px;
   font-size: 12.5px;
   color: var(--accent-deep);
+}
+
+.catalog-explainer.template-explainer strong {
+  color: #3c7b50;
 }
 
 .catalog-explainer p {
@@ -4629,12 +4654,32 @@ body.is-analyzing #traceConsoleBody::after {
 
 /* Public review lock: sample-launch notice next to the launch detail title */
 .sample-launch-notice {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   margin: 2px 0 0;
+  padding: 6px 10px;
+  border: 1px solid rgba(194, 67, 26, 0.24);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 247, 241, 0.98), rgba(255, 252, 248, 0.92));
+  box-shadow: 0 8px 20px -18px rgba(194, 67, 26, 0.45);
   font-size: 11px;
   line-height: 1.35;
-  color: #b45309;
-  font-weight: 600;
+  color: var(--accent-deep);
+  font-weight: 800;
+}
+.sample-launch-notice::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
 }
 .sample-launch-notice[hidden] {
   display: none;

@@ -391,6 +391,8 @@ const CONFIG_TEXT = {
     catalogTitle: "Phân loại & template gốc",
     quickTitle: "Cách hiểu nhanh",
     quickBody: '<b>Phân loại</b> là loại launch người dùng chọn, ví dụ Sự kiện game hoặc Ra mắt tính năng. <b>Template</b> là bộ luật đánh giá mà phân loại đó dùng. Một template có thể dùng lại cho nhiều phân loại.',
+    templateQuickTitle: "Cách hiểu nhanh về Template",
+    templateQuickBody: '<b>Template</b> là bộ khung Agent dùng để chấm điểm, phản biện, tạo checklist và hỏi bài học. Khi phân loại trỏ đúng template, launch mới sẽ dùng đúng bộ luật ngay từ đầu.',
     templateHelp: "Template là bộ luật đánh giá. Tạo template mới khi bạn muốn một bộ luật khác hẳn các mẫu có sẵn.",
     addTemplate: "Thêm template",
     typeKicker: "Phân loại launch",
@@ -403,12 +405,18 @@ const CONFIG_TEXT = {
     scoreBody: "Mỗi nhóm rủi ro có một điểm tối đa riêng. Tổng readiness bằng tổng điểm của tất cả nhóm rủi ro, không cố định 12. Agent dựa vào tiêu chí đạt điểm, từ khóa demo local và nội dung brief để chấm từ 0 đến điểm tối đa của nhóm đó.",
     personaKicker: "Nhóm phản biện",
     personaTitle: "Góc phản biện",
+    personaHelpLabel: "Giải thích góc phản biện",
+    personaHelpTooltip: "Các vai phản biện giúp Agent soi launch từ nhiều góc nhìn như người dùng, vận hành, kỹ thuật, CS hoặc kinh doanh để bắt rủi ro trước khi chạy.",
     addPersona: "Thêm người phản biện",
     checklistKicker: "Thực thi",
     checklistTitle: "Checklist mẫu",
+    checklistHelpLabel: "Giải thích checklist mẫu",
+    checklistHelpTooltip: "Checklist mẫu là danh sách việc Agent dùng làm khung mặc định khi biến phân tích thành việc cần làm có owner, deadline, trạng thái và mức rủi ro.",
     addChecklist: "Thêm việc",
     lessonKicker: "Bài học",
     lessonTitle: "Câu hỏi bài học",
+    lessonHelpLabel: "Giải thích câu hỏi bài học",
+    lessonHelpTooltip: "Các câu hỏi này dùng sau launch để nhắc team ghi kết quả thật, lỗi phát sinh và bài học để lần launch sau Agent có thêm ngữ cảnh.",
     addLesson: "Thêm block",
     operatorKicker: "Người thao tác",
     operatorTitle: "Danh sách người thao tác",
@@ -451,6 +459,8 @@ const CONFIG_TEXT = {
     catalogTitle: "Classification & base template",
     quickTitle: "Quick mental model",
     quickBody: '<b>Classification</b> is what the user picks on the launch form, such as Game event or Feature release. <b>Template</b> is the scoring rule set used by that classification. One template can be reused by multiple classifications.',
+    templateQuickTitle: "Quick template model",
+    templateQuickBody: '<b>Template</b> is the framework the Agent uses to score readiness, red-team the launch, build a checklist, and ask lesson questions. When a classification points to the right template, new launches start with the right rule set.',
     templateHelp: "A template is a scoring rule set. Create a new template when you need rules that are clearly different from the existing presets.",
     addTemplate: "Add template",
     typeKicker: "Launch classification",
@@ -463,12 +473,18 @@ const CONFIG_TEXT = {
     scoreBody: "Each risk group has its own max score. Total readiness is the sum of all risk-group scores, not a fixed 12. The Agent uses scoring criteria, local-demo keywords, and the brief to score from 0 up to that group's max score.",
     personaKicker: "Red-team group",
     personaTitle: "Red-team perspectives",
+    personaHelpLabel: "Explain red-team perspectives",
+    personaHelpTooltip: "These reviewer roles help the Agent inspect a launch from user, operations, technical, CS, or business angles to catch risks before launch.",
     addPersona: "Add reviewer",
     checklistKicker: "Execution",
     checklistTitle: "Checklist template",
+    checklistHelpLabel: "Explain checklist template",
+    checklistHelpTooltip: "The checklist template is the default task frame the Agent uses to turn analysis into owned work with deadlines, status, and risk level.",
     addChecklist: "Add task",
     lessonKicker: "Lessons",
     lessonTitle: "Lesson questions",
+    lessonHelpLabel: "Explain lesson questions",
+    lessonHelpTooltip: "These questions are used after launch to capture real outcomes, incidents, and lessons so the next similar launch has more context.",
     addLesson: "Add block",
     operatorKicker: "Operators",
     operatorTitle: "Operator list",
@@ -898,6 +914,13 @@ function applyCleanTranslations(lang) {
         if (strong) strong.textContent = cfg.quickTitle;
         if (p) p.innerHTML = cfg.quickBody;
       }
+      const templateExplainer = catalog.querySelector(".catalog-explainer.template-explainer");
+      if (templateExplainer) {
+        const strong = templateExplainer.querySelector("strong");
+        const p = templateExplainer.querySelector("p");
+        if (strong) strong.textContent = cfg.templateQuickTitle;
+        if (p) p.innerHTML = cfg.templateQuickBody;
+      }
       const panels = catalog.querySelectorAll(".catalog-panel");
       if (panels[0]) {
         const p = panels[0].querySelector(".catalog-panel-head p");
@@ -915,13 +938,18 @@ function applyCleanTranslations(lang) {
       }
     }
 
-    const setPaneHead = (panelName, kickerText, titleText, buttonId, buttonText) => {
+    const setPaneHead = (panelName, kickerText, titleText, buttonId, buttonText, helpLabel, helpTooltip) => {
       const panel = templateConfig.querySelector(`[data-config-panel="${panelName}"]`);
       if (!panel) return;
       const kicker = panel.querySelector(".card-head .section-kicker");
       const title = panel.querySelector(".card-head h3");
       if (kicker) kicker.textContent = kickerText;
-      if (title) title.textContent = titleText;
+      if (title) setLabelKeepHelp(title, titleText);
+      const help = title?.querySelector(".help-button");
+      if (help && helpLabel && helpTooltip) {
+        help.setAttribute("aria-label", helpLabel);
+        help.dataset.tooltip = helpTooltip;
+      }
       if (buttonId) setButtonText(buttonId, buttonText, true);
     };
     setPaneHead("risk", cfg.riskKicker, cfg.riskTitle, "addRiskGroup", cfg.addRisk);
@@ -932,9 +960,9 @@ function applyCleanTranslations(lang) {
       if (strong) strong.textContent = cfg.scoreTitle;
       if (p) p.textContent = cfg.scoreBody;
     }
-    setPaneHead("persona", cfg.personaKicker, cfg.personaTitle, "addPersona", cfg.addPersona);
-    setPaneHead("checklist", cfg.checklistKicker, cfg.checklistTitle, "addChecklistItem", cfg.addChecklist);
-    setPaneHead("lesson", cfg.lessonKicker, cfg.lessonTitle, "addLessonBlock", cfg.addLesson);
+    setPaneHead("persona", cfg.personaKicker, cfg.personaTitle, "addPersona", cfg.addPersona, cfg.personaHelpLabel, cfg.personaHelpTooltip);
+    setPaneHead("checklist", cfg.checklistKicker, cfg.checklistTitle, "addChecklistItem", cfg.addChecklist, cfg.checklistHelpLabel, cfg.checklistHelpTooltip);
+    setPaneHead("lesson", cfg.lessonKicker, cfg.lessonTitle, "addLessonBlock", cfg.addLesson, cfg.lessonHelpLabel, cfg.lessonHelpTooltip);
     setPaneHead("archive", cfg.archiveKicker, cfg.archiveTitle, null, "");
 
     const admin = templateConfig.querySelector('[data-config-panel="admin"]');
