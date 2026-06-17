@@ -56,10 +56,10 @@ Toàn bộ có human-in-the-loop, versioned và auditable. Đề xuất bị mas
 
 Đây là một đánh đổi có chủ đích: một cổng Go/No-Go phải **lặp lại được và kiểm toán được**, không phụ thuộc tâm trạng model. Nếu để LLM tự chấm số, cùng một brief có thể ra điểm khác nhau giữa các lần — không chấp nhận được cho quyết định launch. Nên model làm phần nó giỏi (ngôn ngữ, phản biện), còn con số do rule cố định quyết định. Khi model lỗi/timeout/trả sai schema, agent fallback về rule local và ghi rõ lý do trong `agentsTrace`.
 
-Hai lớp bảo vệ đi kèm:
+Đi kèm hai cơ chế bảo vệ, mỗi cơ chế ở hai tầng — app-level (enforce trong code) và platform-level (resource trên VNG Protect & Govern):
 
-- **Guardrail:** reject brief chứa private key/credential/secret thanh toán; mask email/phone trước khi gọi LLM hoặc ghi memory.
-- **Rate limit:** chặn lạm dụng đường analyze tốn kém (production 50 req/phút, 1000 req/ngày); MCP fast path được exempt.
+- **Guardrail** — app-level: reject brief chứa private key/credential/secret thanh toán, mask email/phone trước khi gọi LLM hoặc ghi memory. Platform-level: resource Guardrail `launchops-guardrail` bảo vệ thêm phía MaaS/model access.
+- **Rate limit** — app-level: chặn lạm dụng đường analyze tốn kém (production 50 req/phút, 1000 req/ngày; MCP fast path exempt). Platform-level: resource Rate Limit `launchops-rate-limit` trên Protect & Govern (1000 request + 3 triệu token mỗi tháng).
 
 ## Kiến trúc
 
@@ -132,7 +132,7 @@ Mọi agent gọi OpenAI-compatible `/v1/chat/completions`. Muốn **tách model
 
 Để có remote multi-agent, RAG và Cloud DB như production, bạn tự provision tài nguyên của mình rồi điền `.env` riêng (xem [Env](#env)): VNG MaaS key, AgentBase Memory store(s), VNG vDB/PostgreSQL, 4 child runtime, MCP Gateway. Thiếu phần nào app tự fallback an toàn: thiếu DB → local; thiếu Memory → tắt memory; thiếu child → chạy monolith 1 runtime; thiếu key → rule local.
 
-## Demo flow cho giám khảo (Golden Spin)
+## Demo flow (Golden Spin)
 
 1. **Brief rủi ro** — `Golden Spin Weekend Risk` → readiness Yellow/Red, điểm thấp, hiện Red Team 5 persona + checklist cần sửa.
 2. **Học từ retro** — `Golden Spin ... Retro` chứa bài học đã lưu; lesson này được recall để ground lần phân tích sau.

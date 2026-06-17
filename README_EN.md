@@ -56,10 +56,10 @@ The readiness score is **not** assigned by an LLM. It is recomputed by a **deter
 
 This is a deliberate trade-off: a Go/No-Go gate must be **reproducible and auditable**, not subject to a model's mood. If an LLM picked the number, the same brief could score differently across runs — unacceptable for a launch decision. So the model does what it's good at (language, critique) while a fixed rule owns the number. When a model fails, times out, or returns an invalid schema, that agent falls back to local rules and records the reason in `agentsTrace`.
 
-Two protective layers:
+Two protective mechanisms, each at two tiers — app-level (enforced in code) and platform-level (a VNG Protect & Govern resource):
 
-- **Guardrail:** rejects briefs containing private keys/credentials/payment secrets; masks email/phone before any LLM call or memory write.
-- **Rate limit:** caps the expensive analyze path (production 50 req/min, 1000 req/day); the MCP fast path is exempt.
+- **Guardrail** — app-level: rejects briefs with private keys/credentials/payment secrets, masks email/phone before any LLM call or memory write. Platform-level: the `launchops-guardrail` resource adds protection on MaaS/model access.
+- **Rate limit** — app-level: caps the expensive analyze path (production 50 req/min, 1000 req/day; MCP fast path exempt). Platform-level: the `launchops-rate-limit` resource on Protect & Govern (1000 requests + 3M tokens per month).
 
 ## Architecture
 
@@ -132,7 +132,7 @@ Every agent calls an OpenAI-compatible `/v1/chat/completions`. To give each agen
 
 For remote multi-agent, RAG, and Cloud DB like production, provision your own resources and fill your own `.env` (see [Env](#env)): VNG MaaS key, AgentBase Memory store(s), VNG vDB/PostgreSQL, 4 child runtimes, MCP Gateway. Missing any piece, the app falls back safely: no DB → local; no Memory → memory off; no child → monolith in one runtime; no key → local rules.
 
-## Demo flow for reviewers (Golden Spin)
+## Demo flow (Golden Spin)
 
 1. **Risky brief** — `Golden Spin Weekend Risk` → Yellow/Red readiness, low score, 5-persona Red Team + a checklist to fix.
 2. **Learn from retro** — `Golden Spin ... Retro` holds a stored lesson; it is recalled to ground the next analysis.
