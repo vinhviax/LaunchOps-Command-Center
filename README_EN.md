@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-17 — production runs on VNG AgentBase: image `v36`, runtime version 49, UI cache `fix-20260617s`, storage `cloud`, mode `remote_agents`, public-review lock ON.
+> Updated 2026-06-17 — production is currently on a temporary video-recording build on VNG AgentBase: image `v38`, runtime version 51, UI cache `fix-20260617t`, storage `cloud`, mode `remote_agents`, public-review lock OFF. The latest stable checkpoint before that was image `v36`, runtime version 49, cache `fix-20260617s`, lock ON.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
@@ -8,7 +8,7 @@ It is not a chatbot. The goal is to turn launch gatekeeping — usually run on t
 
 **Live demo:** https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn/
 
-> ⚠️ This is the author's own **ClawAThon VNG** instance. The endpoint, MaaS key, Memory stores, vDB, and child runtimes above are the author's **private resources and credentials — not shared, not multi-tenant**. To run the full mode, provision your own resources (see [How to run](#how-to-run)). To try it instantly with no cloud, use **Local demo mode** — Python only.
+> ⚠️ This is the author's own **ClawAThon VNG** instance. The endpoint, MaaS key, Cloud DB/PostgreSQL, Memory/knowledge stores, and child runtimes above are the author's **private resources and credentials — not shared, not multi-tenant**. To run the full mode, provision your own resources (see [How to run](#how-to-run)). To try it instantly with no cloud, use **Local demo mode** — Python only.
 
 ## A more practical example
 
@@ -90,10 +90,10 @@ Two protective mechanisms, each at two tiers — app-level (enforced in code) an
 
 ## Architecture
 
-The whole app lives in **one Python Docker image** — a `ThreadingHTTPServer` backend with no web framework, and HTML/CSS/vanilla-JS UI with no build step.
+The core app is **one Python + HTML/CSS/vanilla-JS codebase with no build step**. The same codebase can run in two modes: **monolith in one runtime** or **distributed remote-agents** (1 orchestrator + 4 analysis child runtimes).
 
 ```text
-User / Reviewer  ──▶  AgentBase Runtime (orchestrator, image v35)
+User / Reviewer  ──▶  AgentBase Runtime (orchestrator)
                          ├── GET  /                 → Pro/Friendly Web UI
                          ├── POST /api/analyze      → full multi-agent analysis
                          ├── POST /api/assistant    → chatbot
@@ -102,15 +102,15 @@ User / Reviewer  ──▶  AgentBase Runtime (orchestrator, image v35)
                          └── GET/DELETE /mcp        → 405 (streamable-http spec)
                          │
                          ├── VNG MaaS LLM models
-                         ├── VNG vDB / PostgreSQL (launch, template, history)
+                         ├── Cloud DB / PostgreSQL (launch, template, history, archive)
                          ├── 4 child runtimes: readiness · redteam · checklist · postmortem
-                         ├── AgentBase Memory stores (one per analysis agent)
-                         └── AgentBase MCP Gateway
+                         ├── Memory stores / knowledge stores for recall and lesson grounding
+                         └── Optional MCP path: AgentBase MCP Gateway or self-host channel/bot
 ```
 
-Production runs **remote multi-agent**: the orchestrator receives a request and calls 4 independent child runtimes via `POST /invocations`. Each child has its own runtime, model, **own knowledge store**, and a semantic self-recall step before returning. Memory insight + executive summary are synthesized at the orchestrator. If a child fails, the orchestrator falls back per agent instead of failing the whole flow. The production trace shows `orchestration.mode=remote_agents` plus `ragSources.storeId` on each child to prove this.
+Production currently runs **remote multi-agent**: the orchestrator receives a request and calls 4 independent child runtimes via `POST /invocations`. Each child has its own runtime, model, and can recall from its own memory/knowledge store before returning. Memory insight + executive summary are synthesized at the orchestrator. If a child fails, the orchestrator falls back per agent instead of failing the whole flow. The production trace shows `orchestration.mode=remote_agents` plus `ragSources.storeId` on each child to prove this.
 
-MCP also ships a **self-host channel skill** for OpenClaw/Zalo/Telegram/Discord (`/api/channel-skill`, `/openclaw/skill`, `/discord/skill`, with system-prompt and `mcp-remote.json`), so a bot can drive LaunchOps without the AgentBase Gateway.
+MCP also ships a **self-host channel skill** so bots can connect straight to the LaunchOps backend without requiring the AgentBase Gateway. The package exposes a shared manifest at `/api/channel-skill`, dedicated aliases for OpenClaw/Discord at `/openclaw/skill` and `/discord/skill`, plus system-prompt and `mcp-remote.json`. Zalo/Telegram currently use the same skill package plus backend webhooks, not dedicated `/zalo/skill` or `/telegram/skill` aliases. OpenClaw still needs `npx mcp-remote` because that client only supports stdio MCP.
 
 ## Where it expands
 
@@ -121,7 +121,7 @@ Each direction is anchored to something that already exists, not a vague promise
 | **Domain** | ✅ change domain = change template, not code | Template + classification/risk-group/persona catalog |
 | **Organization** | ✅ partial — product selector, per-product template (Demo live, Product XYZ locked) | `lcc_select_product` + per-product template |
 | **Operational data** | 🔜 ground the score with real metrics (DAU, revenue, incidents) | MCP architecture exists; data sources not yet wired into scoring |
-| **MCP architecture** | ✅ MCP server + channel skill across chat/agent platforms | `/mcp` + OpenClaw/Zalo/Telegram/Discord channel skill |
+| **MCP architecture** | ✅ MCP server + channel skill/webhook across chat/agent platforms | `/mcp`, `/api/channel-skill`, OpenClaw/Discord skill aliases, Zalo/Telegram webhooks |
 | **Compounding effect** | ✅ self-learning + memory: the more it's used, the richer the rubric/lessons | Controlled self-learning + per-agent memory store |
 
 The seed here is a launch-governance platform that improves itself over time — and the architecture for that (versioned templates, per-agent memory, a human reviewer inside the learning loop) is already in the running build.
@@ -157,7 +157,7 @@ Every agent calls an OpenAI-compatible `/v1/chat/completions`. To give each agen
 
 ### 3. Full AgentBase — distributed multi-agent + RAG + Cloud DB
 
-For remote multi-agent, RAG, and Cloud DB like production, provision your own resources and fill your own `.env` (see [Env](#env)): VNG MaaS key, AgentBase Memory store(s), VNG vDB/PostgreSQL, 4 child runtimes, MCP Gateway. Missing any piece, the app falls back safely: no DB → local; no Memory → memory off; no child → monolith in one runtime; no key → local rules.
+For remote multi-agent, RAG, and Cloud DB like production, provision your own resources and fill your own `.env` (see [Env](#env)): VNG MaaS key, Cloud DB/PostgreSQL, AgentBase Memory/knowledge store(s), and 4 child runtimes. MCP Gateway is an optional integration path; the self-host channel skill can connect straight to the backend. Missing any piece, the app falls back safely: no DB → local; no Memory → memory off; no child → monolith in one runtime; no key → local rules.
 
 ## Demo flow (Golden Spin)
 
@@ -188,7 +188,7 @@ Click **Load Sample Brief** or **Demo mode** to load it quickly.
 - `lcc_propose_template_update` · `lcc_approve_template_version` — controlled self-learning (Admin-only).
 - `analyze_launch_brief` — legacy tool, kept backward-compatible.
 
-OpenClaw connects via `npx mcp-remote <endpoint>/mcp`. Self-host: point your bot at `/mcp` or `POST /tools/call`.
+OpenClaw connects via `npx mcp-remote <endpoint>/mcp`. For self-hosted bots/webhooks, you can use `/mcp` directly (if the client speaks MCP streamable-http or has an equivalent bridge) or call `POST /tools/call` through your own wrapper.
 
 ## Env
 
@@ -222,11 +222,14 @@ LAUNCHOPS_POSTMORTEM_URL=https://...
 LAUNCHOPS_AGENT_INVOCATION_TOKEN=...
 
 # Governance:
+LAUNCHOPS_PUBLIC_LOCK=false
 LAUNCHOPS_GUARDRAIL_ENABLED=true
-LAUNCHOPS_RATELIMIT_ENABLED=true
+LAUNCHOPS_RATELIMIT_ENABLED=false
 LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN=50
 LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY=1000
 ```
+
+`LAUNCHOPS_PUBLIC_LOCK=true` is the flag used for public-review / mutation-locked mode. In `.env.example`, `LAUNCHOPS_RATELIMIT_ENABLED` currently defaults to `false`; production may enable it per environment.
 
 Never commit `.env` or real credentials.
 
@@ -241,15 +244,16 @@ styles.css · friendly.css
 config.js               # same-origin API config
 server/app.py           # Web server + API + MCP + 6-agent pipeline
 server/db.py            # local/cloud storage layer
-server/test_app.py      # stdlib unit tests (152 tests)
-server/seed_knowledge.py · server/migrate_to_cloud_db.py
-data/ · prompts/ · Dockerfile · README.md
+server/test_app.py      # stdlib unit tests (169 tests)
+server/requirements.txt · server/schema.sql
+server/seed_knowledge.py · server/seed_demo_data.py · server/migrate_to_cloud_db.py
+data/ · prompts/ · Dockerfile · .env.example · README.md
 ```
 
 ## Test
 
 ```bash
-python -m unittest server.test_app    # 152 tests, stdlib, no .env needed
+python -m unittest server.test_app    # 169 tests, stdlib, no .env needed
 node --check app.js friendly-ui.js i18n-clean.js
 ```
 

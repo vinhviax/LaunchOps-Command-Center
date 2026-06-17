@@ -1444,7 +1444,7 @@ body.ui-mode-pro .launch-card strong { padding-right: 92px; }
 }
 
 .action-button-row button.primary {
-  min-width: 150px;
+  min-width: 136px;
   border-color: var(--accent-strong);
   background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   box-shadow: 0 10px 22px -12px rgba(194, 67, 26, 0.6);
@@ -1452,6 +1452,13 @@ body.ui-mode-pro .launch-card strong { padding-right: 92px; }
 
 .action-button-row button.primary:hover {
   background: linear-gradient(180deg, var(--accent-strong), var(--accent-deep));
+}
+
+.action-button-row .launch-delete-action {
+  min-width: 96px;
+  min-height: 36px;
+  padding-inline: 12px;
+  white-space: nowrap;
 }
 
 .secondary-actions,
@@ -3365,7 +3372,11 @@ textarea {
 }
 
 .template-card-grid.persona-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#lessonEditor.template-card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .template-editor-card,
@@ -3738,6 +3749,29 @@ textarea {
   color: #fff;
 }
 
+.assistant-message.typing .assistant-message-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.assistant-message.typing .assistant-message-text::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(214, 83, 35, 0.22);
+  animation: assistant-typing-pulse 1s ease-in-out infinite;
+}
+
+@keyframes assistant-typing-pulse {
+  0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(214, 83, 35, 0.22); }
+  65% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(214, 83, 35, 0); }
+  100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(214, 83, 35, 0); }
+}
+
 .assistant-option-row {
   display: flex;
   flex-wrap: wrap;
@@ -3772,9 +3806,9 @@ textarea {
 .assistant-form input,
 .assistant-form textarea {
   flex: 1 1 auto;
-  min-height: 40px;
-  max-height: 130px;
-  resize: none;
+  min-height: 72px;
+  max-height: 220px;
+  resize: vertical;
 }
 
 .assistant-form button {
@@ -4369,7 +4403,9 @@ body.is-analyzing #traceConsoleBody::after {
   }
 
   .editor-grid,
-  .risk-editor-grid {
+  .risk-editor-grid,
+  .template-card-grid.persona-grid,
+  #lessonEditor.template-card-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
