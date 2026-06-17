@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 17/06/2026 — production hiện đang tạm chạy bản quay video trên VNG AgentBase: image `v38`, runtime version 51, UI cache `fix-20260617t`, storage `cloud`, mode `remote_agents`, public-review lock OFF. Mốc ổn định gần nhất trước đó là image `v36`, runtime version 49, cache `fix-20260617s`, lock ON.
+> Cập nhật 18/06/2026 — production hiện đang chạy bản quay video/test custom trên VNG AgentBase: image `v41`, runtime version 54, UI cache `fix-20260618a`, storage `cloud`, mode `remote_agents`, public-review lock OFF. Mốc ổn định gần nhất trước đó là image `v40`, runtime version 53, cache `fix-20260617z`.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 
@@ -172,8 +172,9 @@ Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
 
 - **Friendly mode:** trải nghiệm hướng dẫn từng bước cho người mới.
 - **Pro mode:** dashboard đầy đủ — readiness, Red Team, checklist, post-mortem, RAG insight, trace, và panel controlled self-learning.
-- **Danh sách launch:** lọc chung cho Pro/Friendly theo tên, trạng thái và khoảng ngày chạy để tìm nhanh launch trong một giai đoạn.
+- **Danh sách launch:** lọc chung cho Pro/Friendly theo tên, phân loại, template, trạng thái và khoảng ngày chạy để tìm nhanh launch trong một giai đoạn.
 - **Lưu trữ:** launch người dùng khi xóa được đưa vào tab Archive/Lưu trữ trong Cấu Hình để Admin xem, khôi phục hoặc xóa vĩnh viễn; bản public review chỉ cho xem khi đang khóa.
+- **Mẫu gốc:** launch mẫu, phân loại mẫu và template mẫu là dữ liệu demo bất biến với người dùng thường; người dùng có thể tạo/sửa/xóa dữ liệu custom riêng mà không làm hỏng mẫu.
 - **Log:** xem client event + server trace từng launch ở Pro mode (read-only trong bản review công khai).
 - **VI/EN:** UI song ngữ; output LLM theo ngôn ngữ của brief.
 

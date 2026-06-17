@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-17 — production is currently on a temporary video-recording build on VNG AgentBase: image `v38`, runtime version 51, UI cache `fix-20260617t`, storage `cloud`, mode `remote_agents`, public-review lock OFF. The latest stable checkpoint before that was image `v36`, runtime version 49, cache `fix-20260617s`, lock ON.
+> Updated 2026-06-18 — production is currently on the video/custom-test build on VNG AgentBase: image `v41`, runtime version 54, UI cache `fix-20260618a`, storage `cloud`, mode `remote_agents`, public-review lock OFF. The latest stable checkpoint before that was image `v40`, runtime version 53, cache `fix-20260617z`.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
@@ -172,8 +172,9 @@ Click **Load Sample Brief** or **Demo mode** to load it quickly.
 
 - **Friendly mode:** step-by-step guided experience for newcomers.
 - **Pro mode:** full dashboard — readiness, Red Team, checklist, post-mortem, RAG insight, trace, and the controlled self-learning panel.
-- **Launch list:** shared Pro/Friendly filters by name, status, and running date range so reviewers can find launches in a specific window.
+- **Launch list:** shared Pro/Friendly filters by name, classification, template, status, and running date range so reviewers can find launches in a specific window.
 - **Archive:** deleted user launches move to the Archive tab inside Config, where Admins can review, restore, or purge them; the public review build keeps it view-only while locked.
+- **Seed data:** sample launches, sample classifications, and sample templates are immutable for normal users; users can still create, edit, and delete their own custom data without damaging the demo set.
 - **Log:** view client events + server trace per launch in Pro mode (read-only in the public review build).
 - **VI/EN:** bilingual UI; LLM output follows the brief's language.
 
