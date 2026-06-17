@@ -235,8 +235,8 @@ const LAUNCH_TEMPLATES = {
   "Emergency hotfix": PRODUCTION_SYSTEM_TEMPLATE
 };
 const PROTECTED_LAUNCH_TYPES = Object.freeze([...Object.keys(LAUNCH_TEMPLATES), "lucky_spin_event"]);
+const HIDDEN_CATALOG_LAUNCH_TYPES = new Set(["lucky_spin_event"]);
 const LAUNCH_TYPE_ORDER = [
-  "lucky_spin_event",
   "Game event",
   "Campaign marketing",
   "Feature release",
@@ -284,6 +284,21 @@ const TEMPLATE_OPERATORS = [
 const TEMPLATE_EDITING_LOCKED = false;
 const ROLE_SWITCH_LOCKED = false;
 const LOCKED_LAUNCH_ROLE = "human";
+// Public review lock: mirrors server LAUNCHOPS_PUBLIC_LOCK (read from /api/version at boot).
+// When true: config/template + approval are view-only and sample launches cannot be edited/deleted.
+let PUBLIC_LOCK = false;
+const SAMPLE_LAUNCH_PREFIXES = ["golden-spin", "lucky-spin", "lucky-wheel", "midweek", "may-login"];
+function launchIsSample(launch) {
+  if (launch && typeof launch.isSample === "boolean") return launch.isSample;
+  const id = String(launch?.id || "").toLowerCase();
+  return SAMPLE_LAUNCH_PREFIXES.some((prefix) => id.startsWith(prefix));
+}
+function currentLaunchIsSample() {
+  return launchIsSample(currentLaunch);
+}
+function sampleLaunchLocked() {
+  return PUBLIC_LOCK && currentLaunchIsSample();
+}
 // Admin bật bằng URL ?role=admin (nhớ trong session); ?role=human để tắt.
 const roleQueryParam = new URLSearchParams(window.location.search).get("role");
 if (roleQueryParam === "admin") window.sessionStorage.setItem("launchops_admin", "1");
@@ -395,7 +410,7 @@ function statusDisplayLabel(status) {
 }
 
 function configButtonText(isConfigScreen = false) {
-  return isConfigScreen ? tr("Quay lại launch", "Back to launch") : tr("Cấu hình phân loại", "Classification Config");
+  return isConfigScreen ? tr("Quay lại launch", "Back to launch") : tr("Cấu Hình", "Config");
 }
 
 const PERSONA_LABELS = {
@@ -637,7 +652,7 @@ const OWNER_LABELS = {
   "LiveOps Lead": "Lead LiveOps"
 };
 const TYPE_LABELS = {
-  "lucky_spin_event": "Sự kiện Lucky Spin",
+  "lucky_spin_event": "Sự kiện game",
   "Game event": "Sự kiện game",
   "Campaign marketing": "Chiến dịch marketing",
   "Feature release": "Ra mắt tính năng",
@@ -650,7 +665,7 @@ const TYPE_LABELS = {
 
 // Nhãn phân loại tiếng Anh — dùng khi UI là EN (kể cả type có tên VI mặc định).
 const TYPE_LABELS_EN = {
-  "lucky_spin_event": "Lucky Spin Event",
+  "lucky_spin_event": "Game event",
   "Game event": "Game event",
   "Campaign marketing": "Marketing campaign",
   "Feature release": "Feature release",
@@ -680,6 +695,14 @@ const BASE_TEMPLATE_OPTIONS = [
   { id: "generic", template: GENERIC_LAUNCH_TEMPLATE }
 ];
 const PROTECTED_BASE_TEMPLATE_IDS = Object.freeze(BASE_TEMPLATE_OPTIONS.map((item) => item.id));
+const TYPE_TEMPLATE_IDS = {
+  "Game event": ["gameEvent"],
+  "Campaign marketing": ["generic"],
+  "Internal tool": ["generic"],
+  "Ops/process change": ["generic"],
+  "Partnership/commercial launch": ["generic"],
+  lucky_spin_event: ["luckySpin"]
+};
 
 const DEMO_CREATED_AT = new Date("2026-06-16T08:00:00+07:00").toISOString();
 const LUCKY_SPIN_TYPE = "lucky_spin_event";
@@ -903,8 +926,8 @@ const fallbackLaunches = [
     type: LUCKY_SPIN_TYPE,
     status: "completed",
     owner: "LiveOps Lead",
-    targetDate: "2026-05-29",
-    endDate: "2026-05-31",
+    targetDate: "2026-05-29 20:00",
+    endDate: "2026-05-31 23:59",
     brief: luckySpinRetroBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
     templateVersions: [],
@@ -932,10 +955,10 @@ const fallbackLaunches = [
     id: "golden-spin-weekend-risk",
     name: "Golden Spin Weekend Risk",
     type: LUCKY_SPIN_TYPE,
-    status: "running",
+    status: "upcoming",
     owner: "PM LiveOps",
-    targetDate: "2026-06-19",
-    endDate: "2026-06-21",
+    targetDate: "2026-06-19 20:00",
+    endDate: "2026-06-21 23:59",
     brief: badBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
     templateVersions: [],
@@ -964,8 +987,8 @@ const fallbackLaunches = [
     type: LUCKY_SPIN_TYPE,
     status: "upcoming",
     owner: "PM LiveOps + Tech on-call",
-    targetDate: "2026-06-19",
-    endDate: "2026-06-21",
+    targetDate: "2026-06-20 20:00",
+    endDate: "2026-06-22 23:59",
     brief: luckySpinReadyBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
     templateVersions: [
@@ -999,8 +1022,8 @@ const fallbackLaunches = [
     type: LUCKY_SPIN_TYPE,
     status: "completed",
     owner: "PM LiveOps",
-    targetDate: "2026-06-10",
-    endDate: "2026-06-12",
+    targetDate: "2026-06-10 20:00",
+    endDate: "2026-06-12 23:59",
     brief: luckySpinDraftRetroBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
     templateVersions: [],
@@ -1019,8 +1042,8 @@ const fallbackLaunches = [
     type: LUCKY_SPIN_TYPE,
     status: "running",
     owner: "PM LiveOps",
-    targetDate: "2026-06-13",
-    endDate: "2026-06-15",
+    targetDate: "2026-06-17 08:30",
+    endDate: "2026-06-18 23:59",
     brief: luckySpinDraftRiskBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
     templateVersions: [],
@@ -1039,8 +1062,8 @@ const fallbackLaunches = [
     type: LUCKY_SPIN_TYPE,
     status: "upcoming",
     owner: "PM LiveOps + Tech on-call",
-    targetDate: "2026-06-20",
-    endDate: "2026-06-22",
+    targetDate: "2026-06-20 20:00",
+    endDate: "2026-06-22 23:59",
     brief: luckySpinDraftReadyBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
     templateVersions: [],
@@ -1171,8 +1194,11 @@ const appShell = document.getElementById("appShell");
 const launchGroups = document.getElementById("launchGroups");
 const launchSearch = document.getElementById("launchSearch");
 const launchStatusFilterSelect = document.getElementById("launchStatusFilter");
+const launchDateFromInput = document.getElementById("launchDateFrom");
+const launchDateToInput = document.getElementById("launchDateTo");
 const launchName = document.getElementById("launchName");
 const launchType = document.getElementById("launchType");
+const launchTemplate = document.getElementById("launchTemplate");
 const launchStatus = document.getElementById("launchStatus");
 const launchOwner = document.getElementById("launchOwner");
 const launchTargetDate = document.getElementById("launchTargetDate");
@@ -1232,6 +1258,7 @@ const checklistEditor = document.getElementById("checklistEditor");
 const lessonEditor = document.getElementById("lessonEditor");
 const templateNameEditor = document.getElementById("templateNameEditor");
 const classificationEditor = document.getElementById("classificationEditor");
+const archiveList = document.getElementById("archiveList");
 const addBaseTemplateButton = document.getElementById("addBaseTemplate");
 const addLaunchTypeButton = document.getElementById("addLaunchType");
 const addRiskGroupButton = document.getElementById("addRiskGroup");
@@ -1267,27 +1294,31 @@ let redTeamBriefSupplements = {};
 let checklistProgress = {};
 
 let launches = [];
+let archivedLaunches = [];
 let currentLaunch = null;
 let backendAvailable = Boolean(API_BASE);
 let draftMode = false;
 let templateOperatorId = "vinhvnn";
 let launchSearchQuery = "";
 let launchStatusFilter = "all";
+let launchDateFromFilter = "";
+let launchDateToFilter = "";
 let selectedConfigType = "Game event";
+let selectedConfigTemplateId = "gameEvent";
 let previousLaunchView = "briefView";
 let templateConfigVersions = {};
 let controlledLearningBusy = "";
 let assistantWizard = null;
 
 function activeLaunchRole() {
-  return "admin";
+  return adminSessionEnabled() ? "admin" : LOCKED_LAUNCH_ROLE;
 }
 
 function syncLaunchRoleLock() {
   if (!launchOperator) return;
-  launchOperator.value = "admin";
-  launchOperator.disabled = false;
-  launchOperator.removeAttribute("title");
+  launchOperator.value = activeLaunchRole();
+  launchOperator.disabled = true;
+  launchOperator.title = tr("Quyền Admin mở bằng tham số nội bộ ?role=admin.", "Admin access is enabled by the internal ?role=admin parameter.");
 }
 
 function isLaunchAdmin() {
@@ -1299,19 +1330,19 @@ function currentLaunchStatus() {
 }
 
 function canEditLaunch() {
-  return true;
+  return !sampleLaunchLocked();
 }
 
 function canSaveLaunchData(launchData = collectLaunchFromForm()) {
-  return true;
+  return !sampleLaunchLocked();
 }
 
 function canDeleteLaunch() {
-  return Boolean(currentLaunch?.id && !draftMode);
+  return Boolean(currentLaunch?.id && !draftMode) && !sampleLaunchLocked();
 }
 
 function canSaveLaunchOutcome() {
-  return true;
+  return !sampleLaunchLocked();
 }
 
 function cloneData(value) {
@@ -1395,19 +1426,20 @@ function activeTemplate() {
 }
 
 function configTemplateType() {
-  if (!launchTypeExists(selectedConfigType)) selectedConfigType = firstLaunchType();
+  const id = configTemplateId();
+  const type = templateTypeOptions().find((item) => baseTemplateIdForType(item) === id);
+  selectedConfigType = type || firstLaunchType();
   return selectedConfigType;
 }
 
 function configTemplate() {
-  const type = configTemplateType();
-  return normalizeTemplate(LAUNCH_TEMPLATES[type], type);
+  return normalizeTemplate(baseTemplateById(configTemplateId()), configTemplateType());
 }
 
 function templateTypeOptions() {
   const orderedTypes = LAUNCH_TYPE_ORDER.filter((type) => launchTypeExists(type));
   const customTypes = Object.keys(LAUNCH_TEMPLATES).filter((type) => !orderedTypes.includes(type));
-  return [...orderedTypes, ...customTypes];
+  return [...orderedTypes, ...customTypes].filter((type) => !HIDDEN_CATALOG_LAUNCH_TYPES.has(type));
 }
 
 function launchTypeExists(type) {
@@ -1418,18 +1450,61 @@ function baseTemplateById(id) {
   return BASE_TEMPLATE_OPTIONS.find((item) => item.id === id)?.template || GENERIC_LAUNCH_TEMPLATE;
 }
 
+function baseTemplateOptionById(id) {
+  return BASE_TEMPLATE_OPTIONS.find((item) => item.id === id) || BASE_TEMPLATE_OPTIONS[0];
+}
+
+function firstBaseTemplateId() {
+  return BASE_TEMPLATE_OPTIONS[0]?.id || "generic";
+}
+
+function baseTemplateExists(id) {
+  return Boolean(BASE_TEMPLATE_OPTIONS.some((item) => item.id === id));
+}
+
 function baseTemplateIdForTemplate(template) {
+  if (!template) return "";
   const templateName = template?.name;
   return BASE_TEMPLATE_OPTIONS.find((item) => item.template.name === templateName)?.id || "generic";
 }
 
 function baseTemplateIdForType(type) {
-  return baseTemplateIdForTemplate(LAUNCH_TEMPLATES[type]);
+  const ids = (TYPE_TEMPLATE_IDS[type] || []).filter(baseTemplateExists);
+  return ids[0] || baseTemplateIdForTemplate(LAUNCH_TEMPLATES[type]);
+}
+
+function baseTemplateIdForLaunch(launch) {
+  return baseTemplateIdForTemplate(launch?.template) || baseTemplateIdForType(launch?.type) || firstBaseTemplateId();
+}
+
+function templateIdsForType(type, selectedId = "") {
+  const ids = (TYPE_TEMPLATE_IDS[type] || []).filter(baseTemplateExists);
+  const fallback = baseTemplateIdForTemplate(LAUNCH_TEMPLATES[type]) || firstBaseTemplateId();
+  if (!ids.length && fallback) ids.push(fallback);
+  if (selectedId && baseTemplateExists(selectedId) && !ids.includes(selectedId)) ids.unshift(selectedId);
+  return ids.length ? ids : [firstBaseTemplateId()];
+}
+
+function bindTemplateToType(type, templateId, { makeDefault = true } = {}) {
+  if (!launchTypeExists(type) || !baseTemplateExists(templateId)) return;
+  const ids = templateIdsForType(type).filter((id) => id !== templateId);
+  TYPE_TEMPLATE_IDS[type] = makeDefault ? [templateId, ...ids] : [...ids, templateId];
+  LAUNCH_TEMPLATES[type] = baseTemplateById(TYPE_TEMPLATE_IDS[type][0]);
+}
+
+function typesUsingTemplateId(templateId) {
+  return templateTypeOptions().filter((type) => templateIdsForType(type).includes(templateId));
+}
+
+function configTemplateId() {
+  if (!baseTemplateExists(selectedConfigTemplateId)) selectedConfigTemplateId = firstBaseTemplateId();
+  return selectedConfigTemplateId;
 }
 
 function ensureLaunchType(type, label = type, template = GENERIC_LAUNCH_TEMPLATE) {
   if (!type) return;
   if (!launchTypeExists(type)) LAUNCH_TEMPLATES[type] = template;
+  if (!TYPE_TEMPLATE_IDS[type]) TYPE_TEMPLATE_IDS[type] = [baseTemplateIdForTemplate(template) || firstBaseTemplateId()];
   if (!TYPE_LABELS[type]) TYPE_LABELS[type] = label || type;
 }
 
@@ -1439,15 +1514,31 @@ function firstLaunchType() {
 
 function renderLaunchTypeOptions(selectedType = launchType?.value || currentLaunch?.type || firstLaunchType()) {
   if (!launchType) return;
-  const safeSelectedType = launchTypeExists(selectedType) ? selectedType : firstLaunchType();
-  launchType.innerHTML = templateTypeOptions().map((type) => `
+  const selectedIsHidden = launchTypeExists(selectedType) && HIDDEN_CATALOG_LAUNCH_TYPES.has(selectedType);
+  const safeSelectedType = launchTypeExists(selectedType) && !HIDDEN_CATALOG_LAUNCH_TYPES.has(selectedType) ? selectedType : firstLaunchType();
+  const types = selectedIsHidden ? [selectedType, ...templateTypeOptions()] : templateTypeOptions();
+  launchType.innerHTML = types.map((type) => `
     <option value="${escapeHTML(type)}">${escapeHTML(typeLabel(type))}</option>
   `).join("");
-  launchType.value = safeSelectedType;
+  launchType.value = selectedIsHidden ? selectedType : safeSelectedType;
+}
+
+function renderLaunchTemplateOptions(selectedId = baseTemplateIdForLaunch(currentLaunch) || baseTemplateIdForType(launchType?.value) || firstBaseTemplateId()) {
+  if (!launchTemplate) return;
+  const selectedType = launchType?.value || currentLaunch?.type || firstLaunchType();
+  const safeSelectedId = baseTemplateExists(selectedId) ? selectedId : firstBaseTemplateId();
+  const optionIds = templateIdsForType(selectedType, safeSelectedId);
+  launchTemplate.innerHTML = optionIds.map((id) => {
+    const template = baseTemplateById(id);
+    return `
+    <option value="${escapeHTML(id)}">${escapeHTML(templateDisplayName(template))}</option>
+  `;
+  }).join("");
+  launchTemplate.value = safeSelectedId;
 }
 
 function syncLaunchTypeOptionLabels() {
-  [launchType, templateSelector].forEach((select) => {
+  [launchType].forEach((select) => {
     if (!select) return;
     Array.from(select.options || []).forEach((option) => {
       option.textContent = typeLabel(option.value);
@@ -1457,14 +1548,19 @@ function syncLaunchTypeOptionLabels() {
 
 function syncTemplateDisplayLabels() {
   if (templateName) {
-    const template = activeTemplate();
-    templateName.textContent = `${tr("Bộ luật", "Rule set")}: ${templateDisplayName(template)}${template.customized ? tr(" · Đã tùy chỉnh", " · Customized") : ""}`;
+    const template = configTemplate();
+    templateName.textContent = `${templateDisplayName(template)}${template.customized ? tr(" · Đã tùy chỉnh", " · Customized") : ""}`;
   }
+  [launchTemplate, templateSelector].forEach((select) => {
+    if (!select) return;
+    Array.from(select.options || []).forEach((option) => {
+      option.textContent = templateDisplayName(baseTemplateById(option.value));
+    });
+  });
   classificationEditor?.querySelectorAll("[data-type-template] option").forEach((option) => {
     option.textContent = templateDisplayName(baseTemplateById(option.value));
   });
 }
-
 function selectedTemplateType(template = activeTemplate()) {
   if (launchTypeExists(selectedConfigType)) return selectedConfigType;
   return templateTypeOptions().find((type) => defaultTemplateForType(type).name === template.name) || "Game event";
@@ -1472,14 +1568,14 @@ function selectedTemplateType(template = activeTemplate()) {
 
 function renderTemplateSelectorOptions(template = activeTemplate(), editable = canEditTemplate()) {
   if (!templateSelector) return;
-  templateSelector.innerHTML = templateTypeOptions().map((type) => {
-    return `<option value="${escapeHTML(type)}">${escapeHTML(typeLabel(type))}</option>`;
+  templateSelector.innerHTML = BASE_TEMPLATE_OPTIONS.map(({ id, template: itemTemplate }) => {
+    return `<option value="${escapeHTML(id)}">${escapeHTML(templateDisplayName(itemTemplate))}</option>`;
   }).join("");
-  templateSelector.value = selectedTemplateType(template);
+  templateSelector.value = configTemplateId();
   templateSelector.disabled = false;
   templateSelector.title = editable
-    ? tr("Chọn phân loại để cấu hình.", "Choose the classification to configure.")
-    : tr("Bản review public chỉ cho xem cấu hình; vẫn có thể đổi phân loại để đọc bộ luật.", "Public review mode is read-only; you can still switch classification to inspect its rule set.");
+    ? tr("Chọn template để cấu hình.", "Choose the template to configure.")
+    : tr("Bản review public chỉ cho xem cấu hình; vẫn có thể đổi template để đọc bộ luật.", "Public review mode is read-only; you can still switch templates to inspect their rules.");
 }
 
 function renderTemplateNameEditor(editable = canEditTemplate()) {
@@ -1519,6 +1615,7 @@ function renderClassificationEditor(editable = canEditTemplate()) {
           <span>${configTerm("templateForClassification")}</span>
           <select data-type-template${disabledAttr(editable)}>${baseOptions}</select>
         </label>
+        <button type="button" data-add-template-for-type="${escapeHTML(type)}"${editable ? "" : " disabled"} title="${escapeHTML(tr("Thêm template cho phân loại này", "Add template for this classification"))}">+</button>
         <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>${configTerm("delete")}</button>
       </article>
     `;
@@ -1668,11 +1765,11 @@ function templateOperatorScope(item = {}) {
 }
 
 function canEditTemplate() {
-  return isLaunchAdmin();
+  return !PUBLIC_LOCK && isLaunchAdmin();
 }
 
 function canApproveTemplateSuggestion() {
-  return isLaunchAdmin();
+  return !PUBLIC_LOCK && isLaunchAdmin();
 }
 
 function disabledAttr(editable = canEditTemplate()) {
@@ -1846,6 +1943,47 @@ function datePartsToLocalDate(parts) {
 
 function launchDateForRule(value) {
   return datePartsToLocalDate(parseDateOnly(value));
+}
+
+function dateInputBoundary(value, endOfDay = false) {
+  const parts = parseDateOnly(value);
+  if (!parts) return null;
+  const date = new Date(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    endOfDay ? 23 : 0,
+    endOfDay ? 59 : 0,
+    endOfDay ? 59 : 0,
+    endOfDay ? 999 : 0
+  );
+  return Number.isNaN(date.getTime()) ? null : date.getTime();
+}
+
+function launchScheduleRange(launch) {
+  const start = launchDateForRule(launch?.targetDate || launch?.startDate || launch?.createdAt || launch?.updatedAt);
+  const end = launchDateForRule(launch?.endDate || launch?.targetDate || launch?.startDate || launch?.updatedAt || launch?.createdAt);
+  const startMs = start ? start.getTime() : null;
+  const endMs = end ? end.getTime() : startMs;
+  return {
+    startMs,
+    endMs: endMs !== null && startMs !== null ? Math.max(endMs, startMs) : endMs
+  };
+}
+
+function launchMatchesDateFilter(launch) {
+  const filterStart = dateInputBoundary(launchDateFromFilter, false);
+  const filterEnd = dateInputBoundary(launchDateToFilter, true);
+  if (filterStart === null && filterEnd === null) return true;
+
+  const range = launchScheduleRange(launch);
+  if (range.startMs === null && range.endMs === null) return false;
+  const launchStart = range.startMs ?? range.endMs;
+  const launchEnd = range.endMs ?? range.startMs;
+
+  if (filterStart !== null && launchEnd < filterStart) return false;
+  if (filterEnd !== null && launchStart > filterEnd) return false;
+  return true;
 }
 
 function inferStatusFromSchedule(launch, now = new Date()) {
@@ -2998,6 +3136,7 @@ function launchMatchesBoardFilter(launch) {
   const matchesStatus = launchStatusFilter === "all" || status === launchStatusFilter;
   const query = normalizeText(launchSearchQuery.trim());
   if (!matchesStatus) return false;
+  if (!launchMatchesDateFilter(launch)) return false;
   if (!query) return true;
 
   const searchText = normalizeText([
@@ -3012,11 +3151,13 @@ function launchMatchesBoardFilter(launch) {
 
 function renderLaunchGroups() {
   if (launchStatusFilterSelect) launchStatusFilterSelect.value = launchStatusFilter;
+  if (launchDateFromInput) launchDateFromInput.value = launchDateFromFilter;
+  if (launchDateToInput) launchDateToInput.value = launchDateToFilter;
 
   const visibleStatuses = launchStatusFilter === "all"
     ? STATUS_ORDER
     : STATUS_ORDER.filter((status) => status === launchStatusFilter);
-  const isFiltering = Boolean(launchSearchQuery.trim()) || launchStatusFilter !== "all";
+  const isFiltering = Boolean(launchSearchQuery.trim()) || launchStatusFilter !== "all" || Boolean(launchDateFromFilter) || Boolean(launchDateToFilter);
 
   // Card nháp cho launch mới chưa lưu (Pro mode) — Friendly có hệ draft riêng nên bỏ qua.
   const proDraft = (!document.body.classList.contains("ui-mode-friendly") && draftMode && currentLaunch && !currentLaunch.id)
@@ -3024,7 +3165,9 @@ function renderLaunchGroups() {
         status: normalizeStatus(currentLaunch.status),
         name: currentLaunch.name || "Launch mới",
         type: currentLaunch.type || "Game event",
-        owner: currentLaunch.owner || ""
+        owner: currentLaunch.owner || "",
+        targetDate: currentLaunch.targetDate || "",
+        endDate: currentLaunch.endDate || ""
       }
     : null;
 
@@ -3095,6 +3238,7 @@ function setFormFromLaunch(launch) {
   ensureLaunchType(launch?.type || "Game event");
   renderLaunchTypeOptions(launch?.type || "Game event");
   launchType.value = launch?.type || "Game event";
+  renderLaunchTemplateOptions(baseTemplateIdForLaunch(launch));
   launchStatus.value = normalizeStatus(launch?.status);
   launchOwner.value = launch?.owner || "";
   setVisibleDateValue(launchTargetDate, launchTargetDateNative, launch?.targetDate);
@@ -3108,6 +3252,7 @@ function collectLaunchFromForm() {
   collectRedTeamSupplements();
   collectChecklistProgress();
   const selectedType = launchType.value;
+  const selectedTemplate = launchTemplate?.value ? baseTemplateById(launchTemplate.value) : defaultTemplateForType(selectedType);
   return {
     id: currentLaunch?.id,
     name: launchName.value.trim() || "Launch mới",
@@ -3117,7 +3262,7 @@ function collectLaunchFromForm() {
     targetDate: normalizeDateForStorage(launchTargetDate.value),
     endDate: normalizeDateForStorage(launchEndDate.value),
     brief: briefInput.value.trim(),
-    template: currentLaunch?.template || defaultTemplateForType(selectedType),
+    template: normalizeTemplate(selectedTemplate, selectedType),
     templateVersions: currentLaunch?.templateVersions || [],
     lessonSuggestions: currentLaunch?.lessonSuggestions || [],
     redTeamBriefSupplements: stringMap(redTeamBriefSupplements),
@@ -3189,23 +3334,25 @@ window.renderBriefGuide = renderBriefGuide;
 
 function renderTemplateOperatorOptions() {
   if (!templateOperator) return;
+  if (!isLaunchAdmin()) templateOperatorId = "launch-reviewer";
+  else if (templateOperatorId === "launch-reviewer") templateOperatorId = "vinhvnn";
   templateOperator.innerHTML = TEMPLATE_OPERATORS.map((item) => `
     <option value="${escapeHTML(item.id)}" ${item.id === templateOperatorId ? "selected" : ""}>
       ${escapeHTML(item.name)} - ${escapeHTML(item.access)}
     </option>
   `).join("");
-  templateOperator.disabled = TEMPLATE_EDITING_LOCKED;
+  templateOperator.disabled = true;
 }
 
 function renderTemplatePermissionState() {
   if (!templatePermissionState) return;
   const operator = activeTemplateOperator();
-  const stateClass = "allowed";
-  const title = tr("Full quyền chỉnh cấu hình", "Full config access");
-  const detail = tr(
-    "Mọi vai trò trong bản demo hiện đều có thể sửa, lưu và duyệt đề xuất template. Thay đổi vẫn lưu theo cơ chế hiện tại của app.",
-    "In this demo, every role can edit, save, and approve template proposals. Changes are still saved through the app's current flow."
-  );
+  const allowed = canEditTemplate();
+  const stateClass = allowed ? "allowed" : "readonly";
+  const title = allowed ? tr("Full quyền chỉnh cấu hình", "Full config access") : tr("Chỉ xem cấu hình", "Read-only config");
+  const detail = allowed
+    ? tr("Admin nội bộ có thể sửa, lưu, khôi phục và duyệt đề xuất template.", "Internal admin can edit, save, restore, and approve template proposals.")
+    : tr("Muốn mở quyền Admin nội bộ, dùng tham số ?role=admin. Bản review public vẫn khóa mọi mutation.", "Internal admin access uses ?role=admin. Public review mode still blocks mutations.");
 
   templatePermissionState.className = `permission-state ${stateClass}`;
   templatePermissionState.innerHTML = `
@@ -3484,9 +3631,10 @@ function renderTemplateConfig() {
   renderTemplateSelectorOptions(template, editable);
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
   renderTemplateCatalog(editable);
+  renderArchive();
 
   templateName.dataset.baseName = template.name;
-  templateName.textContent = `${tr("Bộ luật", "Rule set")}: ${templateDisplayName(template)}${template.customized ? tr(" · Đã tùy chỉnh", " · Customized") : ""}`;
+  templateName.textContent = `${templateDisplayName(template)}${template.customized ? tr(" · Đã tùy chỉnh", " · Customized") : ""}`;
   templateMaxScore.textContent = String(maxScore);
   templateRiskCount.textContent = String((template.riskGroups || []).length);
   templatePersonaCount.textContent = String((template.redTeam || []).length);
@@ -3511,6 +3659,7 @@ function renderTemplateConfig() {
       .map((block, index) => renderLessonCard(block, index, editable))
       .join("");
   }
+  activateConfigPanel(document.querySelector("[data-config-tab].active")?.dataset.configTab || "catalog");
 }
 
 function renderHistory() {
@@ -3640,16 +3789,16 @@ async function exportLaunchReport() {
 }
 
 function ensureTemplateVersionHistory() {
-  const type = configTemplateType();
-  templateConfigVersions[type] = templateConfigVersions[type] || [];
-  if (templateConfigVersions[type].length) return;
+  const templateId = configTemplateId();
+  templateConfigVersions[templateId] = templateConfigVersions[templateId] || [];
+  if (templateConfigVersions[templateId].length) return;
   const template = configTemplate();
-  templateConfigVersions[type].push({
+  templateConfigVersions[templateId].push({
     id: `template-version-${Date.now()}`,
     version: 1,
     createdAt: new Date().toISOString(),
     author: "System",
-    note: uiLang() === "en" ? `Base template for ${typeLabel(type)}` : `Template gốc cho ${typeLabel(type)}`,
+    note: uiLang() === "en" ? `Base template for ${templateDisplayName(template)}` : `Template gốc cho ${templateDisplayName(template)}`,
     summary: uiLang() === "en"
       ? `${(template.riskGroups || []).length} risk groups · ${(template.redTeam || []).length} red-team perspectives · ${templateMax(template)} pts`
       : `${(template.riskGroups || []).length} nhóm rủi ro · ${(template.redTeam || []).length} góc phản biện · ${templateMax(template)} điểm`,
@@ -3658,12 +3807,12 @@ function ensureTemplateVersionHistory() {
 }
 
 function addTemplateVersion(note, source = "manual") {
-  const type = configTemplateType();
+  const templateId = configTemplateId();
   ensureTemplateVersionHistory();
   const template = configTemplate();
-  templateConfigVersions[type].push({
+  templateConfigVersions[templateId].push({
     id: `template-version-${Date.now()}`,
-    version: templateConfigVersions[type].length + 1,
+    version: templateConfigVersions[templateId].length + 1,
     createdAt: new Date().toISOString(),
     author: activeTemplateOperator().name,
     note,
@@ -3678,7 +3827,7 @@ function addTemplateVersion(note, source = "manual") {
 function renderTemplateVersionHistory() {
   if (!templateVersionHistory) return;
   ensureTemplateVersionHistory();
-  const versions = templateConfigVersions[configTemplateType()] || [];
+  const versions = templateConfigVersions[configTemplateId()] || [];
   templateVersionHistory.innerHTML = versions.length
     ? versions.slice().reverse().map((item) => `
       <article class="version-row">
@@ -4081,7 +4230,10 @@ function applyLessonSuggestion(id) {
   const suggestion = findSuggestion(id);
   if (!suggestion || suggestion.status === "accepted") return;
   const type = currentLaunch.type || firstLaunchType();
-  selectedConfigType = launchTypeExists(type) ? type : firstLaunchType();
+  selectedConfigTemplateId = baseTemplateIdForLaunch(currentLaunch);
+  const templateId = configTemplateId();
+  const option = baseTemplateOptionById(templateId);
+  const typesUsingTemplate = typesUsingTemplateId(templateId);
   ensureTemplateVersionHistory();
   const template = configTemplate();
 
@@ -4119,11 +4271,15 @@ function applyLessonSuggestion(id) {
   suggestion.status = "accepted";
   suggestion.acceptedAt = new Date().toISOString();
   suggestion.acceptedBy = activeTemplateOperator().name;
-  LAUNCH_TEMPLATES[selectedConfigType] = normalizeTemplate({ ...template, customized: true }, selectedConfigType);
-  currentLaunch.template = defaultTemplateForType(selectedConfigType);
+  const savedTemplate = normalizeTemplate({ ...template, customized: true }, type);
+  if (option) option.template = savedTemplate;
+  typesUsingTemplate.forEach((itemType) => {
+    LAUNCH_TEMPLATES[itemType] = savedTemplate;
+  });
+  currentLaunch.template = normalizeTemplate(savedTemplate, type);
   addTemplateVersion(`Duyệt AI suggestion: ${suggestion.title}`, "ai_suggestion");
   renderLaunchWorkspace();
-  analysisSource.textContent = tr(`Đã duyệt suggestion và cập nhật cấu hình chung cho ${typeLabel(selectedConfigType)}`, `Approved the suggestion and updated the shared config for ${typeLabel(selectedConfigType)}`);
+  analysisSource.textContent = tr(`Đã duyệt suggestion và cập nhật template ${templateDisplayName(savedTemplate)}`, `Approved the suggestion and updated template ${templateDisplayName(savedTemplate)}`);
 }
 
 function dismissLessonSuggestion(id) {
@@ -4271,6 +4427,80 @@ function renderRunLog() {
   `;
 }
 
+function canMutateArchive() {
+  return !PUBLIC_LOCK && isLaunchAdmin();
+}
+
+function renderArchive() {
+  if (!archiveList) return;
+  const canMutate = canMutateArchive();
+  if (!archivedLaunches.length) {
+    archiveList.innerHTML = `<div class="empty-state">${tr("Chưa có launch nào trong lưu trữ.", "No archived launches yet.")}</div>`;
+    return;
+  }
+  archiveList.innerHTML = archivedLaunches.map((launch) => `
+    <article class="archive-row" data-archive-launch="${escapeHTML(launch.id)}">
+      <div>
+        <strong>${escapeHTML(launch.name || launch.id)}</strong>
+        <small>${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(statusDisplayLabel(normalizeStatus(launch.status)))} · ${escapeHTML(formatDate(launch.archivedAt || launch.updatedAt))}</small>
+      </div>
+      <div class="archive-actions">
+        <button type="button" data-archive-restore="${escapeHTML(launch.id)}"${canMutate ? "" : " disabled"}>${tr("Khôi phục", "Restore")}</button>
+        <button type="button" class="danger-button" data-archive-purge="${escapeHTML(launch.id)}"${canMutate ? "" : " disabled"}>${tr("Xóa vĩnh viễn", "Purge")}</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+async function loadArchive() {
+  if (!archiveList || !backendAvailable) {
+    renderArchive();
+    return;
+  }
+  try {
+    const payload = await fetchJson(`${API_BASE}/archive`);
+    archivedLaunches = (payload.launches || []).map(sanitizeLaunchData);
+  } catch (error) {
+    console.warn("Load archive failed.", error);
+    archivedLaunches = [];
+  }
+  renderArchive();
+}
+
+async function restoreArchivedLaunch(id) {
+  if (!canMutateArchive()) {
+    analysisSource.textContent = tr("Bản review public chỉ cho xem lưu trữ, không cho khôi phục.", "Public review mode is read-only; restore is disabled.");
+    return;
+  }
+  try {
+    const payload = await fetchJson(`${API_BASE}/archive/${encodeURIComponent(id)}/restore`, { method: "POST" });
+    await loadLaunches();
+    await loadArchive();
+    if (payload.summary?.id) await selectLaunch(payload.summary.id);
+    analysisSource.textContent = tr("Đã khôi phục launch từ lưu trữ.", "Launch restored from archive.");
+  } catch (error) {
+    console.warn("Restore archived launch failed.", error);
+    analysisSource.textContent = tr("Khôi phục chưa thành công.", "Restore failed.");
+  }
+}
+
+async function purgeArchivedLaunch(id) {
+  if (!canMutateArchive()) {
+    analysisSource.textContent = tr("Bản review public chỉ cho xem lưu trữ, không cho xóa vĩnh viễn.", "Public review mode is read-only; purge is disabled.");
+    return;
+  }
+  if (!window.confirm(tr("Xóa vĩnh viễn launch này khỏi lưu trữ?", "Permanently delete this archived launch?"))) return;
+  try {
+    await fetchJson(`${API_BASE}/archive/${encodeURIComponent(id)}`, { method: "DELETE" });
+    archivedLaunches = archivedLaunches.filter((launch) => launch.id !== id);
+    renderArchive();
+    analysisSource.textContent = tr("Đã xóa vĩnh viễn launch khỏi lưu trữ.", "Archived launch purged.");
+  } catch (error) {
+    console.warn("Purge archived launch failed.", error);
+    analysisSource.textContent = tr("Xóa vĩnh viễn chưa thành công.", "Purge failed.");
+  }
+}
+
 function runLogPlainText() {
   const launchId = currentLaunch?.id || "(nháp)";
   const lines = [`# Run log - ${currentLaunch?.name || "Launch mới"} (${launchId})`, "", "## Client events"];
@@ -4292,7 +4522,7 @@ function runLogPlainText() {
 function applyLaunchPermissions() {
   const canEdit = canEditLaunch();
   const canOutcome = canSaveLaunchOutcome();
-  [launchName, launchType, launchStatus, launchOwner, launchTargetDate, launchEndDate, briefInput].forEach((control) => {
+  [launchName, launchType, launchTemplate, launchStatus, launchOwner, launchTargetDate, launchEndDate, briefInput].forEach((control) => {
     setDisabled(control, !canEdit);
   });
   [launchTargetDateNative, launchEndDateNative, launchTargetDatePicker, launchEndDatePicker].forEach((control) => {
@@ -4300,9 +4530,13 @@ function applyLaunchPermissions() {
   });
   setDisabled(document.getElementById("loadBadBrief"), !canEdit);
   setDisabled(saveLaunchButton, !canEdit);
-  setDisabled(analyzeButton, !canEdit);
+  // Analyze stays enabled on locked sample launches: it shows the result without persisting.
+  setDisabled(analyzeButton, false);
   setDisabled(deleteLaunchButton, !canDeleteLaunch());
   if (deleteLaunchButton) deleteLaunchButton.hidden = !canDeleteLaunch();
+
+  const sampleNotice = document.getElementById("sampleLaunchNotice");
+  if (sampleNotice) sampleNotice.hidden = !sampleLaunchLocked();
 
   const runLogTab = document.getElementById("runLogTab");
   if (runLogTab) runLogTab.hidden = false;
@@ -4318,7 +4552,9 @@ function applyLaunchPermissions() {
   });
 
   if (!canEdit && analysisSource) {
-    analysisSource.textContent = tr("Bạn có full quyền thao tác trong bản demo này.", "You have full operator access in this demo.");
+    analysisSource.textContent = sampleLaunchLocked()
+      ? tr("Đây là Launch mẫu, đang khóa chỉnh sửa. Hãy tạo launch mới để trải nghiệm.", "This is a sample launch and is locked for editing. Create a new launch to try it.")
+      : tr("Bạn có full quyền thao tác trong bản demo này.", "You have full operator access in this demo.");
   }
 }
 
@@ -4380,6 +4616,45 @@ async function callLaunchOpsTool(name, args = {}, options = {}) {
     throw new Error(payload?.message || payload?.error || `Tool ${name} failed`);
   }
   return payload;
+}
+
+function applyPublicLockUI() {
+  // Bottom-center notice when the author has locked admin actions during voting.
+  let banner = document.getElementById("publicLockBanner");
+  if (PUBLIC_LOCK) {
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "publicLockBanner";
+      banner.style.cssText = "position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9999;max-width:min(760px,calc(100vw - 28px));text-align:center;padding:8px 14px;border-radius:8px;font-size:12px;line-height:1.4;color:#fff;background:rgba(0,0,0,0.86);box-shadow:0 10px 30px rgba(0,0,0,0.22);pointer-events:none;";
+      document.body.appendChild(banner);
+    }
+    banner.hidden = false;
+    banner.textContent = tr(
+      "Tác giả tạm khóa 1 số quyền Admin để tránh dữ liệu DB xáo trộn trong quá trình vote để tránh ảnh hưởng trải nghiệm, BTC muốn review quyền Admin xin liên hệ domain: VinhVNN hoặc clone repo - Data mod không phải thực",
+      "The author temporarily locked some Admin actions to keep the demo database stable during voting and protect the experience. To review Admin access, contact domain VinhVNN or clone the repo - Data mod is not the real one."
+    );
+  } else if (banner) {
+    banner.hidden = true;
+  }
+  const sampleNotice = document.getElementById("sampleLaunchNotice");
+  if (sampleNotice) {
+    sampleNotice.textContent = tr(
+      "Đây là Launch mẫu, vui lòng không điều chỉnh. Reviewer có thể tự tạo launch mới để trải nghiệm.",
+      "This is a sample launch — please do not edit it. Reviewers can create a new launch to try it out."
+    );
+  }
+}
+
+async function loadServerConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/version`);
+    const data = await res.json();
+    PUBLIC_LOCK = Boolean(data && data.publicLock);
+  } catch (error) {
+    PUBLIC_LOCK = false;
+  }
+  applyPublicLockUI();
+  try { applyLaunchPermissions(); } catch (error) { /* not ready yet */ }
 }
 
 async function loadLaunches() {
@@ -4549,8 +4824,9 @@ async function deleteCurrentLaunch() {
   }
 
   launches = launches.filter((launch) => launch.id !== launchId);
+  await loadArchive();
   const next = launches.find((launch) => normalizeStatus(launch.status) === "running") || launches[0];
-  analysisSource.textContent = tr(`Đã xóa ${launchLabel}.`, `Deleted ${launchLabel}.`);
+  analysisSource.textContent = tr(`Đã chuyển ${launchLabel} vào Lưu trữ.`, `Moved ${launchLabel} to Archive.`);
   if (next) await selectLaunch(next.id);
   else startNewLaunch();
 }
@@ -4582,8 +4858,13 @@ async function analyze() {
   logRunEvent("info", "analyze", `Bắt đầu phân tích "${currentLaunch?.name || "Launch mới"}" (backend=${backendAvailable ? "có" : "không"}).`);
 
   try {
-    const launch = await saveCurrentLaunch({ silent: true });
-    logRunEvent("info", "save", `Đã lưu launch trước khi phân tích (id=${launch?.id || "?"}).`);
+    const lockedSample = sampleLaunchLocked();
+    const launch = lockedSample
+      ? sanitizeLaunchData({ ...currentLaunch, ...collectLaunchFromForm(), id: currentLaunch?.id })
+      : await saveCurrentLaunch({ silent: true });
+    logRunEvent("info", "save", lockedSample
+      ? `Bỏ qua lưu launch mẫu đang khóa trước khi phân tích (id=${launch?.id || "?"}).`
+      : `Đã lưu launch trước khi phân tích (id=${launch?.id || "?"}).`);
 
     if (backendAvailable && launch?.id) {
       logRunEvent("info", "api", `POST ${API_BASE}/launches/${launch.id}/analyze (timeout client ${Math.round(ANALYZE_CLIENT_TIMEOUT_MS / 1000)}s)...`);
@@ -4757,17 +5038,24 @@ function saveTemplateConfig() {
     analysisSource.textContent = tr("Bạn có full quyền lưu cấu hình trong bản demo này.", "You have full config-save access in this demo.");
     return;
   }
-  const type = configTemplateType();
+  const templateId = configTemplateId();
+  const option = baseTemplateOptionById(templateId);
+  const typesUsingTemplate = typesUsingTemplateId(templateId);
   ensureTemplateVersionHistory();
-  LAUNCH_TEMPLATES[type] = templateFromEditors(configTemplate());
-  LAUNCH_TEMPLATES[type].customized = true;
-  if (currentLaunch?.type === type) {
-    currentLaunch.template = defaultTemplateForType(type);
+  const savedTemplate = templateFromEditors(configTemplate());
+  savedTemplate.customized = true;
+  if (option) option.template = savedTemplate;
+  typesUsingTemplate.forEach((type) => {
+    LAUNCH_TEMPLATES[type] = savedTemplate;
+  });
+  if (currentLaunch && baseTemplateIdForLaunch(currentLaunch) === templateId) {
+    currentLaunch.template = normalizeTemplate(savedTemplate, currentLaunch.type || firstLaunchType());
   }
-  addTemplateVersion(`Người thao tác lưu cấu hình chung cho ${typeLabel(type)}`, "manual_save");
+  addTemplateVersion(`Người thao tác lưu cấu hình template ${templateDisplayName(savedTemplate)}`, "manual_save");
+  renderLaunchTemplateOptions(launchTemplate?.value || baseTemplateIdForLaunch(currentLaunch));
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = tr(`Đã lưu cấu hình chung cho ${typeLabel(type)}`, `Saved shared config for ${typeLabel(type)}`);
+  analysisSource.textContent = tr(`Đã lưu cấu hình template ${templateDisplayName(savedTemplate)}`, `Saved template config for ${templateDisplayName(savedTemplate)}`);
 }
 
 function resetTemplateForSelectedType() {
@@ -4775,27 +5063,34 @@ function resetTemplateForSelectedType() {
     analysisSource.textContent = tr("Bạn có full quyền nạp lại cấu hình trong bản demo này.", "You have full config-reload access in this demo.");
     return;
   }
-  const type = configTemplateType();
+  const templateId = configTemplateId();
+  const option = baseTemplateOptionById(templateId);
+  const template = option?.template || configTemplate();
+  const typesUsingTemplate = typesUsingTemplateId(templateId);
   ensureTemplateVersionHistory();
-  LAUNCH_TEMPLATES[type] = baseTemplateById(baseTemplateIdForType(type));
-  if (currentLaunch?.type === type) {
-    currentLaunch.template = defaultTemplateForType(type);
+  typesUsingTemplate.forEach((type) => {
+    LAUNCH_TEMPLATES[type] = template;
+  });
+  if (currentLaunch && baseTemplateIdForLaunch(currentLaunch) === templateId) {
+    currentLaunch.template = normalizeTemplate(template, currentLaunch.type || firstLaunchType());
   }
-  addTemplateVersion(`Khôi phục mẫu chuẩn cho ${typeLabel(type)}`, "reset_default");
+  addTemplateVersion(`Khôi phục template ${templateDisplayName(template)}`, "reset_default");
+  renderLaunchTemplateOptions(launchTemplate?.value || baseTemplateIdForLaunch(currentLaunch));
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
-  analysisSource.textContent = tr(`Đã nạp mẫu chuẩn cho ${typeLabel(type)}`, `Loaded the standard template for ${typeLabel(type)}`);
+  analysisSource.textContent = tr(`Đã nạp template ${templateDisplayName(template)}`, `Loaded template ${templateDisplayName(template)}`);
 }
 
 function switchTemplateFromSelector() {
   if (!templateSelector) return;
-  const selectedType = templateSelector.value;
-  if (!launchTypeExists(selectedType)) return;
-  selectedConfigType = selectedType;
+  const selectedTemplateId = templateSelector.value;
+  if (!baseTemplateExists(selectedTemplateId)) return;
+  selectedConfigTemplateId = selectedTemplateId;
   renderTemplateConfig();
+  const selectedTemplate = configTemplate();
   analysisSource.textContent = canEditTemplate()
-    ? tr(`Đang cấu hình ${typeLabel(selectedType)}`, `Configuring ${typeLabel(selectedType)}`)
-    : tr(`Đang xem cấu hình ${typeLabel(selectedType)}. Bản review public không cho chỉnh sửa.`, `Viewing config for ${typeLabel(selectedType)}. The public review build is read-only.`);
+    ? tr(`Đang cấu hình template ${templateDisplayName(selectedTemplate)}`, `Configuring template ${templateDisplayName(selectedTemplate)}`)
+    : tr(`Đang xem template ${templateDisplayName(selectedTemplate)}. Bản review public không cho chỉnh sửa.`, `Viewing template ${templateDisplayName(selectedTemplate)}. The public review build is read-only.`);
 }
 
 function uniqueLaunchTypeKey(label) {
@@ -4833,8 +5128,36 @@ function addBaseTemplate() {
   BASE_TEMPLATE_OPTIONS.push({ id, template });
   TEMPLATE_NAME_LABELS[template.name] = "Template mới";
   TEMPLATE_NAME_LABELS_EN[template.name] = "New template";
+  selectedConfigTemplateId = id;
   renderTemplateConfig();
   analysisSource.textContent = tr("Đã thêm template mới. Bạn có thể đổi tên rồi gán cho phân loại cần dùng.", "New template added. You can rename it and assign it to a type.");
+}
+
+function addTemplateForLaunchType(type) {
+  if (!canEditTemplate()) {
+    analysisSource.textContent = tr("Bản review public chỉ cho xem cấu hình, chưa cho thêm template.", "Public review mode is read-only; templates cannot be added.");
+    return;
+  }
+  if (!launchTypeExists(type)) return;
+  const id = uniqueBaseTemplateId();
+  const template = normalizeTemplate({
+    ...defaultTemplateForType(type),
+    name: `Custom Template ${BASE_TEMPLATE_OPTIONS.length - PROTECTED_BASE_TEMPLATE_IDS.length + 1}`,
+    customized: false
+  }, type);
+  BASE_TEMPLATE_OPTIONS.push({ id, template });
+  TEMPLATE_NAME_LABELS[template.name] = "Template mới";
+  TEMPLATE_NAME_LABELS_EN[template.name] = "New template";
+  bindTemplateToType(type, id);
+  selectedConfigTemplateId = id;
+  if (currentLaunch?.type === type) {
+    currentLaunch.template = normalizeTemplate(template, type);
+    renderLaunchTemplateOptions(id);
+  }
+  renderTemplateConfig();
+  renderLaunchWorkspace();
+  renderLatestAnalysisOrPreview();
+  analysisSource.textContent = tr(`Đã thêm template mới cho ${typeLabel(type)}.`, `New template added for ${typeLabel(type)}.`);
 }
 
 function removeBaseTemplate(id) {
@@ -4852,13 +5175,19 @@ function removeBaseTemplate(id) {
   BASE_TEMPLATE_OPTIONS.splice(index, 1);
   if (templateName) delete TEMPLATE_NAME_LABELS[templateName];
   if (templateName) delete TEMPLATE_NAME_LABELS_EN[templateName];
+  if (selectedConfigTemplateId === id) {
+    selectedConfigTemplateId = firstBaseTemplateId();
+  }
   Object.keys(LAUNCH_TEMPLATES).forEach((type) => {
+    TYPE_TEMPLATE_IDS[type] = templateIdsForType(type).filter((templateId) => templateId !== id);
     if (LAUNCH_TEMPLATES[type]?.name === templateName) {
       LAUNCH_TEMPLATES[type] = GENERIC_LAUNCH_TEMPLATE;
+      TYPE_TEMPLATE_IDS[type] = ["generic"];
     }
   });
   if (currentLaunch?.template?.name === templateName) {
     currentLaunch.template = defaultTemplateForType(currentLaunch.type || "Game event");
+    renderLaunchTemplateOptions(baseTemplateIdForLaunch(currentLaunch));
   }
   renderTemplateConfig();
   renderLatestAnalysisOrPreview();
@@ -4873,6 +5202,7 @@ function addLaunchType() {
   const label = "Phân loại mới";
   const type = uniqueLaunchTypeKey(label);
   LAUNCH_TEMPLATES[type] = GENERIC_LAUNCH_TEMPLATE;
+  TYPE_TEMPLATE_IDS[type] = ["generic"];
   TYPE_LABELS[type] = label;
   TYPE_LABELS_EN[type] = "New classification";
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
@@ -4912,9 +5242,11 @@ function updateLaunchTypeTemplate(select) {
   if (!canEditTemplate()) return;
   const type = select.closest("[data-launch-type]")?.dataset.launchType;
   if (!launchTypeExists(type)) return;
-  LAUNCH_TEMPLATES[type] = baseTemplateById(select.value);
+  const template = baseTemplateById(select.value);
+  bindTemplateToType(type, select.value);
   if (currentLaunch?.type === type) {
-    currentLaunch.template = defaultTemplateForType(type);
+    currentLaunch.template = normalizeTemplate(template, type);
+    renderLaunchTemplateOptions(select.value);
   }
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
@@ -4931,6 +5263,7 @@ function removeLaunchType(type) {
     return;
   }
   delete LAUNCH_TEMPLATES[type];
+  delete TYPE_TEMPLATE_IDS[type];
   delete TYPE_LABELS[type];
   if (currentLaunch?.type === type) {
     currentLaunch.type = firstLaunchType();
@@ -4943,6 +5276,12 @@ function removeLaunchType(type) {
 }
 
 function handleTemplateCatalogChange(event) {
+  const addTemplateButton = event.target.closest("[data-add-template-for-type]");
+  if (addTemplateButton) {
+    addTemplateForLaunchType(addTemplateButton.dataset.addTemplateForType);
+    return;
+  }
+
   const templateLabelInput = event.target.closest("[data-template-label]");
   if (templateLabelInput) {
     updateTemplateLabel(templateLabelInput);
@@ -4977,7 +5316,16 @@ function handleTemplateCatalogInput(event) {
 function syncTemplateAfterTypeChange() {
   if (!currentLaunch) return;
   currentLaunch.type = launchType.value;
-  currentLaunch.template = defaultTemplateForType(launchType.value);
+  const templateId = baseTemplateIdForType(launchType.value) || firstBaseTemplateId();
+  renderLaunchTemplateOptions(templateId);
+  currentLaunch.template = normalizeTemplate(baseTemplateById(templateId), launchType.value);
+  renderLaunchWorkspace();
+  renderLatestAnalysisOrPreview();
+}
+
+function syncLaunchTemplateAfterTemplateChange() {
+  if (!currentLaunch || !launchTemplate) return;
+  currentLaunch.template = normalizeTemplate(baseTemplateById(launchTemplate.value), launchType?.value || currentLaunch.type || firstLaunchType());
   renderLaunchWorkspace();
   renderLatestAnalysisOrPreview();
 }
@@ -4991,6 +5339,12 @@ function activateConfigPanel(target = "catalog") {
   document.querySelectorAll("[data-config-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.configPanel === target);
   });
+  const summaryDisabled = target === "catalog" || target === "archive";
+  document.querySelector(".template-summary")?.classList.toggle("is-disabled", summaryDisabled);
+  if (templateSelector) templateSelector.disabled = summaryDisabled;
+  if (target === "archive") {
+    void loadArchive();
+  }
 }
 
 function activateTab(target) {
@@ -5009,7 +5363,7 @@ function activateTab(target) {
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === target));
   if (target === "runLog") renderRunLog();
   if (isConfigScreen) {
-    selectedConfigType = launchTypeExists(currentLaunch?.type) ? currentLaunch.type : configTemplateType();
+    selectedConfigTemplateId = baseTemplateIdForLaunch(currentLaunch);
     renderTemplateConfig();
   }
   if (isConfigScreen && !document.querySelector("[data-config-panel].active")) {
@@ -6099,7 +6453,7 @@ async function applyAssistantAction(action) {
     return;
   }
   if (action === "openConfig") {
-    selectedConfigType = launchTypeExists(currentLaunch?.type) ? currentLaunch.type : configTemplateType();
+    selectedConfigTemplateId = baseTemplateIdForLaunch(currentLaunch);
     activateTab("templateConfig");
     return;
   }
@@ -6277,7 +6631,9 @@ window.launchopsOnLanguageApplied = () => {
     renderLaunchGroups();
     renderLaunchWorkspace();
     renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
+    renderLaunchTemplateOptions(launchTemplate?.value || baseTemplateIdForLaunch(currentLaunch));
     syncLaunchTypeOptionLabels();
+    syncTemplateDisplayLabels();
     renderLatestAnalysisOrPreview();
     if (openTemplateConfigButton) openTemplateConfigButton.textContent = configButtonText(appShell?.classList.contains("config-mode"));
   } catch (error) {
@@ -6340,7 +6696,7 @@ if (openTemplateConfigButton) {
     if (appShell?.classList.contains("config-mode")) {
       activateTab(previousLaunchView || "briefView");
     } else {
-      selectedConfigType = launchTypeExists(currentLaunch?.type) ? currentLaunch.type : configTemplateType();
+      selectedConfigTemplateId = baseTemplateIdForLaunch(currentLaunch);
       activateTab("templateConfig");
     }
   });
@@ -6513,6 +6869,10 @@ if (exportReportButton) {
 
 launchType.addEventListener("change", syncTemplateAfterTypeChange);
 
+if (launchTemplate) {
+  launchTemplate.addEventListener("change", syncLaunchTemplateAfterTemplateChange);
+}
+
 if (templateOperator) {
   templateOperator.addEventListener("change", () => {
     templateOperatorId = templateOperator.value;
@@ -6553,8 +6913,27 @@ if (classificationEditor) {
   classificationEditor.addEventListener("input", handleTemplateCatalogInput);
   classificationEditor.addEventListener("change", handleTemplateCatalogChange);
   classificationEditor.addEventListener("click", (event) => {
+    const addTemplateButton = event.target.closest("[data-add-template-for-type]");
+    if (addTemplateButton) {
+      addTemplateForLaunchType(addTemplateButton.dataset.addTemplateForType);
+      return;
+    }
     const removeButton = event.target.closest("[data-remove-launch-type]");
     if (removeButton) removeLaunchType(removeButton.dataset.removeLaunchType);
+  });
+}
+
+if (archiveList) {
+  archiveList.addEventListener("click", (event) => {
+    const restoreButton = event.target.closest("[data-archive-restore]");
+    if (restoreButton) {
+      void restoreArchivedLaunch(restoreButton.dataset.archiveRestore);
+      return;
+    }
+    const purgeButton = event.target.closest("[data-archive-purge]");
+    if (purgeButton) {
+      void purgeArchivedLaunch(purgeButton.dataset.archivePurge);
+    }
   });
 }
 
@@ -6593,6 +6972,20 @@ if (launchSearch) {
 if (launchStatusFilterSelect) {
   launchStatusFilterSelect.addEventListener("change", () => {
     launchStatusFilter = launchStatusFilterSelect.value || "all";
+    renderLaunchGroups();
+  });
+}
+
+if (launchDateFromInput) {
+  launchDateFromInput.addEventListener("change", () => {
+    launchDateFromFilter = launchDateFromInput.value || "";
+    renderLaunchGroups();
+  });
+}
+
+if (launchDateToInput) {
+  launchDateToInput.addEventListener("change", () => {
+    launchDateToFilter = launchDateToInput.value || "";
     renderLaunchGroups();
   });
 }
@@ -6642,6 +7035,7 @@ document.querySelectorAll("[data-config-tab]").forEach((tab) => {
 });
 
 loadLaunches();
+loadServerConfig();
 
 
 // --- Bilingual translation system (VI / EN) ---
@@ -6650,7 +7044,7 @@ const LAUNCHOPS_LANG_MAP = {
     title: "LaunchOps Command Center",
     eyebrow: "V-Team · VinhVNN · GS9",
     newLaunch: "Tạo launch mới",
-    openTemplateConfig: "Cấu hình phân loại",
+    openTemplateConfig: "Cấu Hình",
     modeFriendly: "Friendly",
     modePro: "Pro",
     statusAll: "Tất cả",
@@ -6659,6 +7053,8 @@ const LAUNCHOPS_LANG_MAP = {
     statusUpcoming: "Sắp chạy",
     searchLabel: "Tìm kiếm",
     searchPlaceholder: "Tên hoặc phân loại",
+    dateFromLabel: "Từ ngày",
+    dateToLabel: "Đến ngày",
     statusLabel: "Trạng thái",
     roleLabel: "Vai trò",
     introTitle: "LaunchOps Command Center là gì?",
@@ -6734,7 +7130,7 @@ const LAUNCHOPS_LANG_MAP = {
     title: "LaunchOps Command Center",
     eyebrow: "V-Team · VinhVNN · GS9",
     newLaunch: "New Launch",
-    openTemplateConfig: "Classification Config",
+    openTemplateConfig: "Config",
     modeFriendly: "Friendly",
     modePro: "Pro",
     statusAll: "All",
@@ -6761,6 +7157,8 @@ const LAUNCHOPS_LANG_MAP = {
     statusUpcoming: "Upcoming",
     searchLabel: "Search",
     searchPlaceholder: "Name or type",
+    dateFromLabel: "From",
+    dateToLabel: "To",
     statusLabel: "Status",
     roleLabel: "Role",
     introTitle: "What is LaunchOps Command Center?",
@@ -6826,6 +7224,7 @@ function updateUILanguage(lang) {
   currentLang = lang;
   localStorage.setItem("launchops_lang", lang);
   const dict = LAUNCHOPS_LANG_MAP[lang];
+  try { applyPublicLockUI(); } catch (error) { /* banner not ready */ }
 
   // Update active buttons state
   document.getElementById("langViBtn")?.classList.toggle("active", lang === "vi");
@@ -6875,6 +7274,10 @@ function updateUILanguage(lang) {
 
   const statusFilterSpan = document.querySelector(".board-status-filter span");
   if (statusFilterSpan) statusFilterSpan.textContent = dict.statusLabel;
+  const dateFromSpan = document.querySelector(".board-date-from span");
+  if (dateFromSpan) dateFromSpan.textContent = dict.dateFromLabel;
+  const dateToSpan = document.querySelector(".board-date-to span");
+  if (dateToSpan) dateToSpan.textContent = dict.dateToLabel;
   const statusFilterSelect = document.getElementById("launchStatusFilter");
   if (statusFilterSelect) {
     statusFilterSelect.options[0].text = dict.statusAll;

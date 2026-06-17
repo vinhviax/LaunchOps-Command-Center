@@ -389,6 +389,8 @@ class LaunchRepository:
             "analyses": self.analyses.list_for_launch(cur, str(row.get("id") or "")),
             "postLaunchResult": post_launch_result,
             "lessonsLearned": metadata.get("lessonsLearned") if isinstance(metadata, dict) and isinstance(metadata.get("lessonsLearned"), list) else [],
+            "archived": bool(metadata.get("archived")) if isinstance(metadata, dict) else False,
+            "archivedAt": str(metadata.get("archivedAt") or "") if isinstance(metadata, dict) else "",
             "createdAt": row.get("created_at"),
             "updatedAt": row.get("updated_at"),
         }
@@ -399,7 +401,15 @@ class LaunchRepository:
             with conn.cursor() as cur:
                 cur.execute("SELECT * FROM launches ORDER BY updated_at DESC, id ASC")
                 rows = cur.fetchall()
-                return [self._row_to_launch(cur, row) for row in rows]
+                return [item for item in (self._row_to_launch(cur, row) for row in rows) if not item.get("archived")]
+
+    def list_archived(self) -> list[dict[str, Any]]:
+        ensure_cloud_schema()
+        with _cloud_connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM launches ORDER BY updated_at DESC, id ASC")
+                rows = cur.fetchall()
+                return [item for item in (self._row_to_launch(cur, row) for row in rows) if item.get("archived")]
 
     def get(self, launch_id: str) -> dict[str, Any] | None:
         ensure_cloud_schema()
@@ -424,6 +434,8 @@ class LaunchRepository:
                     "checklistProgress": launch.get("checklistProgress") if isinstance(launch.get("checklistProgress"), dict) else {},
                     "lessonsLearned": launch.get("lessonsLearned") if isinstance(launch.get("lessonsLearned"), list) else [],
                     "postLaunchResult": str(launch.get("postLaunchResult") or ""),
+                    "archived": bool(launch.get("archived")),
+                    "archivedAt": str(launch.get("archivedAt") or ""),
                 }
                 cur.execute(
                     """
@@ -475,6 +487,8 @@ class LaunchRepository:
                     "checklistProgress": launch.get("checklistProgress") if isinstance(launch.get("checklistProgress"), dict) else {},
                     "lessonsLearned": launch.get("lessonsLearned") if isinstance(launch.get("lessonsLearned"), list) else [],
                     "postLaunchResult": str(launch.get("postLaunchResult") or ""),
+                    "archived": bool(launch.get("archived")),
+                    "archivedAt": str(launch.get("archivedAt") or ""),
                 }
                 cur.execute(
                     """
@@ -519,6 +533,22 @@ class LaunchRepository:
                 self.lessons.index_from_launch(cur, launch, _product_id(launch))
         return self.get(str(launch.get("id") or "")) or saved
 
+    def archive(self, launch: dict[str, Any]) -> dict[str, Any]:
+        launch = dict(launch)
+        launch["archived"] = True
+        launch["archivedAt"] = str(launch.get("archivedAt") or now_iso())
+        launch["updatedAt"] = now_iso()
+        return self.upsert(launch)
+
+    def restore(self, launch_id: str) -> dict[str, Any] | None:
+        launch = self.get(launch_id)
+        if not launch or not launch.get("archived"):
+            return None
+        launch["archived"] = False
+        launch["archivedAt"] = ""
+        launch["updatedAt"] = now_iso()
+        return self.upsert(launch)
+
     def delete(self, launch_id: str) -> bool:
         ensure_cloud_schema()
         with _cloud_connect() as conn:
@@ -531,6 +561,10 @@ class LaunchRepository:
 
 def cloud_list_launches() -> list[dict[str, Any]]:
     return LaunchRepository().list()
+
+
+def cloud_list_archived_launches() -> list[dict[str, Any]]:
+    return LaunchRepository().list_archived()
 
 
 def cloud_get_launch(launch_id: str) -> dict[str, Any] | None:
@@ -549,7 +583,19 @@ def cloud_save_postmortem(launch: dict[str, Any]) -> dict[str, Any]:
     return LaunchRepository().save_postmortem(launch)
 
 
+def cloud_archive_launch(launch: dict[str, Any]) -> dict[str, Any]:
+    return LaunchRepository().archive(launch)
+
+
+def cloud_restore_archived_launch(launch_id: str) -> dict[str, Any] | None:
+    return LaunchRepository().restore(launch_id)
+
+
 def cloud_delete_launch(launch_id: str) -> bool:
+    return LaunchRepository().delete(launch_id)
+
+
+def cloud_purge_archived_launch(launch_id: str) -> bool:
     return LaunchRepository().delete(launch_id)
 
 
@@ -559,8 +605,8 @@ def ensure_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         count = conn.execute("SELECT COUNT(*) AS count FROM launch_types").fetchone()["count"]
-        has_lucky_spin = conn.execute("SELECT 1 FROM launch_types WHERE id = ?", ("lucky_spin_event",)).fetchone() is not None
-    if count == 0 or not has_lucky_spin:
+        has_game_event = conn.execute("SELECT 1 FROM launch_types WHERE id = ?", ("game_event_h5",)).fetchone() is not None
+    if count == 0 or not has_game_event:
         seed_db.seed(DB_PATH)
 
 

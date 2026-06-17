@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260617p">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260617p">
+  <link rel="stylesheet" href="styles.css?v=fix-20260617s">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260617s">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -122,8 +122,7 @@
     <div class="topbar-actions">
       <span id="analysisSource" class="sync-status">Bản local đã sẵn sàng</span>
       <button id="changeProduct" type="button" class="topbar-config-button">Đổi sản phẩm</button>
-      <button id="openTemplateConfig" type="button" class="topbar-config-button pro-only">Cấu hình phân loại</button>
-      <button id="newLaunch" type="button" class="primary">Tạo launch mới</button>
+      <button id="openTemplateConfig" type="button" class="topbar-config-button pro-only">Cấu Hình</button>
       <div class="lang-switch" role="group" aria-label="Language / Ngôn ngữ"><button id="langViBtn" type="button" class="mode-btn active" data-lang="vi">VI</button><button id="langEnBtn" type="button" class="mode-btn" data-lang="en">EN</button></div>
       <div class="mode-switch" role="group" aria-label="Chọn giao diện">
         <button id="modeFriendlyBtn" type="button" class="mode-btn" data-mode="friendly" aria-pressed="false">Friendly</button>
@@ -153,6 +152,16 @@
             <option value="upcoming">Sắp chạy</option>
           </select>
         </label>
+        <div class="board-date-range" role="group" aria-label="Khoảng ngày chạy">
+          <label class="board-date-filter board-date-from" for="launchDateFrom">
+            <span>Từ ngày</span>
+            <input id="launchDateFrom" type="date">
+          </label>
+          <label class="board-date-filter board-date-to" for="launchDateTo">
+            <span>Đến ngày</span>
+            <input id="launchDateTo" type="date">
+          </label>
+        </div>
       </div>
       <div id="launchGroups" class="launch-groups"></div>
     </aside>
@@ -161,6 +170,7 @@
       <section class="detail-hero">
         <div class="detail-title-block">
           <span class="section-kicker">Chi tiết launch</span>
+          <span id="sampleLaunchNotice" class="sample-launch-notice" hidden>Đây là Launch mẫu, vui lòng không điều chỉnh. Reviewer có thể tự tạo launch mới để trải nghiệm.</span>
           <h2 id="detailTitle">Launch detail</h2>
           <div id="detailSub" class="detail-meta-row">Tạo hoặc chọn launch trước khi phân tích.</div>
         </div>
@@ -386,7 +396,6 @@
             <label class="field">
               <span>Phân loại <button class="help-button inline" type="button" aria-label="Giải thích phân loại" data-tooltip="Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, internal tool hoặc hotfix.">?</button></span>
               <select id="launchType">
-                <option value="lucky_spin_event">Sự kiện Lucky Spin</option>
                 <option value="Game event">Sự kiện game</option>
                 <option value="Campaign marketing">Chiến dịch marketing</option>
                 <option value="Feature release">Ra mắt tính năng</option>
@@ -396,6 +405,12 @@
                 <option value="Partnership/commercial launch">Hợp tác / thương mại</option>
                 <option value="Emergency hotfix">Hotfix khẩn cấp</option>
               </select>
+              <small id="launchTypeNote" class="field-note">Hiện tại chỉ tối ưu Sự Kiện Game</small>
+            </label>
+            <label class="field">
+              <span id="launchTemplateLabel">Template <button class="help-button inline" type="button" aria-label="Giải thích template" data-tooltip="Chọn bộ template để Agent dùng khung rủi ro, phản biện, checklist và bài học phù hợp với launch này.">?</button></span>
+              <select id="launchTemplate"></select>
+              <small id="launchTemplateNote" class="field-note">Template nằm trong phân loại; nhiều launch có thể dùng chung một template.</small>
             </label>
             <label class="field">
               <span>Trạng thái <button class="help-button inline" type="button" aria-label="Giải thích trạng thái launch" data-tooltip="Sắp chạy: còn chuẩn bị. Đang chạy: đang active hoặc sát giờ. Đã chạy: dùng để lưu kết quả và bài học.">?</button></span>
@@ -458,7 +473,10 @@
               <button id="demoMode" type="button">Demo mode</button>
               <button id="exportReport" type="button">Export report</button>
               <button id="saveLaunch" type="button">Lưu launch</button>
-              <button id="analyzeBrief" type="button" class="primary">Chạy phân tích</button>
+              <span class="primary-action-pair">
+                <button id="analyzeBrief" type="button" class="primary">Chạy phân tích</button>
+                <button id="newLaunch" type="button" class="primary new-launch-action">Tạo launch mới</button>
+              </span>
               <button class="help-button action-help" type="button" aria-label="Giải thích các nút thao tác launch" data-tooltip="Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.">?</button>
               <button id="deleteLaunch" type="button" class="danger-button">Xóa launch</button>
             </div>
@@ -643,7 +661,7 @@
         <div class="content-card config-hero">
           <div class="card-head">
             <div>
-              <span class="section-kicker">Cấu hình phân loại</span>
+              <span class="section-kicker">Cấu Hình</span>
               <div class="title-row">
                 <h3>Cách Agent đánh giá từng phân loại</h3>
                 <button class="help-button" type="button" aria-label="Giải thích cấu hình phân loại" data-tooltip="Mỗi phân loại launch dùng một bộ luật đánh giá. Bạn có thể đổi tên phân loại, chọn template gốc, rồi chỉnh nhóm rủi ro, phản biện, checklist và câu hỏi bài học.">?</button>
@@ -665,8 +683,8 @@
 
           <div class="template-summary">
             <div class="template-selector-card">
-              <span>Phân loại đang cấu hình</span>
-              <select id="templateSelector" aria-label="Chọn template đang dùng"></select>
+              <span id="templateConfigSelectorLabel">Template đang cấu hình</span>
+              <select id="templateSelector" aria-label="Chọn template đang cấu hình"></select>
               <strong id="templateName">Template mặc định</strong>
             </div>
             <div class="template-stat">
@@ -685,12 +703,13 @@
         </div>
 
         <nav class="config-tabs" role="tablist" aria-label="Cấu hình phân loại">
-          <button type="button" role="tab" class="config-tab active" data-config-tab="catalog" aria-selected="true">Phân loại</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="risk" aria-selected="false">Rủi ro</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="persona" aria-selected="false">Phản biện</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="checklist" aria-selected="false">Checklist</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="lesson" aria-selected="false">Bài học</button>
           <button type="button" role="tab" class="config-tab" data-config-tab="admin" aria-selected="false">Người thao tác</button>
+          <button type="button" role="tab" class="config-tab active" data-config-tab="catalog" aria-selected="true">Phân loại</button>
+          <button type="button" role="tab" class="config-tab" data-config-tab="archive" aria-selected="false">Lưu trữ</button>
         </nav>
 
         <div class="config-grid">
@@ -728,6 +747,16 @@
                   <div id="classificationEditor" class="catalog-list"></div>
                 </div>
               </div>
+            </section>
+
+            <section class="content-card config-section config-pane" data-config-panel="archive">
+              <div class="card-head compact">
+                <div>
+                  <span class="section-kicker">Lưu trữ</span>
+                  <h3>Launch đã xóa</h3>
+                </div>
+              </div>
+              <div id="archiveList" class="archive-list"></div>
             </section>
 
             <section class="content-card config-section config-pane" data-config-panel="risk">
@@ -815,7 +844,7 @@
                 <div class="format-guide inline-guide version-guide">
                   <span class="section-kicker">Version history</span>
                   <h3>Lịch sử template</h3>
-                  <p>Mỗi lần lưu cấu hình, app tạo một snapshot version cho phân loại đang cấu hình.</p>
+                  <p>Mỗi lần lưu cấu hình, app tạo một snapshot version cho template đang cấu hình.</p>
                   <div id="templateVersionHistory" class="version-list"></div>
                 </div>
 
@@ -943,9 +972,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260617p"></script>
-  <script src="app.js?v=fix-20260617p"></script>
-  <script src="friendly-ui.js?v=fix-20260617p"></script>
-  <script src="i18n-clean.js?v=fix-20260617p"></script>
+  <script src="config.js?v=fix-20260617s"></script>
+  <script src="app.js?v=fix-20260617s"></script>
+  <script src="friendly-ui.js?v=fix-20260617s"></script>
+  <script src="i18n-clean.js?v=fix-20260617s"></script>
 </body>
 </html>

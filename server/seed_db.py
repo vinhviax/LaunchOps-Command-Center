@@ -94,11 +94,11 @@ def seed(db_path: Path) -> None:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         created_at = now_iso()
         types = [
-            ("lucky_spin_event", "Sự kiện Lucky Spin", "game", "Sự kiện quay thưởng ingame có lượt quay, reward cap, anti-abuse, CS FAQ và rollback.", lucky_spin_profile()),
             ("game_event_h5", "Game Event H5/Ingame", "game", "Sự kiện H5/Ingame cho game liveops.", profile("game_event_h5", "Game Event H5/Ingame", GAME_RISKS)),
             ("webshop_promotion", "Webshop Promotion", "game", "Promotion nạp gói/webshop.", profile("webshop_promotion", "Webshop Promotion", WEBSHOP_RISKS)),
             ("marketing", "Marketing Campaign", "marketing", "Khung campaign marketing cơ bản.", profile("marketing", "Marketing Campaign", MARKETING_RISKS)),
         ]
+        conn.execute("DELETE FROM launch_types WHERE id = ?", ("lucky_spin_event",))
         conn.executemany(
             "INSERT OR REPLACE INTO launch_types(id, name, domain, description, profile_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
             [(type_id, name, domain, desc, json.dumps(prof, ensure_ascii=False), created_at) for type_id, name, domain, desc, prof in types],

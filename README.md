@@ -145,7 +145,9 @@ Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
 
 - **Friendly mode:** trải nghiệm hướng dẫn từng bước cho người mới.
 - **Pro mode:** dashboard đầy đủ — readiness, Red Team, checklist, post-mortem, RAG insight, trace, và panel controlled self-learning.
-- **Admin log:** mở bằng `?role=admin` để xem client event + server trace từng launch.
+- **Danh sách launch:** lọc chung cho Pro/Friendly theo tên, trạng thái và khoảng ngày chạy để tìm nhanh launch trong một giai đoạn.
+- **Lưu trữ:** launch người dùng khi xóa được đưa vào tab Archive/Lưu trữ trong Cấu Hình để Admin xem, khôi phục hoặc xóa vĩnh viễn; bản public review chỉ cho xem khi đang khóa.
+- **Log:** xem client event + server trace từng launch ở Pro mode (read-only trong bản review công khai).
 - **VI/EN:** UI song ngữ; output LLM theo ngôn ngữ của brief.
 
 ## MCP và tool

@@ -31,10 +31,12 @@ const CLEAN_I18N_DICT = {
     title: "LaunchOps Command Center",
     roleLabel: "Vai trò",
     newLaunch: "Tạo launch mới",
-    openTemplateConfig: "Cấu hình phân loại",
+    openTemplateConfig: "Cấu Hình",
     statusFilterLabel: "Trạng thái",
     searchLabel: "Tìm kiếm",
     searchPlaceholder: "Tên hoặc phân loại",
+    dateFromLabel: "Từ ngày",
+    dateToLabel: "Đến ngày",
     statusAll: "Tất cả",
     statusRunning: "Đang chạy",
     statusCompleted: "Đã chạy",
@@ -60,6 +62,12 @@ const CLEAN_I18N_DICT = {
     labelBriefContent: "Nội dung brief",
     labelName: "Tên launch",
     labelType: "Phân loại",
+    labelTypeNote: "Hiện tại chỉ tối ưu Sự Kiện Game",
+    labelTemplate: "Template",
+    labelTemplateNote: "Template nằm trong phân loại; nhiều launch có thể dùng chung một template.",
+    helpTemplateBtn: "Giải thích template",
+    helpTemplateTooltip: "Chọn bộ template để Agent dùng khung rủi ro, phản biện, checklist và bài học phù hợp với launch này.",
+    templateConfigSelectorLabel: "Template đang cấu hình",
     labelStatus: "Trạng thái",
     labelOwner: "Người phụ trách",
     labelStart: "Start Launch",
@@ -181,10 +189,12 @@ const CLEAN_I18N_DICT = {
     title: "LaunchOps Command Center",
     roleLabel: "Role",
     newLaunch: "New Launch",
-    openTemplateConfig: "Classification Config",
+    openTemplateConfig: "Config",
     statusFilterLabel: "Status",
     searchLabel: "Search",
     searchPlaceholder: "Name or type",
+    dateFromLabel: "From",
+    dateToLabel: "To",
     statusAll: "All",
     statusRunning: "Running",
     statusCompleted: "Completed",
@@ -210,6 +220,12 @@ const CLEAN_I18N_DICT = {
     labelBriefContent: "Brief content",
     labelName: "Launch name",
     labelType: "Type",
+    labelTypeNote: "Currently optimized for Game Events only",
+    labelTemplate: "Template",
+    labelTemplateNote: "Templates belong inside classifications; many launches can share one template.",
+    helpTemplateBtn: "Explain template",
+    helpTemplateTooltip: "Choose the template the Agent uses for risk rules, red-team review, checklist, and lessons for this launch.",
+    templateConfigSelectorLabel: "Template being configured",
     labelStatus: "Status",
     labelOwner: "Owner",
     labelStart: "Start Launch",
@@ -352,17 +368,17 @@ const STATIC_TEXT_I18N = {
 
 const CONFIG_TEXT = {
   vi: {
-    kicker: "Cấu hình phân loại",
+    kicker: "Cấu Hình",
     title: "Cách Agent đánh giá từng phân loại",
     reset: "Nạp mẫu chuẩn",
     save: "Lưu cấu hình chung",
     operator: "Người đang thao tác",
-    selectedType: "Phân loại đang cấu hình",
+    selectedType: "Template đang cấu hình",
     templateDefault: "Template mặc định",
     maxScore: "Điểm tối đa",
     riskGroups: "Nhóm rủi ro",
     personas: "Góc phản biện",
-    tabs: ["Phân loại", "Rủi ro", "Phản biện", "Checklist", "Bài học", "Người thao tác"],
+    tabs: ["Rủi ro", "Phản biện", "Checklist", "Bài học", "Người thao tác", "Phân loại", "Lưu trữ"],
     catalogKicker: "Cấu hình chung",
     catalogTitle: "Phân loại & template gốc",
     quickTitle: "Cách hiểu nhanh",
@@ -395,24 +411,26 @@ const CONFIG_TEXT = {
     personaCode: "vai trò, lo ngại, dấu hiệu, cách xử lý",
     versionKicker: "Version history",
     versionTitle: "Lịch sử template",
-    versionBody: "Mỗi lần lưu cấu hình, app tạo một snapshot version cho phân loại đang cấu hình.",
+    versionBody: "Mỗi lần lưu cấu hình, app tạo một snapshot version cho template đang cấu hình.",
     runLogKicker: "Log phiên",
     runLogTitle: "Nhật ký chạy phân tích",
     runLogBody: "Xóa toàn bộ sự kiện client của launch đang chọn trong phiên hiện tại. Không ảnh hưởng server trace đã lưu. Xem chi tiết ở tab Log.",
     clearLog: "Xóa log phiên"
+    ,archiveKicker: "Lưu trữ"
+    ,archiveTitle: "Launch đã xóa"
   },
   en: {
-    kicker: "Classification Config",
+    kicker: "Config",
     title: "How the Agent scores each classification",
     reset: "Load standard template",
     save: "Save shared config",
     operator: "Current operator",
-    selectedType: "Classification being configured",
+    selectedType: "Template being configured",
     templateDefault: "Default template",
     maxScore: "Max score",
     riskGroups: "Risk groups",
     personas: "Red-team perspectives",
-    tabs: ["Classification", "Risk", "Red team", "Checklist", "Lessons", "Operators"],
+    tabs: ["Risk", "Red team", "Checklist", "Lessons", "Operators", "Classification", "Archive"],
     catalogKicker: "Shared config",
     catalogTitle: "Classification & base template",
     quickTitle: "Quick mental model",
@@ -445,11 +463,13 @@ const CONFIG_TEXT = {
     personaCode: "role, concern, evidence, fix",
     versionKicker: "Version history",
     versionTitle: "Template history",
-    versionBody: "Every time config is saved, the app creates a version snapshot for the classification currently being configured.",
+    versionBody: "Every time config is saved, the app creates a version snapshot for the template currently being configured.",
     runLogKicker: "Session log",
     runLogTitle: "Analysis run log",
     runLogBody: "Clear all client events for the selected launch in the current session. Saved server traces are not affected. See details in the Log tab.",
-    clearLog: "Clear session log"
+    clearLog: "Clear session log",
+    archiveKicker: "Archive",
+    archiveTitle: "Deleted launches"
   }
 };
 
@@ -544,6 +564,10 @@ function applyCleanTranslations(lang) {
 
   const statusSpan = document.querySelector(".board-status-filter span");
   if (statusSpan) statusSpan.textContent = dict.statusFilterLabel;
+  const dateFromSpan = document.querySelector(".board-date-from span");
+  if (dateFromSpan) dateFromSpan.textContent = dict.dateFromLabel;
+  const dateToSpan = document.querySelector(".board-date-to span");
+  if (dateToSpan) dateToSpan.textContent = dict.dateToLabel;
 
   const statusSelect = document.getElementById("launchStatusFilter");
   if (statusSelect) {
@@ -668,6 +692,18 @@ function applyCleanTranslations(lang) {
   const fieldLabel = (inputId) => document.getElementById(inputId)?.closest(".field")?.querySelector(":scope > span");
   setLabelKeepHelp(fieldLabel("launchName"), dict.labelName);
   setLabelKeepHelp(fieldLabel("launchType"), dict.labelType);
+  const launchTypeNote = document.getElementById("launchTypeNote");
+  if (launchTypeNote) launchTypeNote.textContent = dict.labelTypeNote;
+  setLabelKeepHelp(fieldLabel("launchTemplate"), dict.labelTemplate);
+  const launchTemplateNote = document.getElementById("launchTemplateNote");
+  if (launchTemplateNote) launchTemplateNote.textContent = dict.labelTemplateNote;
+  const launchTemplateHelp = document.querySelector("#launchTemplateLabel .help-button");
+  if (launchTemplateHelp) {
+    launchTemplateHelp.setAttribute("aria-label", dict.helpTemplateBtn);
+    launchTemplateHelp.dataset.tooltip = dict.helpTemplateTooltip;
+  }
+  const templateConfigSelectorLabel = document.getElementById("templateConfigSelectorLabel");
+  if (templateConfigSelectorLabel) templateConfigSelectorLabel.textContent = dict.templateConfigSelectorLabel;
   setLabelKeepHelp(fieldLabel("launchStatus"), dict.labelStatus);
   setLabelKeepHelp(fieldLabel("launchOwner"), dict.labelOwner);
   setLabelKeepHelp(fieldLabel("launchTargetDate"), dict.labelStart);
@@ -882,6 +918,7 @@ function applyCleanTranslations(lang) {
     setPaneHead("persona", cfg.personaKicker, cfg.personaTitle, "addPersona", cfg.addPersona);
     setPaneHead("checklist", cfg.checklistKicker, cfg.checklistTitle, "addChecklistItem", cfg.addChecklist);
     setPaneHead("lesson", cfg.lessonKicker, cfg.lessonTitle, "addLessonBlock", cfg.addLesson);
+    setPaneHead("archive", cfg.archiveKicker, cfg.archiveTitle, null, "");
 
     const admin = templateConfig.querySelector('[data-config-panel="admin"]');
     if (admin) {

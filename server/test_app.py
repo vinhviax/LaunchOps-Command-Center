@@ -72,6 +72,13 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertNotIn("May Login", names)
         self.assertNotIn("Midweek", names)
 
+    def test_default_demo_samples_have_required_launch_times(self):
+        for launch in app.default_sample_launches():
+            with self.subTest(launch=launch["id"], field="targetDate"):
+                self.assertTrue(app.has_required_launch_datetime(launch.get("targetDate")))
+            with self.subTest(launch=launch["id"], field="endDate"):
+                self.assertTrue(app.has_required_launch_datetime(launch.get("endDate")))
+
     def test_green_demo_sample_has_no_open_risks(self):
         result = app.lucky_spin_sample_result("Green", 12)
         self.assertEqual(result["decision"]["score"], 12)
@@ -317,8 +324,10 @@ class LccCatalogToolTests(unittest.TestCase):
         self.assertTrue(out["immutable"])
         self.assertTrue(out["adminOnlyConfiguration"])
         self.assertIn({"id": "demo", "name": "Demo", "status": "available"}, out["products"])
-        self.assertTrue(any(item["id"] == "lucky_spin_event" for item in out["classifications"]))
-        self.assertTrue(any(item["classificationId"] == "lucky_spin_event" for item in out["templates"]))
+        self.assertTrue(any(item["id"] == "game_event_h5" for item in out["classifications"]))
+        self.assertTrue(any(item["classificationId"] == "game_event_h5" for item in out["templates"]))
+        self.assertFalse(any(item["id"] == "lucky_spin_event" for item in out["classifications"]))
+        self.assertFalse(any(item["classificationId"] == "lucky_spin_event" for item in out["templates"]))
         self.assertIn("Human Admin", out["message"])
 
     def test_catalog_section_filter(self):
@@ -337,7 +346,8 @@ class LccCatalogToolTests(unittest.TestCase):
         result = app.handle_chatbot_payload("generic", {"chatId": "test", "text": "lcc catalog classifications"})
         self.assertTrue(result["ok"])
         self.assertIn("classifications", result["reply"])
-        self.assertIn("lucky_spin_event", result["reply"])
+        self.assertIn("game_event_h5", result["reply"])
+        self.assertNotIn("lucky_spin_event", result["reply"])
 
 
 class LaunchOpsMcpToolTests(unittest.TestCase):
@@ -362,7 +372,7 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
     def required_launch_args(self, **overrides):
         payload = {
             "name": "Golden Spin Tool Test",
-            "type": "lucky_spin_event",
+            "type": "game_event_h5",
             "owner": "LiveOps Lead",
             "targetDate": "15/07/2099 08:30",
             "endDate": "17/07/2099 23:59",
@@ -374,7 +384,7 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
     def test_create_get_update_and_analyze_launch_via_tool(self):
         created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
             name="Golden Spin Tool Test",
-            type="lucky_spin_event",
+            type="game_event_h5",
             brief="Golden Spin. No owner, no rollback plan, no CS FAQ.",
         ))
         self.assertTrue(created["ok"])
@@ -414,7 +424,8 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         self.assertFalse(created["ok"])
         self.assertEqual(created["error"], "invalid_classification")
         self.assertIn("classifications", created["catalog"])
-        self.assertTrue(any(item["id"] == "lucky_spin_event" for item in created["catalog"]["classifications"]))
+        self.assertTrue(any(item["id"] == "game_event_h5" for item in created["catalog"]["classifications"]))
+        self.assertFalse(any(item["id"] == "lucky_spin_event" for item in created["catalog"]["classifications"]))
 
     def test_create_launch_rejects_missing_required_fields_for_channel_bots(self):
         created = app.execute_launchops_tool("lcc_create_launch", {
@@ -429,14 +440,25 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         self.assertIn("Ngày Bắt Đầu", created["message"])
         self.assertIn("dd/mm/yyyy hh:mm", created["message"])
 
-    def test_create_launch_accepts_catalog_alias_and_saves_canonical_type(self):
+    def test_create_launch_accepts_game_event_alias_and_saves_canonical_type(self):
         created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
             name="Good Classification Launch",
-            type="Sự kiện Lucky Spin",
+            type="Game event",
             brief="Golden Spin. Owner ready.",
         ))
         self.assertTrue(created["ok"])
-        self.assertEqual(created["launch"]["type"], "lucky_spin_event")
+        self.assertEqual(created["launch"]["type"], "game_event_h5")
+
+    def test_create_launch_rejects_removed_lucky_spin_classification(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
+            name="Removed Classification Launch",
+            type="Lucky Spin",
+            brief="Golden Spin. Owner ready.",
+            language="en",
+        ))
+        self.assertFalse(created["ok"])
+        self.assertEqual(created["error"], "invalid_classification")
+        self.assertFalse(any(item["id"] == "lucky_spin_event" for item in created["catalog"]["classifications"]))
 
     def test_create_launch_rejects_date_without_time_for_bots(self):
         created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
@@ -465,7 +487,7 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
     def test_create_launch_user_message_uses_launch_name_not_id(self):
         created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(
             name="Summer Launch",
-            type="lucky_spin_event",
+            type="game_event_h5",
             targetDate="15/07/2099 08:30",
             endDate="17/07/2099 23:59",
             owner="LiveOps",
@@ -722,6 +744,143 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         deleted = app.execute_launchops_tool("lcc_delete_launch", {"launchId": launch_id, "confirm": f"DELETE {launch_id}"})
         self.assertTrue(deleted["ok"])
         self.assertIsNone(app.get_launch(launch_id))
+
+    def test_deleted_launch_moves_to_archive_and_can_restore_or_purge(self):
+        created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(name="Archive Me"))
+        launch_id = created["launch"]["id"]
+
+        deleted = app.execute_launchops_tool("lcc_delete_launch", {
+            "launchId": launch_id,
+            "confirm": f"DELETE {launch_id}",
+        })
+        self.assertTrue(deleted["ok"])
+        self.assertEqual(deleted["archivedId"], launch_id)
+        self.assertIsNone(app.get_launch(launch_id))
+
+        archived = app.list_archived_launches()
+        self.assertEqual([item["id"] for item in archived], [launch_id])
+        self.assertTrue(archived[0]["archived"])
+        self.assertIn("archivedAt", archived[0])
+
+        restored = app.restore_archived_launch(launch_id)
+        self.assertEqual(restored["id"], launch_id)
+        self.assertFalse(restored.get("archived", False))
+        self.assertIsNotNone(app.get_launch(launch_id))
+        self.assertEqual(app.list_archived_launches(), [])
+
+        app.delete_launch(launch_id)
+        self.assertEqual([item["id"] for item in app.list_archived_launches()], [launch_id])
+        self.assertTrue(app.purge_archived_launch(launch_id))
+        self.assertEqual(app.list_archived_launches(), [])
+
+class PublicReviewLockTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.launch_dir = Path(self.tempdir.name)
+        self.dir_patch = patch.object(app, "LAUNCHES_DIR", self.launch_dir)
+        self.dir_patch.start()
+        self.env_patch = patch.dict(os.environ, {
+            "LAUNCHOPS_STORAGE_BACKEND": "local",
+            "LAUNCHOPS_LLM_ENABLED": "false",
+            "LAUNCHOPS_MULTI_MODEL_ENABLED": "false",
+            "LAUNCHOPS_ORCHESTRATOR_LLM_ENABLED": "false",
+            "LAUNCHOPS_MEMORY_LLM_ENABLED": "false",
+            "LAUNCHOPS_PUBLIC_LOCK": "true",
+            "LAUNCHOPS_MCP_ADMIN_TOOLS_ENABLED": "true",
+        }, clear=False)
+        self.env_patch.start()
+        self.sample_launch = {
+            **app.default_sample_launches()[0],
+            "id": "golden-spin-review-lock",
+            "name": "Golden Spin Review Lock",
+            "targetDate": "15/07/2099 08:30",
+            "endDate": "17/07/2099 23:59",
+            "analyses": [{
+                "id": "analysis-existing",
+                "createdAt": "2099-07-01T00:00:00Z",
+                "briefSnapshot": "existing",
+                "result": app.fallback_result("existing"),
+            }],
+        }
+        app.write_json(app.launch_file(self.sample_launch["id"]), self.sample_launch)
+
+    def tearDown(self):
+        self.env_patch.stop()
+        self.dir_patch.stop()
+        self.tempdir.cleanup()
+
+    def test_sample_update_delete_post_result_and_config_tools_are_locked(self):
+        update = app.execute_launchops_tool("lcc_update_launch", {
+            "launchId": self.sample_launch["id"],
+            "owner": "Reviewer",
+        })
+        self.assertFalse(update["ok"])
+        self.assertEqual(update["error"], "public_review_locked")
+
+        delete = app.execute_launchops_tool("lcc_delete_launch", {
+            "launchId": self.sample_launch["id"],
+            "confirm": f"DELETE {self.sample_launch['id']}",
+        })
+        self.assertFalse(delete["ok"])
+        self.assertEqual(delete["error"], "public_review_locked")
+        self.assertIsNotNone(app.get_launch(self.sample_launch["id"]))
+
+        with self.assertRaises(app.PublicLockError):
+            app.save_post_result(dict(self.sample_launch), {"status": "completed", "lesson": "Do not mutate sample."})
+
+        for tool_name in (
+            "lcc_create_type",
+            "lcc_set_launch_template",
+            "lcc_propose_template_update",
+            "lcc_approve_template_version",
+        ):
+            result = app.execute_launchops_tool(tool_name, {
+                "launchId": self.sample_launch["id"],
+                "name": "Locked Config",
+                "lesson": "Need a new rubric.",
+                "proposalId": "proposal-1",
+                "adminConfirmation": "HUMAN_ADMIN",
+            }, force_fast=True)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["error"], "public_review_locked")
+
+    def test_lock_allows_new_launch_and_sample_analyze_without_persisting_history(self):
+        created = app.execute_launchops_tool("lcc_create_launch", {
+            "name": "Reviewer Test Launch",
+            "type": "game_event_h5",
+            "owner": "Reviewer",
+            "targetDate": "20/07/2099 08:30",
+            "endDate": "21/07/2099 23:59",
+            "brief": "Reviewer launch with owner, rollback and CS FAQ.",
+        }, force_fast=True)
+        self.assertTrue(created["ok"])
+        self.assertFalse(app.is_sample_launch_id(created["launch"]["id"]))
+
+        before = len(app.get_launch(self.sample_launch["id"]).get("analyses") or [])
+        analyzed = app.execute_launchops_tool("lcc_analyze_launch", {
+            "launchId": self.sample_launch["id"],
+        }, force_fast=True)
+        self.assertTrue(analyzed["ok"])
+        self.assertIn("decision", analyzed["result"])
+        self.assertEqual(analyzed["summary"]["analysisCount"], before)
+        after = len(app.get_launch(self.sample_launch["id"]).get("analyses") or [])
+        self.assertEqual(after, before)
+
+    def test_lock_blocks_archive_restore_and_purge(self):
+        archived = {
+            **self.sample_launch,
+            "id": "reviewer-owned-archived",
+            "name": "Reviewer Owned Archived",
+            "archived": True,
+            "archivedAt": "2099-07-01T00:00:00Z",
+        }
+        app.write_json(app.archive_file(archived["id"]), archived)
+        self.assertEqual([item["id"] for item in app.list_archived_launches()], [archived["id"]])
+
+        with self.assertRaises(app.PublicLockError):
+            app.restore_archived_launch(archived["id"])
+        with self.assertRaises(app.PublicLockError):
+            app.purge_archived_launch(archived["id"])
 
 class AgentRoleInvocationTests(unittest.TestCase):
     def test_normalize_agent_role_accepts_runtime_names(self):

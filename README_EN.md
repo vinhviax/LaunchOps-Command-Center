@@ -145,7 +145,9 @@ Click **Load Sample Brief** or **Demo mode** to load it quickly.
 
 - **Friendly mode:** step-by-step guided experience for newcomers.
 - **Pro mode:** full dashboard — readiness, Red Team, checklist, post-mortem, RAG insight, trace, and the controlled self-learning panel.
-- **Admin log:** open with `?role=admin` to see client events + server trace per launch.
+- **Launch list:** shared Pro/Friendly filters by name, status, and running date range so reviewers can find launches in a specific window.
+- **Archive:** deleted user launches move to the Archive tab inside Config, where Admins can review, restore, or purge them; the public review build keeps it view-only while locked.
+- **Log:** view client events + server trace per launch in Pro mode (read-only in the public review build).
 - **VI/EN:** bilingual UI; LLM output follows the brief's language.
 
 ## MCP and tools

@@ -19,9 +19,13 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from db import (
     cloud_append_analysis,
+    cloud_archive_launch,
     cloud_delete_launch,
     cloud_get_launch,
+    cloud_list_archived_launches,
     cloud_list_launches,
+    cloud_purge_archived_launch,
+    cloud_restore_archived_launch,
     cloud_save_launch,
     cloud_save_postmortem,
     cloud_storage_requested,
@@ -42,7 +46,8 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260617p"
+UI_CACHE_VERSION = "fix-20260617s"
+HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
 ANALYZE_TOOL_NAMES = {ANALYZE_TOOL_NAME, LCC_TOOL_ALIAS}
@@ -168,12 +173,24 @@ def launch_file(launch_id: str) -> Path:
     return LAUNCHES_DIR / f"{launch_id}.json"
 
 
+def archive_dir() -> Path:
+    return LAUNCHES_DIR / "_archive"
+
+
+def archive_file(launch_id: str) -> Path:
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,90}", launch_id):
+        raise ValueError("Invalid launch id")
+    archive_dir().mkdir(parents=True, exist_ok=True)
+    return archive_dir() / f"{launch_id}.json"
+
+
 def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     LAUNCHES_DIR.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(".tmp")
     tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp_path.replace(path)
@@ -1187,8 +1204,8 @@ Vận hành:
             "type": "lucky_spin_event",
             "status": "completed",
             "owner": "LiveOps Lead",
-            "targetDate": "2026-05-29",
-            "endDate": "2026-05-31",
+            "targetDate": "2026-05-29 20:00",
+            "endDate": "2026-05-31 23:59",
             "brief": retro_brief,
             "template": template,
             "templateVersions": [],
@@ -1228,10 +1245,10 @@ Vận hành:
             "id": "golden-spin-weekend-risk",
             "name": "Golden Spin Weekend Risk",
             "type": "lucky_spin_event",
-            "status": "running",
+            "status": "upcoming",
             "owner": "PM LiveOps",
-            "targetDate": "2026-06-19",
-            "endDate": "2026-06-21",
+            "targetDate": "2026-06-19 20:00",
+            "endDate": "2026-06-21 23:59",
             "brief": sample_brief,
             "template": template,
             "templateVersions": [],
@@ -1260,8 +1277,8 @@ Vận hành:
             "type": "lucky_spin_event",
             "status": "upcoming",
             "owner": "PM LiveOps + Tech on-call",
-            "targetDate": "2026-06-19",
-            "endDate": "2026-06-21",
+            "targetDate": "2026-06-20 20:00",
+            "endDate": "2026-06-22 23:59",
             "brief": ready_brief,
             "template": template,
             "templateVersions": [{"version": 1, "createdAt": created, "template": template}],
@@ -1298,8 +1315,8 @@ Vận hành:
             "type": "lucky_spin_event",
             "status": "completed",
             "owner": "PM LiveOps",
-            "targetDate": "2026-06-10",
-            "endDate": "2026-06-12",
+            "targetDate": "2026-06-10 20:00",
+            "endDate": "2026-06-12 23:59",
             "brief": draft_retro_brief,
             "template": template,
             "templateVersions": [],
@@ -1318,8 +1335,8 @@ Vận hành:
             "type": "lucky_spin_event",
             "status": "running",
             "owner": "PM LiveOps",
-            "targetDate": "2026-06-13",
-            "endDate": "2026-06-15",
+            "targetDate": "2026-06-17 08:30",
+            "endDate": "2026-06-18 23:59",
             "brief": draft_risk_brief,
             "template": template,
             "templateVersions": [],
@@ -1338,8 +1355,8 @@ Vận hành:
             "type": "lucky_spin_event",
             "status": "upcoming",
             "owner": "PM LiveOps + Tech on-call",
-            "targetDate": "2026-06-20",
-            "endDate": "2026-06-22",
+            "targetDate": "2026-06-20 20:00",
+            "endDate": "2026-06-22 23:59",
             "brief": draft_ready_brief,
             "template": template,
             "templateVersions": [],
@@ -1419,6 +1436,9 @@ def summarize_launch(launch: dict[str, Any]) -> dict[str, Any]:
         "lessonCount": len(lessons),
         "templateName": (launch.get("template") or {}).get("name") if isinstance(launch.get("template"), dict) else "",
         "decision": decision,
+        "isSample": is_sample_launch_id(launch.get("id")),
+        "archived": bool(launch.get("archived")),
+        "archivedAt": launch.get("archivedAt") or "",
     }
 
 
@@ -1429,14 +1449,91 @@ def get_launch(launch_id: str) -> dict[str, Any] | None:
         return None
     cloud_result = try_cloud_storage("get_launch", cloud_get_launch, launch_id)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
+        if isinstance(cloud_result, dict) and cloud_result.get("archived"):
+            return None
         return sanitize_launch_for_response(cloud_result)
     if not path.exists():
         return None
     launch = read_json(path)
+    if launch.get("archived"):
+        return None
     return sanitize_launch_for_response(launch) or launch
 
 
+def get_archived_launch(launch_id: str) -> dict[str, Any] | None:
+    cloud_result = try_cloud_storage("get_archived_launch", cloud_get_launch, launch_id)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        if isinstance(cloud_result, dict) and cloud_result.get("archived"):
+            return sanitize_launch_for_response(cloud_result) or cloud_result
+        return None
+    try:
+        path = archive_file(launch_id)
+    except ValueError:
+        return None
+    if not path.exists():
+        return None
+    launch = read_json(path)
+    if not launch.get("archived"):
+        return None
+    return sanitize_launch_for_response(launch) or launch
+
+
+def list_archived_launches() -> list[dict[str, Any]]:
+    cloud_result = try_cloud_storage("list_archived_launches", cloud_list_archived_launches)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return [sanitize_launch_for_response(item) or item for item in cloud_result]
+    items: list[dict[str, Any]] = []
+    archive_root = archive_dir()
+    archive_paths = sorted(archive_root.glob("*.json")) if archive_root.exists() else []
+    for path in archive_paths:
+        try:
+            launch = read_json(path)
+            if launch.get("archived"):
+                items.append(sanitize_launch_for_response(launch) or launch)
+        except (json.JSONDecodeError, OSError):
+            write_backend_log(f"Skipped unreadable archived launch file: {path.name}")
+    return sorted(items, key=lambda item: str(item.get("archivedAt") or item.get("updatedAt") or ""), reverse=True)
+
+
+# Public review lock: when LAUNCHOPS_PUBLIC_LOCK is on (production during voting), block
+# config/template edits, template approval, and edits/deletes to seeded sample launches.
+# Default OFF so anyone cloning the repo keeps full admin/edit access.
+SAMPLE_LAUNCH_PREFIXES = ("golden-spin", "lucky-spin", "lucky-wheel", "midweek", "may-login")
+
+
+def public_lock_enabled() -> bool:
+    return truthy_env("LAUNCHOPS_PUBLIC_LOCK", "false")
+
+
+def is_sample_launch_id(launch_id: Any) -> bool:
+    lid = str(launch_id or "").strip().lower()
+    return any(lid.startswith(prefix) for prefix in SAMPLE_LAUNCH_PREFIXES)
+
+
+class PublicLockError(Exception):
+    def __init__(self, action: str = "edit"):
+        self.code = "public_review_locked"
+        self.action = action
+        self.message = (
+            "Tác giả tạm khóa quyền chỉnh sửa trong giai đoạn vote để giữ dữ liệu demo. "
+            "Reviewer có thể tự tạo launch mới để trải nghiệm, hoặc liên hệ domain VinhVNN để mở quyền Admin."
+        )
+        super().__init__(self.message)
+
+
+def public_lock_error(action: str) -> dict[str, Any]:
+    err = PublicLockError(action)
+    return {"ok": False, "error": err.code, "action": action, "message": err.message}
+
+
+def guard_sample_launch_mutation(launch_id: Any, action: str) -> None:
+    if public_lock_enabled() and is_sample_launch_id(launch_id):
+        raise PublicLockError(action)
+
+
 def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None) -> dict[str, Any]:
+    if existing_id is not None:
+        guard_sample_launch_mutation(existing_id, "update_launch")
     incoming = payload.get("launch") if isinstance(payload.get("launch"), dict) else payload
     incoming_name = str(incoming.get("name") or "").strip()
     launch_id = existing_id or str(incoming.get("id") or slugify(incoming_name or "Launch mới")).strip()
@@ -1496,6 +1593,7 @@ def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) 
 
 
 def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    guard_sample_launch_mutation(launch.get("id"), "post_result")
     launch["status"] = normalize_status(payload.get("status") or launch.get("status") or "completed")
     launch["postLaunchResult"] = str(payload.get("postLaunchResult") or launch.get("postLaunchResult") or "").strip()
     lesson = str(payload.get("lesson") or "").strip()
@@ -1512,7 +1610,65 @@ def save_post_result(launch: dict[str, Any], payload: dict[str, Any], memory_con
     return sanitize_launch_for_response(launch) or launch
 
 
+def archive_launch(launch_id: str) -> dict[str, Any] | None:
+    guard_sample_launch_mutation(launch_id, "delete_launch")
+    launch = get_launch(launch_id)
+    if launch is None:
+        return None
+    stamp = now_iso()
+    launch["archived"] = True
+    launch["archivedAt"] = stamp
+    launch["updatedAt"] = stamp
+    cloud_result = try_cloud_storage("archive_launch", cloud_archive_launch, launch)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return sanitize_launch_for_response(cloud_result) or cloud_result
+    try:
+        path = launch_file(launch_id)
+    except ValueError:
+        return None
+    write_json(archive_file(launch_id), launch)
+    if path.exists():
+        path.unlink()
+    return sanitize_launch_for_response(launch) or launch
+
+
+def restore_archived_launch(launch_id: str) -> dict[str, Any]:
+    if public_lock_enabled():
+        raise PublicLockError("restore_launch")
+    archived = get_archived_launch(launch_id)
+    if archived is None:
+        raise FileNotFoundError(launch_id)
+    cloud_result = try_cloud_storage("restore_archived_launch", cloud_restore_archived_launch, launch_id)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        if not cloud_result:
+            raise FileNotFoundError(launch_id)
+        return sanitize_launch_for_response(cloud_result) or cloud_result
+    restored = dict(archived)
+    restored["archived"] = False
+    restored["archivedAt"] = ""
+    restored["updatedAt"] = now_iso()
+    write_json(launch_file(launch_id), restored)
+    archive_file(launch_id).unlink(missing_ok=True)
+    return sanitize_launch_for_response(restored) or restored
+
+
+def purge_archived_launch(launch_id: str) -> bool:
+    if public_lock_enabled():
+        raise PublicLockError("purge_launch")
+    if get_archived_launch(launch_id) is None:
+        return False
+    cloud_result = try_cloud_storage("purge_archived_launch", cloud_purge_archived_launch, launch_id)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return bool(cloud_result)
+    archive_file(launch_id).unlink(missing_ok=True)
+    return True
+
+
 def delete_launch(launch_id: str) -> bool:
+    return archive_launch(launch_id) is not None
+
+
+def hard_delete_launch(launch_id: str) -> bool:
     try:
         path = launch_file(launch_id)
     except ValueError:
@@ -1786,6 +1942,8 @@ def launchops_catalog(language: str = "vi", section: str = "all") -> dict[str, A
     for item in raw_types:
         profile = item.get("profile") if isinstance(item.get("profile"), dict) else {}
         type_id = str(item.get("id") or profile.get("id") or profile.get("type") or "").strip()
+        if type_id in HIDDEN_CATALOG_LAUNCH_TYPES:
+            continue
         name = str(item.get("name") or profile.get("name") or type_id).strip()
         risk_groups = profile.get("riskGroups") if isinstance(profile.get("riskGroups"), list) else []
         classifications.append({
@@ -1849,9 +2007,6 @@ def resolve_catalog_classification(value: str) -> dict[str, Any] | None:
         "game event": "game_event_h5",
         "game event h5": "game_event_h5",
         "h5": "game_event_h5",
-        "lucky spin": "lucky_spin_event",
-        "su kien lucky spin": "lucky_spin_event",
-        "spin": "lucky_spin_event",
         "marketing campaign": "marketing",
         "marketing": "marketing",
         "webshop": "webshop_promotion",
@@ -2145,6 +2300,8 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         launch, suggestions = resolve_launch_from_args(args)
         if launch is None:
             return launch_reference_error(args, suggestions)
+        if public_lock_enabled() and is_sample_launch_id(launch.get("id")):
+            return public_lock_error(tool_name)
         updates: dict[str, Any] = {"id": launch.get("id")}
         field_map = {
             "newName": "name",
@@ -2200,33 +2357,42 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         result["guardrailTrace"] = guardrail_trace(gcheck)
         if not force_fast:
             result = record_analysis_memory(brief, analysis_context, result)
-        updated = append_analysis(launch, result, brief)
+        if public_lock_enabled() and is_sample_launch_id(launch.get("id")):
+            updated = launch  # public lock: show result but do not persist into sample history
+        else:
+            updated = append_analysis(launch, result, brief)
         return {"ok": True, "tool": tool_name, "result": result, "launch": updated, "summary": summarize_launch(updated)}
 
     if tool_name == LCC_DELETE_LAUNCH_TOOL:
         launch, suggestions = resolve_launch_from_args(args)
         if launch is None:
             return launch_reference_error(args, suggestions)
+        if public_lock_enabled() and is_sample_launch_id(launch.get("id")):
+            return public_lock_error(tool_name)
         expected = f"DELETE {launch['id']}"
         if str(args.get("confirm") or "").strip() != expected:
             return {"ok": False, "error": "confirmation_required", "message": f"Set confirm to '{expected}' to delete this launch.", "summary": summarize_launch(launch)}
         deleted = delete_launch(str(launch["id"]))
-        return {"ok": deleted, "tool": tool_name, "deletedId": launch["id"]}
+        return {"ok": deleted, "tool": tool_name, "deletedId": launch["id"], "archivedId": launch["id"] if deleted else ""}
 
     if tool_name == LCC_LIST_TYPES_TOOL:
-        types = list_launch_types()
+        types = [item for item in list_launch_types() if item.get("id") not in HIDDEN_CATALOG_LAUNCH_TYPES]
         return {"ok": True, "tool": tool_name, "count": len(types), "types": types}
 
     if tool_name == LCC_GET_TYPE_TOOL:
         type_id = str(args.get("typeId") or args.get("id") or "").strip()
         if not type_id:
             return {"ok": False, "error": "missing_type_id", "message": "Missing parameter: typeId"}
+        if type_id in HIDDEN_CATALOG_LAUNCH_TYPES:
+            return {"ok": False, "error": "type_not_found", "message": f"Launch type not found: {type_id}", "types": [item for item in list_launch_types() if item.get("id") not in HIDDEN_CATALOG_LAUNCH_TYPES]}
         profile = get_type_profile(type_id)
         if profile is None:
-            return {"ok": False, "error": "type_not_found", "message": f"Launch type not found: {type_id}", "types": list_launch_types()}
+            return {"ok": False, "error": "type_not_found", "message": f"Launch type not found: {type_id}", "types": [item for item in list_launch_types() if item.get("id") not in HIDDEN_CATALOG_LAUNCH_TYPES]}
         return {"ok": True, "tool": tool_name, "typeId": type_id, "profile": profile}
 
     if tool_name == LCC_CREATE_TYPE_TOOL:
+        if public_lock_enabled():
+            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -2242,6 +2408,8 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "type": saved}
 
     if tool_name == LCC_PROPOSE_TEMPLATE_UPDATE_TOOL:
+        if public_lock_enabled():
+            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -2262,6 +2430,8 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "proposal": proposal, "launch": updated, "summary": summarize_launch(updated)}
 
     if tool_name == LCC_APPROVE_TEMPLATE_VERSION_TOOL:
+        if public_lock_enabled():
+            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -2306,6 +2476,8 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "proposal": proposal, "template": template, "launch": updated, "summary": summarize_launch(updated)}
 
     if tool_name == LCC_SET_LAUNCH_TEMPLATE_TOOL:
+        if public_lock_enabled():
+            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -4936,12 +5108,14 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     "assistant": os.getenv("LAUNCHOPS_MODEL_ASSISTANT", "deepseek/deepseek-v4-flash")
                 },
                 "role": current_agent_role(),
-                "storage": storage_backend_status()
+                "storage": storage_backend_status(),
+                "publicLock": public_lock_enabled()
             }).encode("utf-8"))
             return
 
         if path == "/api/types":
-            json_response(self, 200, {"ok": True, "types": list_launch_types()})
+            types = [item for item in list_launch_types() if item.get("id") not in HIDDEN_CATALOG_LAUNCH_TYPES]
+            json_response(self, 200, {"ok": True, "types": types})
             return
 
         if len(parts) == 4 and parts[:2] == ["api", "product"] and parts[3] == "snapshot":
@@ -4958,6 +5132,11 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
         if path == "/api/launches":
             launches = list_launches()
             json_response(self, 200, {"ok": True, "launches": [summarize_launch(item) for item in launches]})
+            return
+
+        if path == "/api/archive":
+            archived = list_archived_launches()
+            json_response(self, 200, {"ok": True, "launches": [summarize_launch(item) for item in archived]})
             return
 
         if len(parts) == 3 and parts[:2] == ["api", "launches"]:
@@ -5304,7 +5483,8 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 result = orchestrate_launchops_analysis(brief, analysis_context)
                 result = record_analysis_memory(brief, analysis_context, result)
                 result["guardrailTrace"] = guardrail_trace(gcheck)
-                launch = append_analysis(launch, result, brief)
+                if not (public_lock_enabled() and is_sample_launch_id(launch.get("id"))):
+                    launch = append_analysis(launch, result, brief)
                 json_response(
                     self,
                     200,
@@ -5314,7 +5494,8 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 write_backend_log(f"Launch analyze handler crashed: {type(exc).__name__}")
                 write_backend_log(traceback.format_exc())
                 result = fallback_result(f"Backend lỗi nhưng đã fallback: {type(exc).__name__}.")
-                launch = append_analysis(launch, result, brief)
+                if not (public_lock_enabled() and is_sample_launch_id(launch.get("id"))):
+                    launch = append_analysis(launch, result, brief)
                 json_response(
                     self,
                     200,
@@ -5331,7 +5512,11 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 json_response(self, 404, {"ok": False, "error": "Launch not found"})
                 return
             memory_context = memory_context_from_headers(self.headers, launch)
-            launch = save_post_result(launch, payload, memory_context)
+            try:
+                launch = save_post_result(launch, payload, memory_context)
+            except PublicLockError as exc:
+                json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
+                return
             json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
             return
 
@@ -5342,11 +5527,25 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             try:
                 launch = save_launch_payload(payload, existing_id=parts[2])
                 json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
+            except PublicLockError as exc:
+                json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
             except LaunchScheduleError as exc:
                 json_response(self, 400, {"ok": False, "error": exc.code, "message": exc.message})
             except Exception as exc:
                 write_backend_log(f"Update launch failed: {type(exc).__name__}")
                 json_response(self, 400, {"ok": False, "error": f"Update launch failed: {type(exc).__name__}"})
+            return
+
+        if len(parts) == 4 and parts[:2] == ["api", "archive"] and parts[3] == "restore":
+            try:
+                restored = restore_archived_launch(parts[2])
+            except PublicLockError as exc:
+                json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
+                return
+            except FileNotFoundError:
+                json_response(self, 404, {"ok": False, "error": "Archived launch not found"})
+                return
+            json_response(self, 200, {"ok": True, "launch": restored, "summary": summarize_launch(restored)})
             return
 
         json_response(self, 404, {"ok": False, "error": "Not found"})
@@ -5369,10 +5568,25 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 if not delete_launch(parts[2]):
                     json_response(self, 404, {"ok": False, "error": "Launch not found"})
                     return
-                json_response(self, 200, {"ok": True, "deletedId": parts[2]})
+                json_response(self, 200, {"ok": True, "deletedId": parts[2], "archivedId": parts[2]})
+            except PublicLockError as exc:
+                json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
             except Exception as exc:
                 write_backend_log(f"Delete launch failed: {type(exc).__name__}")
                 json_response(self, 400, {"ok": False, "error": f"Delete launch failed: {type(exc).__name__}"})
+            return
+
+        if len(parts) == 3 and parts[:2] == ["api", "archive"]:
+            try:
+                if not purge_archived_launch(parts[2]):
+                    json_response(self, 404, {"ok": False, "error": "Archived launch not found"})
+                    return
+                json_response(self, 200, {"ok": True, "purgedId": parts[2]})
+            except PublicLockError as exc:
+                json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
+            except Exception as exc:
+                write_backend_log(f"Purge archived launch failed: {type(exc).__name__}")
+                json_response(self, 400, {"ok": False, "error": f"Purge archived launch failed: {type(exc).__name__}"})
             return
 
         json_response(self, 404, {"ok": False, "error": "Not found"})

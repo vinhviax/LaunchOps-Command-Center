@@ -945,14 +945,23 @@ button:disabled:hover {
 }
 
 .board-search,
-.board-status-filter {
+.board-status-filter,
+.board-date-filter {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
+.board-date-range {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .board-search span,
-.board-status-filter span {
+.board-status-filter span,
+.board-date-filter span {
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -961,13 +970,15 @@ button:disabled:hover {
 }
 
 .board-search input,
-.board-status-filter select {
+.board-status-filter select,
+.board-date-filter input {
   min-height: 36px;
   width: 100%;
 }
 
 .board-search input:focus,
 .board-status-filter select:focus,
+.board-date-filter input:focus,
 .launch-card:focus-visible {
   border-color: var(--accent);
 }
@@ -1416,6 +1427,13 @@ body.ui-mode-pro .launch-card strong { padding-right: 92px; }
   background: var(--surface-soft);
 }
 
+.primary-action-pair {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 9px;
+}
+
 .action-button-row button {
   background: transparent;
   border-color: var(--line-strong);
@@ -1646,7 +1664,8 @@ textarea {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
   gap: 13px;
   margin-bottom: 13px;
 }
@@ -1673,6 +1692,13 @@ textarea {
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.field-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+  min-height: 30px;
 }
 
 .date-input-wrap {
@@ -3057,6 +3083,11 @@ textarea {
   background: var(--yellow-soft);
 }
 
+.permission-state.readonly {
+  border-color: var(--line);
+  background: var(--bg-alt);
+}
+
 .permission-state span,
 .permission-state small {
   color: var(--muted);
@@ -3106,6 +3137,15 @@ textarea {
   color: var(--accent-strong);
 }
 
+.template-summary.is-disabled {
+  opacity: 0.52;
+  filter: grayscale(0.15);
+}
+
+.template-summary.is-disabled .template-selector-card {
+  background: var(--bg-alt);
+}
+
 .config-tabs {
   display: flex;
   align-items: stretch;
@@ -3135,6 +3175,38 @@ textarea {
   color: var(--ink);
   font-weight: 700;
   box-shadow: 0 1px 3px rgba(40, 20, 10, 0.12), 0 0 0 1px rgba(240, 90, 34, 0.18);
+}
+
+.archive-list {
+  display: grid;
+  gap: 10px;
+}
+
+.archive-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.archive-row strong,
+.archive-row small {
+  display: block;
+}
+
+.archive-row small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.archive-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .config-grid {
@@ -4077,6 +4149,10 @@ body.is-analyzing #traceConsoleBody::after {
 /* 1560px breakpoint removed */
 
 @media (max-width: 1180px) {
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .analysis-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4366,8 +4442,24 @@ body.is-analyzing #traceConsoleBody::after {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .board-date-range {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .form-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .archive-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .archive-actions {
+    justify-content: stretch;
+  }
+
+  .archive-actions button {
+    flex: 1 1 0;
   }
 
   .cards,
@@ -4473,6 +4565,19 @@ body.is-analyzing #traceConsoleBody::after {
 .run-log-warning {
   color: var(--yellow);
   font-size: 12px;
+}
+
+/* Public review lock: sample-launch notice next to the launch detail title */
+.sample-launch-notice {
+  display: inline-block;
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #b45309;
+  font-weight: 600;
+}
+.sample-launch-notice[hidden] {
+  display: none;
 }
 
 /* ========== 30. MOBILE HARDENING (phones) — scoped to narrow screens; desktop UI/UX unchanged ========== */
