@@ -4,9 +4,6 @@ memory/
 server/backend.log
 server/__pycache__/
 logs/
-tools/
-Backup/
-screenshots/
 __pycache__/
 *.pyc
 *.log
