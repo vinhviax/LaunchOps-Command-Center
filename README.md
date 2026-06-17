@@ -10,6 +10,33 @@ Nó không phải chatbot. Mục tiêu là biến việc gác cổng launch — 
 
 > ⚠️ Đây là instance riêng của tác giả cho **ClawAThon VNG**. Endpoint, MaaS key, Memory store, vDB và child runtime ở trên là tài nguyên + credential **riêng của tác giả, không chia sẻ, không multi-tenant**. Muốn chạy bản đầy đủ, bạn tự provision tài nguyên của mình (xem [Cách chạy](#cách-chạy)). Để thử ngay không cần cloud, dùng **Local demo mode** — chỉ cần Python.
 
+## Ví dụ thực chiến hơn
+
+Giả sử team sắp chạy **event đăng nhập nhận quà 7 ngày** để kéo người chơi cũ quay lại game.
+
+Nếu để Human tự làm tay, tình huống rất quen thuộc sẽ là: PM viết brief trong chat, LiveOps nhớ một nửa, CS nhớ một nửa, tech nhớ một nửa. Mọi người đều có kinh nghiệm, nhưng launch vẫn hay hỏng ở đúng các lỗi cũ:
+
+- chưa chốt KPI nên chạy xong không biết thành công hay thất bại
+- chưa có reward cap nên sợ vỡ economy hoặc vượt ngân sách
+- chưa có FAQ cho CS nên người chơi hỏi dồn thì trả lời không thống nhất
+- chưa rõ ai được quyền pause event hoặc rollback nếu phát quà lỗi
+- chưa có rule anti-abuse nên tới lúc bị farm quà mới cuống lên xử lý
+
+Điểm mạnh của LaunchOps Command Center là nó **hơn cách làm tay ở chỗ không phụ thuộc trí nhớ và cảm giác của từng người**.
+
+Nó đọc brief đó và làm ngay mấy việc mà team thường bỏ sót:
+
+1. Nhận ra đây là launch kiểu **đăng nhập giữ chân**, nên dùng đúng bộ tiêu chí của loại launch này, không đánh giá chung chung.
+2. Chấm launch theo rubric cố định để trả lời rõ: hiện tại đang **Xanh, Vàng hay Đỏ**, thiếu bao nhiêu điểm, thiếu ở đâu.
+3. Red Team từ nhiều góc nhìn để soi ra các lỗi launch thường gặp trước khi lên production: user complain gì, CS vỡ chỗ nào, tech vấp ở đâu, business hở chỗ nào.
+4. Ép mọi lỗ hổng thành checklist có owner thật: ai chốt KPI, ai viết FAQ, ai theo dõi log, ai trực sự cố, ai quyết định dừng event.
+
+Quan trọng hơn, sau khi launch chạy xong nó không để bài học trôi mất trong chat.
+
+Nếu lần này event bị người chơi than phiền vì phát quà chậm, hoặc bị farm quà vì thiếu anti-abuse, lesson đó sẽ được lưu lại. Lần launch sau, khi team lại tạo một event đăng nhập tương tự, agent sẽ kéo chính bài học đó vào lúc phân tích để nhắc lại: "lần trước đã từng vỡ ở đây". Nếu lesson lặp đủ nhiều, agent còn có thể **đề xuất** cập nhật luôn rubric/template để những lần sau bị soi chặt hơn ở đúng điểm yếu cũ, nhưng vẫn phải có Human duyệt mới được áp dụng.
+
+Nói ngắn gọn: Human vẫn là người quyết định launch, nhưng agent mạnh hơn ở chỗ nó **không quên, không chấm theo cảm tính, không bỏ sót lỗi cũ, và biến kinh nghiệm rời rạc của team thành một hệ thống dùng lại được cho mọi lần launch sau**.
+
 ## Dùng cho việc gì (không bó vào một ngành)
 
 LCC không gắn cứng với game hay một loại sự kiện nào. Nó hợp với bất kỳ launch nào có rủi ro và cần một quyết định Go/No-Go:
