@@ -245,7 +245,7 @@ styles.css · friendly.css
 config.js               # same-origin API config
 server/app.py           # Web server + API + MCP + 6-agent pipeline
 server/db.py            # local/cloud storage layer
-server/test_app.py      # stdlib unit tests (169 tests)
+server/test_app.py      # stdlib unit tests (176 tests)
 server/requirements.txt · server/schema.sql
 server/seed_knowledge.py · server/seed_demo_data.py · server/migrate_to_cloud_db.py
 data/ · prompts/ · Dockerfile · .env.example · README.md
@@ -254,7 +254,7 @@ data/ · prompts/ · Dockerfile · .env.example · README.md
 ## Test
 
 ```bash
-python -m unittest server.test_app    # 169 tests, stdlib, no .env needed
+python -m unittest server.test_app    # 176 tests, stdlib, no .env needed
 node --check app.js friendly-ui.js i18n-clean.js
 ```
 
