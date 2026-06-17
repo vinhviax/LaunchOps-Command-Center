@@ -11,6 +11,5 @@ node_modules/
 .agentbase/
 .greennode.json
 .agents/
-.claude/
 server/launchops.db
 Clawathon/
