@@ -5004,7 +5004,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             req_id = payload.get("id")
             method = payload.get("method")
 
-            # MCP lifecycle handshake — a real MCP client (OpenClaw, Claude Desktop)
+            # MCP lifecycle handshake — a real MCP client (OpenClaw, MCP Inspector)
             # calls initialize -> notifications/initialized before tools/list.
             if method == "initialize":
                 params = payload.get("params") if isinstance(payload.get("params"), dict) else {}
