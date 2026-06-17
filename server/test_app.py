@@ -52,7 +52,7 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertIn("Golden Spin tháng 5", clean["brief"])
         self.assertNotIn("??", clean["brief"])
 
-    def test_default_demo_samples_are_golden_spin_only(self):
+    def test_default_demo_samples_include_all_game_template_triplets(self):
         samples = app.default_sample_launches()
         ids = {item["id"] for item in samples}
         self.assertEqual(ids, {
@@ -62,15 +62,31 @@ class LegacyEncodingRepairTests(unittest.TestCase):
             "golden-spin-demo-01-retro",
             "golden-spin-demo-02-risk",
             "golden-spin-demo-03-ready",
+            "monsoon-shop-retro",
+            "monsoon-shop-live",
+            "monsoon-shop-ready",
+            "hero-login-retro",
+            "hero-login-live",
+            "hero-login-ready",
         })
-        self.assertTrue(all(item["type"] == "lucky_spin_event" for item in samples))
+        self.assertTrue({"lucky_spin_event", "game_event_h5"}.issuperset({item["type"] for item in samples}))
         draft_samples = [item for item in samples if item["id"].startswith("golden-spin-demo-")]
         self.assertEqual(len(draft_samples), 3)
         self.assertTrue(all(item["analyses"] == [] for item in draft_samples))
         names = " ".join(item["name"] for item in samples)
         self.assertNotIn("Lucky Wheel", names)
-        self.assertNotIn("May Login", names)
         self.assertNotIn("Midweek", names)
+        self.assertIn("Shop", names)
+        self.assertIn("Login", names)
+
+    def test_default_demo_samples_keep_three_statuses_for_new_game_triplets(self):
+        samples = {item["id"]: item for item in app.default_sample_launches()}
+        self.assertEqual(samples["monsoon-shop-retro"]["status"], "completed")
+        self.assertEqual(samples["monsoon-shop-live"]["status"], "running")
+        self.assertEqual(samples["monsoon-shop-ready"]["status"], "upcoming")
+        self.assertEqual(samples["hero-login-retro"]["status"], "completed")
+        self.assertEqual(samples["hero-login-live"]["status"], "running")
+        self.assertEqual(samples["hero-login-ready"]["status"], "upcoming")
 
     def test_default_demo_samples_have_required_launch_times(self):
         for launch in app.default_sample_launches():
@@ -91,6 +107,26 @@ class LegacyEncodingRepairTests(unittest.TestCase):
             app.infer_launch_type("Golden Spin có lượt quay, reward cap và CS FAQ."),
             "lucky_spin_event",
         )
+
+
+class CloudSampleSeedTests(unittest.TestCase):
+    def test_cloud_list_syncs_missing_default_samples_when_not_empty(self):
+        samples = app.default_sample_launches()
+        existing = [samples[0]]
+        saved_ids = []
+
+        def fake_save(launch):
+            saved_ids.append(launch["id"])
+            return launch
+
+        with patch.object(app, "cloud_storage_requested", return_value=True), \
+             patch.object(app, "cloud_list_launches", side_effect=[existing, samples]), \
+             patch.object(app, "cloud_save_launch", side_effect=fake_save):
+            launches = app.list_launches()
+
+        expected_missing = {sample["id"] for sample in samples[1:]}
+        self.assertEqual(set(saved_ids), expected_missing)
+        self.assertEqual({launch["id"] for launch in launches}, {sample["id"] for sample in samples})
 
 
 class ExtractJsonTests(unittest.TestCase):
@@ -209,6 +245,16 @@ class NormalizeAndSlugTests(unittest.TestCase):
             "endDate": "18/06/2026 23:59",
         }, now=app.datetime(2026, 6, 17, 12, 0))
         self.assertEqual(result["error"], "start_in_past_upcoming")
+
+    def test_schedule_rejects_running_or_completed_when_start_is_future(self):
+        for status in ("running", "completed"):
+            with self.subTest(status=status):
+                result = app.validate_launch_schedule_rules({
+                    "status": status,
+                    "targetDate": "20/06/2026 08:30",
+                    "endDate": "22/06/2026 23:59",
+                }, now=app.datetime(2026, 6, 17, 12, 0))
+                self.assertEqual(result["error"], "start_in_future_not_started")
 
     def test_schedule_allows_completed_past_launch(self):
         result = app.validate_launch_schedule_rules({
@@ -398,6 +444,7 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
             "name": "Golden Spin Tool Test",
             "newName": "Golden Spin Tool Test v2",
             "owner": "LiveOps Lead",
+            "targetDate": "01/01/2020 08:30",
             "status": "running",
         })
         self.assertTrue(updated["ok"])
@@ -1605,6 +1652,67 @@ class ChannelSkillTests(unittest.TestCase):
         source = Path(app.__file__).read_text(encoding="utf-8")
 
         self.assertNotIn("from urllib.parse import parse_qs\n            query = parse_qs", source)
+
+
+class WebAssistantFlowContractTests(unittest.TestCase):
+    def test_friendly_launch_flow_uses_shared_field_order(self):
+        source = (SERVER_DIR.parent / "friendly-ui.js").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "var LAUNCH_CONFIG_FLOW = ['name', 'type', 'template', 'owner', 'targetDate', 'endDate', 'status', 'brief'];",
+            source,
+        )
+
+    def test_pro_create_wizard_starts_from_name_and_removes_objective_step(self):
+        source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('step: "name"', source)
+        self.assertNotIn('assistantWizard.step = "objective"', source)
+        self.assertNotIn('wizard:create:field:objective', source)
+
+    def test_pro_create_wizard_has_live_preview_sync_hook(self):
+        source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("function syncAssistantDraftPreview(draft)", source)
+        self.assertIn("syncAssistantDraftPreview(draft);", source)
+
+    def test_friendly_help_actions_route_create_edit_to_real_edit_flow(self):
+        source = (SERVER_DIR.parent / "friendly-ui.js").read_text(encoding="utf-8")
+
+        self.assertIn("{ label: 'Tạo/sửa launch', action: 'launch-flow-menu' }", source)
+        self.assertIn("{ label: 'Giải thích flow', action: 'support-topic', value: 'flow' }", source)
+
+    def test_assistant_lessons_branch_keeps_navigation_options(self):
+        source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('function assistantLaunchNavigationOptions(topic)', source)
+        self.assertIn('if (value === "assistant:back") {', source)
+        self.assertIn('if (value === "assistant:lessons") {', source)
+        self.assertIn('options: assistantLaunchNavigationOptions("lessons")', source)
+        self.assertIn('const currentActiveView = document.querySelector(".view.active")?.id || "briefView";', source)
+        self.assertIn("previousLaunchView = currentActiveView;", source)
+
+    def test_friendly_chat_inputs_default_to_multiline_rows(self):
+        source = (SERVER_DIR.parent / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn('<textarea id="friendlyChatInput" rows="3"', source)
+        self.assertIn('<textarea id="friendlyLessonChatInput" rows="3"', source)
+
+    def test_friendly_quick_actions_echo_human_choice_for_type_template_and_status(self):
+        source = (SERVER_DIR.parent / "friendly-ui.js").read_text(encoding="utf-8")
+
+        self.assertIn("addChatMessage('human', quickActionLabelForSelectValue('launchType', value));", source)
+        self.assertIn("addChatMessage('human', quickActionLabelForSelectValue('launchTemplate', value));", source)
+        self.assertIn("addChatMessage('human', statusLabel(value));", source)
+
+    def test_game_event_type_exposes_shop_and_login_templates(self):
+        source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('"In-Game Shop Commercial Playbook"', source)
+        self.assertIn('"Login Streak Retention Playbook"', source)
+        self.assertIn('"shopCommercial"', source)
+        self.assertIn('"loginRetention"', source)
+        self.assertIn('"Game event": ["gameEvent", "shopCommercial", "loginRetention"]', source)
 
 
 class StorageBackendTests(unittest.TestCase):

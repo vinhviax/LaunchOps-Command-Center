@@ -552,6 +552,88 @@ const LUCKY_SPIN_EVENT_TEMPLATE = {
 };
 LAUNCH_TEMPLATES.lucky_spin_event = LUCKY_SPIN_EVENT_TEMPLATE;
 
+const IN_GAME_SHOP_COMMERCIAL_TEMPLATE = {
+  name: "In-Game Shop Commercial Playbook",
+  description: "Template riêng cho shop ingame dạng commercial: gói bán, pricing, cap doanh thu, economy, CS refund và kill switch offer.",
+  briefGuide: [
+    "Mục tiêu doanh thu, conversion, segment người chơi và khung giờ mở shop.",
+    "Danh sách offer/gói bán, giá, limit mua, eligibility và thời điểm reset.",
+    "Guardrail economy: cap doanh thu, cap vật phẩm hiếm, ngưỡng dừng offer và rule thay offer.",
+    "Funnel tracking: impression, click, purchase success, payment fail, refund và chargeback.",
+    "CS FAQ cho lỗi mua gói, nhận vật phẩm chậm, hoàn tiền, hiển thị giá sai và escalation.",
+    "Owner trực launch, dashboard realtime, kill switch, rollback offer và post-mortem sau campaign."
+  ],
+  riskGroups: [
+    { key: "scope", label: "Mục tiêu doanh thu và segment", maxScore: 2, checks: ["doanh thu", "conversion", "segment", "offer"], missing: "Chưa rõ KPI doanh thu, conversion hoặc segment người chơi.", requirements: ["KPI doanh thu", "Segment áp dụng", "Khung giờ mở shop"] },
+    { key: "offer", label: "Offer, giá và limit mua", maxScore: 2, checks: ["gia", "offer", "limit", "bundle", "eligibility"], missing: "Chưa chốt giá, giới hạn mua hoặc eligibility của từng offer.", requirements: ["Giá/offer rõ", "Limit mua", "Eligibility"] },
+    { key: "economy", label: "Economy guardrail", maxScore: 2, checks: ["economy", "cap", "vat pham", "nguong dung"], missing: "Thiếu cap doanh thu/vật phẩm hiếm hoặc ngưỡng dừng offer khi economy lệch.", requirements: ["Cap doanh thu", "Cap vật phẩm hiếm", "Ngưỡng dừng/đổi offer"] },
+    { key: "payment", label: "Payment và refund", maxScore: 2, checks: ["payment", "refund", "chargeback", "purchase"], missing: "Thiếu kế hoạch theo dõi payment fail, refund hoặc chargeback.", requirements: ["Purchase success metric", "Refund flow", "Chargeback owner"] },
+    { key: "cs", label: "CS và thông điệp bán hàng", maxScore: 2, checks: ["faq", "cs", "message", "price", "refund"], missing: "Thiếu CS FAQ, thông điệp offer hoặc xử lý giá/nhận vật phẩm sai.", requirements: ["CS FAQ", "Thông điệp bán hàng", "Escalation path"] },
+    { key: "ops", label: "Dashboard và kill switch", maxScore: 2, checks: ["dashboard", "kill switch", "rollback", "alert"], missing: "Thiếu dashboard realtime, alert hoặc kill switch offer.", requirements: ["Dashboard realtime", "Alert", "Kill switch/rollback offer"] }
+  ],
+  redTeam: [
+    { persona: "Người mua nhạy giá", worry: "Người chơi thấy giá/benefit không rõ sẽ bỏ mua hoặc khiếu nại.", evidence: "Brief phải nói rõ giá, value proposition, limit mua và thông điệp hiển thị.", fix: "Chuẩn hóa card offer, giá trước/sau giảm và ví dụ vật phẩm nhận được." },
+    { persona: "Payment owner", worry: "Payment fail hoặc duplicate purchase sẽ làm CS/refund tăng mạnh.", evidence: "Brief cần metric purchase success, payment fail và owner xử lý refund.", fix: "Theo dõi payment fail realtime, FAQ refund và đường leo thang tới payment owner." },
+    { persona: "Game economy owner", worry: "Offer quá mạnh có thể phá economy hoặc cannibalize shop khác.", evidence: "Brief cần cap vật phẩm hiếm, limit mua và rule dừng offer.", fix: "Chốt cap economy, limit mua theo account và ngưỡng tắt offer khi vượt guardrail." },
+    { persona: "CS Lead", worry: "CS sẽ bị dồn case nhận vật phẩm chậm, giá sai hoặc hoàn tiền.", evidence: "Brief cần FAQ theo từng lỗi và SLA phản hồi.", fix: "Viết macro cho payment fail, nhận quà chậm, giá sai và escalation rõ." },
+    { persona: "LiveOps trực launch", worry: "Nếu funnel rơi mạnh hoặc payment lỗi, team phải tắt offer rất nhanh.", evidence: "Brief cần dashboard, alert, kill switch và owner trực launch.", fix: "Chuẩn bị dashboard realtime, ngưỡng alert và rollback offer theo từng gói." }
+  ],
+  checklist: [
+    { task: "Chốt KPI doanh thu, conversion và segment của campaign shop", owner: "PM Monetization", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Khóa danh sách offer, giá, limit mua và eligibility", owner: "Commercial Owner", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Review cap economy, cap vật phẩm hiếm và ngưỡng dừng offer", owner: "Game Economy Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Chuẩn bị metric purchase success, payment fail, refund và chargeback", owner: "Payment Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Viết CS FAQ cho lỗi mua gói, giá sai, nhận vật phẩm chậm, refund", owner: "CS Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Kiểm tra dashboard realtime và kill switch từng offer", owner: "LiveOps Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" }
+  ],
+  postmortem: [
+    { title: "Kết quả commercial", items: ["Doanh thu và conversion có đạt plan không?", "Offer nào bán tốt/xấu hơn dự kiến?", "Tỷ lệ payment fail và refund có vượt guardrail không?"] },
+    { title: "Tác động vận hành", items: ["Case CS nhiều nhất là gì?", "Có cần tắt offer hay đổi price card không?", "Dashboard/alert có bắt đúng lúc không?"] },
+    { title: "Bài học shop sau", items: ["Offer nào nên giữ, bỏ hoặc tách segment?", "Guardrail economy nào cần siết thêm trong template?"] }
+  ]
+};
+
+const LOGIN_STREAK_RETENTION_TEMPLATE = {
+  name: "Login Streak Retention Playbook",
+  description: "Template riêng cho sự kiện login/check-in giữ chân: streak day, milestone reward, anti-abuse, reset rule và thông điệp quay lại game.",
+  briefGuide: [
+    "Mục tiêu retention/login, cohort người chơi, mốc ngày chạy và baseline cần so.",
+    "Luật check-in: reset mấy giờ, streak bị mất khi nào, bù streak có hay không.",
+    "Milestone reward theo ngày, cap phần thưởng và rủi ro abuse nhiều account.",
+    "Trigger message, push/inbox/banner và cách nhắc lại với người chơi bỏ streak.",
+    "Metric theo dõi: login day 1/day N, streak completion, reward claim success, ticket CS.",
+    "Owner trực event, dashboard retention, kill switch reward và post-mortem để tái dùng."
+  ],
+  riskGroups: [
+    { key: "goal", label: "Mục tiêu retention và cohort", maxScore: 2, checks: ["retention", "login", "cohort", "baseline"], missing: "Chưa rõ mục tiêu retention/login hoặc cohort áp dụng.", requirements: ["KPI retention", "Cohort người chơi", "Baseline so sánh"] },
+    { key: "rule", label: "Rule streak và reset", maxScore: 2, checks: ["streak", "reset", "mat streak", "bo bu"], missing: "Chưa khóa rule reset, mất streak hoặc bù streak.", requirements: ["Rule reset", "Mất streak khi nào", "Có/không bù streak"] },
+    { key: "reward", label: "Reward milestone", maxScore: 2, checks: ["reward", "milestone", "claim", "cap"], missing: "Thiếu milestone reward, cap phần thưởng hoặc rule claim.", requirements: ["Milestone reward", "Cap phần thưởng", "Rule claim"] },
+    { key: "abuse", label: "Anti-abuse và duplicate claim", maxScore: 2, checks: ["abuse", "duplicate", "multi account", "claim"], missing: "Thiếu kiểm soát multi-account hoặc duplicate claim.", requirements: ["Rule anti-abuse", "Duplicate claim check", "Owner xử lý abuse"] },
+    { key: "message", label: "Nhắc lại và CS", maxScore: 2, checks: ["push", "banner", "faq", "message", "ticket"], missing: "Thiếu kế hoạch nhắc lại người chơi và CS FAQ cho mất streak/không nhận quà.", requirements: ["Trigger message", "CS FAQ", "Escalation"] },
+    { key: "ops", label: "Tracking và vận hành", maxScore: 2, checks: ["dashboard", "alert", "retention", "kill switch"], missing: "Thiếu dashboard retention hoặc kill switch reward.", requirements: ["Dashboard retention", "Alert", "Kill switch reward"] }
+  ],
+  redTeam: [
+    { persona: "Người chơi quên check-in", worry: "Người chơi mất streak sẽ bỏ event nếu rule reset không rõ.", evidence: "Brief phải nói rõ giờ reset, mất streak và có bù streak hay không.", fix: "Hiển thị rõ giờ reset trong UI, push nhắc trước reset và FAQ mất streak." },
+    { persona: "Retention PM", worry: "Event tăng login ảo nhưng không kéo day-N retention thật.", evidence: "Brief cần baseline retention, cohort và metric completion.", fix: "Chốt cohort mục tiêu và đọc retention theo cohort thay vì chỉ nhìn login tổng." },
+    { persona: "Reward abuse reviewer", worry: "Nhiều account có thể claim reward milestone dễ dàng.", evidence: "Brief cần anti-abuse cho duplicate claim và account phụ.", fix: "Thêm limit reward, duplicate-claim check và dashboard abuse." },
+    { persona: "CS Lead", worry: "Case mất streak, không nhận quà, reset sai giờ sẽ làm ticket tăng.", evidence: "Brief cần FAQ/macro cho từng case.", fix: "Viết macro cho mất streak, reset sai giờ và reward claim fail." },
+    { persona: "LiveOps trực event", worry: "Nếu reward claim lỗi hàng loạt, team cần kill switch nhanh.", evidence: "Brief cần alert, owner trực event và kill switch reward.", fix: "Chuẩn bị dashboard retention/claim success, ngưỡng alert và kill switch." }
+  ],
+  checklist: [
+    { task: "Chốt KPI retention/login, cohort và baseline của login event", owner: "Retention PM", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Khóa rule streak, giờ reset, mất streak và bù streak", owner: "LiveOps PM", deadline: "T-2 ngày", status: "Todo", priority: "High" },
+    { task: "Review milestone reward, cap phần thưởng và duplicate claim check", owner: "Economy Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Chuẩn bị push/inbox/banner nhắc lại trước reset và khi bỏ streak", owner: "CRM Owner", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Viết FAQ cho mất streak, không nhận quà, reset sai giờ", owner: "CS Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" },
+    { task: "Kiểm tra dashboard retention, claim success và kill switch reward", owner: "LiveOps Lead", deadline: "T-1 ngày", status: "Todo", priority: "High" }
+  ],
+  postmortem: [
+    { title: "Kết quả retention", items: ["Login day 1/day N có tăng đúng cohort không?", "Tỷ lệ hoàn thành streak tới ngày 3/5/7 là bao nhiêu?", "Reward claim success có ổn định không?"] },
+    { title: "Tác động CS và abuse", items: ["Case CS lớn nhất là mất streak hay claim lỗi?", "Có duplicate claim hoặc abuse account phụ không?", "Thông điệp nhắc lại có tới đúng người không?"] },
+    { title: "Bài học login sau", items: ["Rule streak nào cần đơn giản hóa?", "Milestone reward hoặc nhịp nhắc nào nên đổi cho event sau?"] }
+  ]
+};
+
 const EN_BRIEF_GUIDES_BY_TEMPLATE = {
   "Game Event Launch": {
     description: "Use for in-game events or campaigns with players, rewards, CS handling, and abuse risk.",
@@ -595,6 +677,28 @@ const EN_BRIEF_GUIDES_BY_TEMPLATE = {
       "Anti-farm rules for secondary accounts, anomaly logs, and pause conditions.",
       "CS FAQ, in-game messaging, weekend owner, and escalation path.",
       "Realtime dashboard, rollback/kill switch, and post-mortem lesson for the next event."
+    ]
+  },
+  "In-Game Shop Commercial Playbook": {
+    description: "Dedicated template for in-game shop campaigns with offers, pricing, economy guardrails, payment metrics, CS refund flow, and offer kill switch.",
+    items: [
+      "Revenue goal, conversion target, player segment, and the shop window.",
+      "Offer list, price, purchase limits, eligibility rules, and reset timing.",
+      "Economy guardrails: revenue cap, rare-item cap, stop threshold, and offer-change rules.",
+      "Funnel tracking for impressions, clicks, purchase success, payment failures, refunds, and chargebacks.",
+      "CS FAQ for payment errors, delayed delivery, wrong price display, refund, and escalation.",
+      "Live owner, realtime dashboard, offer kill switch, rollback plan, and post-mortem."
+    ]
+  },
+  "Login Streak Retention Playbook": {
+    description: "Dedicated template for login streak or check-in retention events with day milestones, reset rules, anti-abuse checks, reminder messaging, and reward kill switch.",
+    items: [
+      "Retention or login goal, target cohort, date range, and baseline to compare against.",
+      "Streak rules: reset time, when the streak breaks, and whether streak recovery exists.",
+      "Daily milestone rewards, reward caps, and claim rules.",
+      "Reminder messaging through push, inbox, banner, and win-back communication for dropped streaks.",
+      "Tracking for login day 1/day N, streak completion, reward claim success, and CS tickets.",
+      "Live owner, retention dashboard, reward kill switch, and post-mortem lessons."
     ]
   }
 };
@@ -679,24 +783,30 @@ const TYPE_LABELS_EN = {
 const TEMPLATE_NAME_LABELS = {
   "Lucky Spin Event Playbook": "Template sự kiện Lucky Spin",
   "Game Event Launch": "Template sự kiện game",
+  "In-Game Shop Commercial Playbook": "Template shop ingame thương mại",
+  "Login Streak Retention Playbook": "Template đăng nhập giữ chân",
   "Production System Release": "Template release hệ thống",
   "Generic Launch": "Template launch chung"
 };
 const TEMPLATE_NAME_LABELS_EN = {
   "Lucky Spin Event Playbook": "Lucky Spin event template",
   "Game Event Launch": "Game event template",
+  "In-Game Shop Commercial Playbook": "In-game shop commercial template",
+  "Login Streak Retention Playbook": "Login streak retention template",
   "Production System Release": "Production release template",
   "Generic Launch": "Shared launch template"
 };
 const BASE_TEMPLATE_OPTIONS = [
   { id: "luckySpin", template: LUCKY_SPIN_EVENT_TEMPLATE },
   { id: "gameEvent", template: GAME_EVENT_TEMPLATE },
+  { id: "shopCommercial", template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE },
+  { id: "loginRetention", template: LOGIN_STREAK_RETENTION_TEMPLATE },
   { id: "production", template: PRODUCTION_SYSTEM_TEMPLATE },
   { id: "generic", template: GENERIC_LAUNCH_TEMPLATE }
 ];
 const PROTECTED_BASE_TEMPLATE_IDS = Object.freeze(BASE_TEMPLATE_OPTIONS.map((item) => item.id));
 const TYPE_TEMPLATE_IDS = {
-  "Game event": ["gameEvent"],
+  "Game event": ["gameEvent", "shopCommercial", "loginRetention"],
   "Campaign marketing": ["generic"],
   "Internal tool": ["generic"],
   "Ops/process change": ["generic"],
@@ -841,6 +951,106 @@ Vận hành:
 - Dashboard realtime có spin success, reward delivery, ticket CS, abuse flag.
 - Kill switch và rollback script đã test ở staging.
 - Post-mortem T+48h sẽ ghi lại ticket, reward cost, abuse case và lesson cho lần sau.`;
+
+const shopRetroBrief = `Tên launch: Monsoon Gem Shop Retro.
+
+Trạng thái: Đã chạy từ 02/06/2026 đến 05/06/2026.
+
+Mục tiêu:
+- Tăng doanh thu shop ingame cho gói Gem và skin giới hạn trong 4 ngày.
+- Kéo conversion của nhóm payer vừa quay lại sau 14 ngày inactive.
+
+Điểm đã xảy ra:
+- Offer bán tốt ở ngày 1 nhưng payment fail tăng mạnh trong 2 khung giờ cao điểm.
+- Một số người chơi thấy giá hiển thị đúng nhưng nhận vật phẩm chậm 3-5 phút.
+- Economy owner phải tắt sớm 1 offer vì item hiếm gần chạm cap.
+
+Bài học:
+- Brief shop phải khóa cap vật phẩm hiếm và ngưỡng tắt offer ngay từ đầu.
+- CS cần FAQ riêng cho payment fail, nhận vật phẩm chậm và hoàn tiền.
+- Dashboard phải có purchase success, payment fail, refund và chargeback theo offer.`;
+
+const shopLiveBrief = `Tên launch: Mùa Hè Sôi Động Shop Ingame.
+
+Trạng thái nháp: Đang chạy.
+
+Mục tiêu:
+- Tăng doanh thu net 12% trong 72 giờ.
+- Đẩy conversion cho nhóm payer 7 ngày gần nhất.
+
+Offer hiện có:
+- Gói Gem 49k / 99k / 199k.
+- Bundle skin mùa hè giới hạn 1 lần/account.
+- Gói hoàn nguyên năng lượng mở theo giờ.
+
+Điểm còn thiếu:
+- Chưa chốt rõ cap vật phẩm hiếm của bundle skin.
+- Chưa rõ owner xử lý refund/chargeback ngoài giờ.
+- Chưa có ngưỡng tắt từng offer khi payment fail tăng cao.
+- CS FAQ cho giá sai, mua thành công nhưng nhận item chậm còn thiếu.`;
+
+const shopReadyBrief = `Tên launch: Festival Shop Premium Ready.
+
+Trạng thái nháp: Sắp chạy.
+
+Mục tiêu:
+- Tăng doanh thu shop 10% trong 3 ngày.
+- Nâng conversion nhóm payer cũ quay lại.
+
+Đã chốt:
+- Offer, giá, limit mua và eligibility cho từng gói.
+- Cap doanh thu, cap vật phẩm hiếm và rule tắt offer khi chạm 95% cap.
+- Dashboard realtime theo offer: impression, click, purchase success, payment fail, refund, chargeback.
+- CS FAQ cho payment fail, giá sai, nhận item chậm, refund.
+- LiveOps trực launch có kill switch theo từng offer và rollback card shop.`;
+
+const loginRetroBrief = `Tên launch: Hành Trình Đăng Nhập 7 Ngày Retro.
+
+Trạng thái: Đã chạy từ 26/05/2026 đến 01/06/2026.
+
+Mục tiêu:
+- Tăng login day-7 của nhóm người chơi inactive quay lại.
+
+Điểm đã xảy ra:
+- Login tăng tốt ở 3 ngày đầu nhưng tỷ lệ hoàn thành streak ngày 7 thấp.
+- Ticket CS phát sinh vì người chơi không hiểu reset 05:00 và mất streak khi quên 1 ngày.
+- Có nhóm account phụ claim milestone ngày 7 lặp lại.
+
+Bài học:
+- Rule streak/reset phải viết cực rõ ngay trong brief và inbox.
+- Phải có duplicate-claim check cho milestone reward.
+- Dashboard retention cần tách cohort thay vì chỉ nhìn login tổng.`;
+
+const loginLiveBrief = `Tên launch: Đăng Nhập Nhận Quà Hè.
+
+Trạng thái nháp: Đang chạy.
+
+Mục tiêu:
+- Tăng login ngày 1-5 cho nhóm free user.
+
+Rule hiện có:
+- Check-in mỗi ngày nhận 1 mốc quà.
+- Milestone lớn ở ngày 3 và ngày 7.
+
+Điểm còn thiếu:
+- Chưa khóa rõ có cho bù streak hay không.
+- Chưa có duplicate-claim check ở milestone ngày 7.
+- Trigger push trước giờ reset và FAQ mất streak còn mơ hồ.
+- Dashboard retention/claim success chưa có alert.`;
+
+const loginReadyBrief = `Tên launch: Login Streak Festival Ready.
+
+Trạng thái nháp: Sắp chạy.
+
+Mục tiêu:
+- Tăng login day-1/day-7 cho cohort quay lại trong 14 ngày.
+
+Đã chốt:
+- Rule streak, reset 05:00, không bù streak và copy hiển thị rõ trong event.
+- Milestone reward theo ngày 1/3/5/7 với cap reward tổng.
+- Duplicate-claim check, anti-abuse multi-account và owner xử lý abuse.
+- Push/inbox/banner nhắc lại trước reset và khi người chơi bỏ streak.
+- Dashboard retention, streak completion, reward claim success và kill switch reward đã sẵn sàng.`;
 
 const luckySpinYellowResult = {
   source: "memory_sample",
@@ -1066,6 +1276,126 @@ const fallbackLaunches = [
     endDate: "2026-06-22 23:59",
     brief: luckySpinDraftReadyBrief,
     template: LUCKY_SPIN_EVENT_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "monsoon-shop-retro",
+    name: "Monsoon Gem Shop Retro",
+    type: "Game event",
+    status: "completed",
+    owner: "PM Monetization",
+    targetDate: "2026-06-02 09:00",
+    endDate: "2026-06-05 23:59",
+    brief: shopRetroBrief,
+    template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "monsoon-shop-live",
+    name: "Mùa Hè Sôi Động Shop Ingame",
+    type: "Game event",
+    status: "running",
+    owner: "Commercial Owner",
+    targetDate: "2026-06-17 09:00",
+    endDate: "2026-06-19 23:59",
+    brief: shopLiveBrief,
+    template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "monsoon-shop-ready",
+    name: "Festival Shop Premium Ready",
+    type: "Game event",
+    status: "upcoming",
+    owner: "LiveOps Lead",
+    targetDate: "2026-06-24 09:00",
+    endDate: "2026-06-27 23:59",
+    brief: shopReadyBrief,
+    template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "hero-login-retro",
+    name: "Hành Trình Đăng Nhập 7 Ngày Retro",
+    type: "Game event",
+    status: "completed",
+    owner: "Retention PM",
+    targetDate: "2026-05-26 05:00",
+    endDate: "2026-06-01 23:59",
+    brief: loginRetroBrief,
+    template: LOGIN_STREAK_RETENTION_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "hero-login-live",
+    name: "Đăng Nhập Nhận Quà Hè",
+    type: "Game event",
+    status: "running",
+    owner: "LiveOps PM",
+    targetDate: "2026-06-17 05:00",
+    endDate: "2026-06-23 23:59",
+    brief: loginLiveBrief,
+    template: LOGIN_STREAK_RETENTION_TEMPLATE,
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    checklistProgress: {},
+    redTeamBriefSupplements: {},
+    createdAt: DEMO_CREATED_AT,
+    updatedAt: DEMO_CREATED_AT
+  },
+  {
+    id: "hero-login-ready",
+    name: "Login Streak Festival Ready",
+    type: "Game event",
+    status: "upcoming",
+    owner: "Retention PM",
+    targetDate: "2026-06-25 05:00",
+    endDate: "2026-07-01 23:59",
+    brief: loginReadyBrief,
+    template: LOGIN_STREAK_RETENTION_TEMPLATE,
     templateVersions: [],
     lessonSuggestions: [],
     analyses: [],
@@ -2010,6 +2340,13 @@ function validateLaunchScheduleRules(launch, now = new Date()) {
       ok: false,
       error: "end_in_past_status",
       message: tr("End Launch đã ở quá khứ, nên launch không thể để trạng thái Đang chạy hoặc Sắp chạy. Hãy đổi sang Đã chạy hoặc sửa End Launch.", "End Launch is in the past, so the launch cannot be Running or Upcoming. Change it to Completed or update End Launch.")
+    };
+  }
+  if (start && start > now && (status === "running" || status === "completed")) {
+    return {
+      ok: false,
+      error: "start_in_future_not_started",
+      message: tr("Start Launch còn ở tương lai, nên launch chưa thể để trạng thái Đang chạy hoặc Đã chạy. Hãy đổi sang Sắp chạy hoặc sửa Start Launch.", "Start Launch is still in the future, so the launch cannot be Running or Completed yet. Change it to Upcoming or update Start Launch.")
     };
   }
   if (start && start < now && status === "upcoming") {
@@ -5348,8 +5685,9 @@ function activateConfigPanel(target = "catalog") {
 }
 
 function activateTab(target) {
+  const currentActiveView = document.querySelector(".view.active")?.id || "briefView";
   const isConfigScreen = target === "templateConfig";
-  if (!isConfigScreen) previousLaunchView = target || "briefView";
+  if (isConfigScreen || (target && target !== currentActiveView)) previousLaunchView = currentActiveView;
   appShell?.classList.toggle("config-mode", isConfigScreen);
   document.querySelectorAll(".tab").forEach((item) => {
     const isActive = !isConfigScreen && item.dataset.view === target;
@@ -5522,6 +5860,15 @@ function assistantHomeOptions() {
   ];
 }
 
+function assistantLaunchNavigationOptions(topic) {
+  const options = [];
+  if (topic !== "summary") options.push({ label: "Tổng hợp launch", value: "assistant:summary" });
+  if (topic !== "analyze") options.push({ label: "Chạy phân tích", value: "assistant:analyze" });
+  if (topic !== "lessons") options.push({ label: "Xem bài học", value: "assistant:lessons" });
+  options.push({ label: "Quay lại launch", value: "assistant:back" });
+  return options;
+}
+
 function assistantProductOptions() {
   return [
     { label: "Demo", value: "assistant:product:demo" },
@@ -5602,6 +5949,37 @@ function appendAssistantMessage(role, text, options = []) {
   }
   assistantMessages.appendChild(message);
   assistantMessages.scrollTop = assistantMessages.scrollHeight;
+}
+
+function setAssistantTyping(visible, text = "Agent đang soạn câu trả lời...") {
+  if (!assistantMessages) return;
+  const existing = assistantMessages.querySelector(".assistant-message.typing");
+  if (!visible) {
+    existing?.remove();
+    return;
+  }
+  if (existing) {
+    const node = existing.querySelector(".assistant-message-text");
+    if (node) node.textContent = text;
+    assistantMessages.scrollTop = assistantMessages.scrollHeight;
+    return;
+  }
+  const message = document.createElement("div");
+  message.className = "assistant-message bot typing";
+  const messageText = document.createElement("div");
+  messageText.className = "assistant-message-text";
+  messageText.textContent = text;
+  message.appendChild(messageText);
+  assistantMessages.appendChild(message);
+  assistantMessages.scrollTop = assistantMessages.scrollHeight;
+}
+
+function autoGrowTextareaField(textarea, minHeight = 72, maxHeight = 220) {
+  if (!textarea) return;
+  textarea.style.height = "auto";
+  const nextHeight = Math.max(minHeight, Math.min(textarea.scrollHeight || minHeight, maxHeight));
+  textarea.style.height = `${nextHeight}px`;
+  textarea.style.overflowY = (textarea.scrollHeight || nextHeight) > maxHeight ? "auto" : "hidden";
 }
 
 function cleanAssistantField(value) {
@@ -5745,8 +6123,9 @@ function assistantCreateEditOptions() {
     { label: "Phân loại", value: "wizard:create:field:type" },
     { label: "Template", value: "wizard:create:field:template" },
     { label: "Owner", value: "wizard:create:field:owner" },
-    { label: "Start/End Launch", value: "wizard:create:field:date" },
-    { label: "Mục tiêu", value: "wizard:create:field:objective" },
+    { label: "Start Launch", value: "wizard:create:field:targetDate" },
+    { label: "End Launch", value: "wizard:create:field:endDate" },
+    { label: "Trạng thái", value: "wizard:create:field:status" },
     { label: "Nội dung brief", value: "wizard:create:field:brief" },
     { label: "Quay lại xác nhận", value: "wizard:create:backConfirm" },
     { label: "Hủy", value: "assistant:cancel" }
@@ -5754,18 +6133,17 @@ function assistantCreateEditOptions() {
 }
 
 function formatAssistantDraftSummary(draft) {
-  const draftStatus = normalizeStatus(draft.status || inferStatusFromSchedule(draft));
+  const draftStatus = normalizeStatus(draft.status || "upcoming");
   return [
     "Tôi đã gom đủ thông tin tạo launch:",
     "",
     `Tên launch: ${draft.name || "Chưa có"}`,
     `Phân loại: ${typeLabel(draft.type || "Game event")}`,
     `Template: ${draft.templateName || templateDisplayName(defaultTemplateForType(draft.type || "Game event"))}`,
-    `Trạng thái: ${STATUS_LABELS[draftStatus]}`,
     `Owner: ${draft.owner || "Chưa có"}`,
-    `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa có")} - ${formatDateOnly(draft.endDate, "Chưa có")}`,
-    "",
-    `Mục tiêu: ${draft.objective || "Chưa có"}`,
+    `Start Launch: ${formatDateOnly(draft.targetDate, "Chưa có")}`,
+    `End Launch: ${formatDateOnly(draft.endDate, "Chưa có")}`,
+    `Trạng thái: ${STATUS_LABELS[draftStatus]}`,
     "",
     "Nội dung brief:",
     draft.brief || "Chưa có",
@@ -5781,9 +6159,9 @@ function composeAssistantLaunchBrief(draft) {
     `Phân loại: ${typeLabel(draft.type || "Game event")}`,
     `Template sử dụng: ${draft.templateName || templateDisplayName(defaultTemplateForType(draft.type || "Game event"))}`,
     "",
-    `Mục tiêu: ${draft.objective || "Chưa có mục tiêu rõ."}`,
-    "",
-    `Thời gian: ${formatDateOnly(draft.targetDate, "Chưa có")} đến ${formatDateOnly(draft.endDate, "Chưa có")}`,
+    `Start Launch: ${formatDateOnly(draft.targetDate, "Chưa có")}`,
+    `End Launch: ${formatDateOnly(draft.endDate, "Chưa có")}`,
+    `Trạng thái: ${STATUS_LABELS[normalizeStatus(draft.status || "upcoming")]}`,
     `Owner: ${draft.owner || "Chưa có owner."}`,
     "",
     "Nội dung brief:",
@@ -5792,20 +6170,96 @@ function composeAssistantLaunchBrief(draft) {
   return lines.join("\n").trim();
 }
 
+function assistantDraftToLaunch(draft) {
+  const type = draft?.type || "Game event";
+  const templateId = draft?.templateId || baseTemplateIdForType(type);
+  const template = draft?.template || cloneData(baseTemplateById(templateId) || defaultTemplateForType(type));
+  return {
+    id: "",
+    name: draft?.name || "Launch mới từ Assistant",
+    type,
+    status: normalizeStatus(draft?.status || "upcoming"),
+    owner: draft?.owner || "",
+    targetDate: draft?.targetDate || "",
+    endDate: draft?.endDate || "",
+    brief: cleanAssistantBrief(draft?.brief || ""),
+    template: normalizeTemplate(template, type),
+    templateVersions: [],
+    lessonSuggestions: [],
+    analyses: [],
+    postLaunchResult: "",
+    lessonsLearned: [],
+    redTeamBriefSupplements: {},
+    checklistProgress: {}
+  };
+}
+
+function captureAssistantRestoreState() {
+  const currentView = document.querySelector(".view.active")?.id || "briefView";
+  const launch = currentLaunch
+    ? sanitizeLaunchData({ ...cloneData(currentLaunch), ...collectLaunchFromForm() })
+    : sanitizeLaunchData(collectLaunchFromForm());
+  return {
+    launch,
+    draftMode,
+    currentView
+  };
+}
+
+function restoreAssistantDraftPreview(state) {
+  if (!state?.launch) return;
+  draftMode = Boolean(state.draftMode);
+  currentLaunch = cloneData(state.launch);
+  loadLaunchUiState(currentLaunch);
+  setFormFromLaunch(currentLaunch);
+  renderLaunchWorkspace();
+  renderLatestAnalysisOrPreview();
+  activateTab(state.currentView || "briefView");
+}
+
+function syncLaunchPreviewFromForm() {
+  if (!currentLaunch) currentLaunch = collectLaunchFromForm();
+  currentLaunch = {
+    ...currentLaunch,
+    ...collectLaunchFromForm()
+  };
+  setFormFromLaunch(currentLaunch);
+  renderLaunchWorkspace();
+  renderLatestAnalysisOrPreview();
+}
+window.syncLaunchPreviewFromForm = syncLaunchPreviewFromForm;
+
+function syncAssistantDraftPreview(draft) {
+  draftMode = true;
+  currentLaunch = assistantDraftToLaunch(draft);
+  loadLaunchUiState(currentLaunch);
+  setFormFromLaunch(currentLaunch);
+  renderLaunchWorkspace();
+  renderLatestAnalysisOrPreview();
+  activateTab("briefView");
+}
+
 function startCreateLaunchWizard() {
   assistantWizard = {
     mode: "create",
-    step: "type",
+    step: "name",
+    restoreState: captureAssistantRestoreState(),
+    previewActive: false,
     draft: {
-      status: "upcoming",
+      name: "",
       type: "Game event",
       templateId: baseTemplateIdForType("Game event"),
-      templateName: templateDisplayName(defaultTemplateForType("Game event"))
+      templateName: templateDisplayName(defaultTemplateForType("Game event")),
+      owner: "",
+      targetDate: "",
+      endDate: "",
+      status: "upcoming",
+      brief: ""
     }
   };
   return {
-    reply: "Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, launch này thuộc phân loại/function nào?",
-    options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()]
+    reply: "Tôi sẽ hỗ trợ bạn tạo launch mới từng bước. Trước tiên, tên launch là gì?",
+    options: assistantCancelOptions()
   };
 }
 
@@ -5835,6 +6289,10 @@ function startEditLaunchWizard() {
 }
 
 function finishAssistantWizard(message = "Đã hủy luồng hiện tại.") {
+  const wizard = assistantWizard;
+  if (wizard?.mode === "create" && wizard.previewActive && wizard.restoreState) {
+    restoreAssistantDraftPreview(wizard.restoreState);
+  }
   assistantWizard = null;
   return {
     reply: `${message}\n\nBạn cần tôi hỗ trợ gì tiếp?`,
@@ -5874,14 +6332,27 @@ function handleCreateWizardInput(rawText) {
     if (field === "template") {
       return { reply: "Chọn lại template/bộ luật cho launch.", options: [...templateOptionsForAssistant(), ...assistantCancelOptions()] };
     }
+    if (field === "status") {
+      return {
+        reply: "Chọn lại trạng thái launch.",
+        options: [
+          { label: "Đã chạy", value: "completed" },
+          { label: "Đang chạy", value: "running" },
+          { label: "Sắp chạy", value: "upcoming" },
+          ...assistantCancelOptions()
+        ]
+      };
+    }
     const label = field === "name" ? "tên launch"
       : field === "owner" ? "owner"
-        : field === "date" ? "Start/End Launch"
-          : field === "objective" ? "mục tiêu"
+        : field === "targetDate" ? "Start Launch"
+          : field === "endDate" ? "End Launch"
             : "nội dung brief";
     return {
-      reply: field === "date"
-        ? "Nhập lại Start/End Launch đầy đủ giờ phút, ví dụ 15/06/2026 08:30 - 17/06/2026 23:59."
+      reply: field === "targetDate"
+        ? "Nhập lại Start Launch đầy đủ giờ phút, ví dụ 15/06/2026 08:30."
+        : field === "endDate"
+          ? "Nhập lại End Launch đầy đủ giờ phút, ví dụ 17/06/2026 23:59."
         : `Nhập lại ${label}.`,
       options: assistantCancelOptions()
     };
@@ -5891,8 +6362,23 @@ function handleCreateWizardInput(rawText) {
     const field = assistantWizard.draft.editField || "brief";
     if (field === "name") draft.name = cleanAssistantField(value) || draft.name;
     if (field === "owner") draft.owner = cleanAssistantField(value) || draft.owner;
-    if (field === "objective") draft.objective = cleanAssistantBrief(value) || draft.objective;
     if (field === "brief") draft.brief = cleanAssistantBrief(value) || draft.brief;
+    if (field === "status") {
+      const normalizedStatus = normalizeText(value || "");
+      const validStatusText = /(da chay|completed|done|dang chay|running|active|sap chay|upcoming|future)/.test(normalizedStatus);
+      if (!validStatusText) {
+        return {
+          reply: "Tôi chưa hiểu trạng thái này. Hãy chọn Đã chạy, Đang chạy, hoặc Sắp chạy.",
+          options: [
+            { label: "Đã chạy", value: "completed" },
+            { label: "Đang chạy", value: "running" },
+            { label: "Sắp chạy", value: "upcoming" },
+            ...assistantCancelOptions()
+          ]
+        };
+      }
+      draft.status = statusValueFromText(value) || draft.status || "upcoming";
+    }
     if (field === "type") {
       const selectedType = value.startsWith("wizard:create:type:")
         ? value.replace("wizard:create:type:", "")
@@ -5912,27 +6398,47 @@ function handleCreateWizardInput(rawText) {
       draft.templateName = templateDisplayName(template);
       draft.template = cloneData(template);
     }
-    if (field === "date") {
-      const [startRaw, endRaw] = String(value || "").split(/\s*(?:-|đến|den|to)\s*/iu);
-      const start = normalizeAssistantDateTime(startRaw);
-      const end = normalizeAssistantDateTime(endRaw);
-      if (!start || !end) {
+    if (field === "targetDate") {
+      const start = normalizeAssistantDateTime(value);
+      if (!start) {
         return {
-          reply: "Tôi chưa đọc được đủ Start/End Launch kèm giờ phút. Hãy nhập dạng 15/06/2026 08:30 - 17/06/2026 23:59.",
+          reply: "Tôi chưa đọc được Start Launch đủ ngày giờ. Hãy nhập dạng 15/06/2026 08:30.",
           options: assistantCancelOptions()
         };
       }
       draft.targetDate = start;
+    }
+    if (field === "endDate") {
+      const end = normalizeAssistantDateTime(value);
+      if (!end) {
+        return {
+          reply: "Tôi chưa đọc được End Launch đủ ngày giờ. Hãy nhập dạng 17/06/2026 23:59.",
+          options: assistantCancelOptions()
+        };
+      }
       draft.endDate = end;
     }
-    const validation = validateLaunchScheduleRules({ ...draft, status: inferStatusFromSchedule(draft) });
+    const validation = validateLaunchScheduleRules({ ...draft, status: draft.status || "upcoming" });
     if (!validation.ok) {
       return { reply: validation.message, options: assistantCreateEditOptions() };
     }
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "confirm";
     return {
-      reply: `${field === "date" ? "Đã cập nhật thời gian launch." : "Đã cập nhật launch nháp."}\n\n${formatAssistantDraftSummary(draft)}`,
+      reply: `${field === "targetDate" || field === "endDate" ? "Đã cập nhật thời gian launch." : "Đã cập nhật launch nháp."}\n\n${formatAssistantDraftSummary(draft)}`,
       options: assistantConfirmOptions()
+    };
+  }
+
+  if (assistantWizard.step === "name") {
+    draft.name = cleanAssistantField(value) || "Launch mới từ Assistant";
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
+    assistantWizard.step = "type";
+    return {
+      reply: `Đã ghi tên launch: ${draft.name}.\n\nLaunch này thuộc phân loại/function nào?`,
+      options: [...launchTypeOptionsForAssistant(), ...assistantCancelOptions()]
     };
   }
 
@@ -5943,6 +6449,9 @@ function handleCreateWizardInput(rawText) {
     draft.type = launchTypeExists(selectedType) ? selectedType : "Game event";
     draft.templateId = baseTemplateIdForType(draft.type);
     draft.templateName = templateDisplayName(defaultTemplateForType(draft.type));
+    draft.template = cloneData(defaultTemplateForType(draft.type));
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "template";
     return {
       reply: `Đã chọn phân loại: ${typeLabel(draft.type)}.\n\nTiếp theo bạn muốn dùng template/bộ luật nào?`,
@@ -5958,6 +6467,8 @@ function handleCreateWizardInput(rawText) {
     draft.templateId = templateId;
     draft.templateName = templateDisplayName(template);
     draft.template = cloneData(template);
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "owner";
     return {
       reply: `Đã chọn template: ${draft.templateName}.\n\nOwner/người phụ trách launch này là ai?`,
@@ -5967,15 +6478,8 @@ function handleCreateWizardInput(rawText) {
 
   if (assistantWizard.step === "owner") {
     draft.owner = cleanAssistantField(value);
-    assistantWizard.step = "name";
-    return {
-      reply: "Tên launch là gì?",
-      options: assistantCancelOptions()
-    };
-  }
-
-  if (assistantWizard.step === "name") {
-    draft.name = cleanAssistantField(value) || "Launch mới từ Assistant";
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "targetDate";
     return {
       reply: "Start Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 15/06/2026 08:30.",
@@ -5992,6 +6496,8 @@ function handleCreateWizardInput(rawText) {
       };
     }
     draft.targetDate = dateValue;
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "endDate";
     return {
       reply: "End Launch là ngày giờ nào? Bạn phải nhập đủ dạng dd/mm/yyyy hh:mm, ví dụ 17/06/2026 23:59.",
@@ -6008,22 +6514,57 @@ function handleCreateWizardInput(rawText) {
       };
     }
     draft.endDate = dateValue;
-    const validation = validateLaunchScheduleRules({ ...draft, status: inferStatusFromSchedule(draft) });
+    const validation = validateLaunchScheduleRules({ ...draft, status: draft.status || "upcoming" });
     if (!validation.ok) {
       return {
         reply: validation.message,
         options: assistantCancelOptions()
       };
     }
-    assistantWizard.step = "objective";
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
+    assistantWizard.step = "status";
     return {
-      reply: "Mục tiêu chính của launch này là gì? Ví dụ: tăng DAU cuối tuần, tăng conversion, giảm lỗi vận hành...",
-      options: assistantCancelOptions()
+      reply: "Chọn trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.",
+      options: [
+        { label: "Đã chạy", value: "completed" },
+        { label: "Đang chạy", value: "running" },
+        { label: "Sắp chạy", value: "upcoming" },
+        ...assistantCancelOptions()
+      ]
     };
   }
 
-  if (assistantWizard.step === "objective") {
-    draft.objective = cleanAssistantBrief(value);
+  if (assistantWizard.step === "status") {
+    const normalizedStatus = normalizeText(value || "");
+    const validStatusText = /(da chay|completed|done|dang chay|running|active|sap chay|upcoming|future)/.test(normalizedStatus);
+    if (!validStatusText) {
+      return {
+        reply: "Tôi chưa hiểu trạng thái này. Hãy chọn Đã chạy, Đang chạy, hoặc Sắp chạy.",
+        options: [
+          { label: "Đã chạy", value: "completed" },
+          { label: "Đang chạy", value: "running" },
+          { label: "Sắp chạy", value: "upcoming" },
+          ...assistantCancelOptions()
+        ]
+      };
+    }
+    const status = statusValueFromText(value);
+    const validation = validateLaunchScheduleRules({ ...draft, status });
+    if (!validation.ok) {
+      return {
+        reply: validation.message,
+        options: [
+          { label: "Đã chạy", value: "completed" },
+          { label: "Đang chạy", value: "running" },
+          { label: "Sắp chạy", value: "upcoming" },
+          ...assistantCancelOptions()
+        ]
+      };
+    }
+    draft.status = status;
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "brief";
     return {
       reply: "Bây giờ hãy dán nội dung brief. Có thể dùng nhiều dòng, gồm đối tượng, cơ chế, kênh truyền thông, việc đã có và vấn đề còn mở.",
@@ -6033,6 +6574,8 @@ function handleCreateWizardInput(rawText) {
 
   if (assistantWizard.step === "brief") {
     draft.brief = cleanAssistantBrief(value);
+    syncAssistantDraftPreview(draft);
+    assistantWizard.previewActive = true;
     assistantWizard.step = "confirm";
     return {
       reply: formatAssistantDraftSummary(draft),
@@ -6049,8 +6592,8 @@ function handleCreateWizardInput(rawText) {
       };
     }
     if (value === "wizard:create:confirm" || normalized.includes("xac nhan") || normalized === "ok" || normalized.includes("dong y")) {
-      const inferredStatus = inferStatusFromSchedule(draft);
-      const validation = validateLaunchScheduleRules({ ...draft, status: inferredStatus });
+      const explicitStatus = normalizeStatus(draft.status || "upcoming");
+      const validation = validateLaunchScheduleRules({ ...draft, status: explicitStatus });
       if (!validation.ok) {
         return {
           reply: validation.message,
@@ -6059,7 +6602,7 @@ function handleCreateWizardInput(rawText) {
       }
       const payload = {
         ...draft,
-        status: inferredStatus,
+        status: explicitStatus,
         brief: composeAssistantLaunchBrief(draft)
       };
       assistantWizard = null;
@@ -6196,7 +6739,7 @@ function shouldUseAssistantLLMForFreeText(normalizedText) {
   const text = String(normalizedText || "");
   const wantsBriefHelp = /(viet|soan|draft|tao|lam|goi y|huong dan|ho tro|tu van).*(brief|event|launch|campaign|su kien|tang qua|qua tang|khong biet|lam sao)/.test(text)
     || /(brief|event|launch|campaign|su kien|tang qua|qua tang).*(viet|soan|draft|goi y|huong dan|ho tro|tu van|khong biet|lam sao)/.test(text);
-  const wizardNeedsHumanText = assistantWizard?.mode && ["brief", "objective", "editValue"].includes(assistantWizard.step);
+  const wizardNeedsHumanText = assistantWizard?.mode && ["brief", "editValue"].includes(assistantWizard.step);
   const asksForAdvice = /(ho tro|tu van|goi y|huong dan|lam sao|khong biet|viet|soan|draft)/.test(text);
   return Boolean(wantsBriefHelp || (wizardNeedsHumanText && asksForAdvice));
 }
@@ -6206,6 +6749,13 @@ function assistantWizardReply(rawText) {
   const text = normalizeText(value);
   if (value === "assistant:cancel" || text === "huy" || text === "cancel") {
     return finishAssistantWizard();
+  }
+  if (value === "assistant:back") {
+    return {
+      reply: "Tôi quay lại màn launch đang làm.",
+      action: "backToLaunch",
+      options: assistantHomeOptions()
+    };
   }
   if (shouldUseAssistantLLMForFreeText(text)) return null;
   if (value === "assistant:summary" || assistantSummaryIntent(text)) {
@@ -6245,10 +6795,18 @@ function assistantWizardReply(rawText) {
     };
   }
   if (value === "assistant:analyze") {
-    return { reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", action: "analyze" };
+    return {
+      reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.",
+      action: "analyze",
+      options: assistantLaunchNavigationOptions("analyze")
+    };
   }
   if (value === "assistant:lessons") {
-    return { reply: "Tôi mở tab Bài học để bạn xem kết quả sau launch và lessons learned.", action: "lessons" };
+    return {
+      reply: "Tôi mở tab Bài học để bạn xem kết quả sau launch và lessons learned.",
+      action: "lessons",
+      options: assistantLaunchNavigationOptions("lessons")
+    };
   }
   if (value === "assistant:product" || value === "assistant:product:open" || text.includes("chon san pham") || text.includes("doi san pham") || text.includes("switch product") || text.includes("select product")) {
     return assistantProductReply(value);
@@ -6362,7 +6920,8 @@ function scopedAssistantReply(rawText) {
   if (isAssistantConfigActionIntent(text)) {
     return {
       reply: "Tôi mở Cấu hình phân loại. Bản demo hiện mở full quyền thao tác, bạn có thể sửa/lưu/duyệt trực tiếp trong UI.",
-      action: "openConfig"
+      action: "openConfig",
+      options: assistantLaunchNavigationOptions("config")
     };
   }
 
@@ -6375,19 +6934,20 @@ function scopedAssistantReply(rawText) {
   if (text.includes("mo cau hinh") || text.includes("cau hinh phan loai")) {
     return {
       reply: "Tôi mở Cấu hình phân loại. Bạn có thể chỉnh template, checklist và rule phản biện trực tiếp trong UI.",
-      action: "openConfig"
+      action: "openConfig",
+      options: assistantLaunchNavigationOptions("config")
     };
   }
   if (text.includes("quay lai") || text.includes("tro lai launch")) {
-    return { reply: "Tôi quay lại màn launch đang làm.", action: "backToLaunch" };
+    return { reply: "Tôi quay lại màn launch đang làm.", action: "backToLaunch", options: assistantHomeOptions() };
   }
   if (text.includes("tom tat")) return assistantLaunchSummaryReply();
-  if (text.includes("phan tich") || text.includes("red team")) return { reply: "Tôi mở tab Phân tích.", action: "redTeam" };
-  if (text.includes("checklist") || text.includes("viec can lam")) return { reply: "Tôi mở tab Việc cần làm.", action: "checklist" };
-  if (text.includes("lich su")) return { reply: "Tôi mở tab Lịch sử phân tích.", action: "history" };
-  if (text.includes("bai hoc") || text.includes("postmortem")) return { reply: "Tôi mở tab Bài học.", action: "lessons" };
+  if (text.includes("phan tich") || text.includes("red team")) return { reply: "Tôi mở tab Phân tích.", action: "redTeam", options: assistantLaunchNavigationOptions("redTeam") };
+  if (text.includes("checklist") || text.includes("viec can lam")) return { reply: "Tôi mở tab Việc cần làm.", action: "checklist", options: assistantLaunchNavigationOptions("checklist") };
+  if (text.includes("lich su")) return { reply: "Tôi mở tab Lịch sử phân tích.", action: "history", options: assistantLaunchNavigationOptions("history") };
+  if (text.includes("bai hoc") || text.includes("postmortem")) return { reply: "Tôi mở tab Bài học.", action: "lessons", options: assistantLaunchNavigationOptions("lessons") };
   if (text.includes("chay phan tich") || text.includes("analyze")) {
-    return { reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", action: "analyze" };
+    return { reply: "Tôi sẽ chạy phân tích cho launch hiện tại nếu brief đã có nội dung.", action: "analyze", options: assistantLaunchNavigationOptions("analyze") };
   }
 
   if (text.includes("diem toi da") || text.includes("phan diem") || text.includes("max score")) {
@@ -6757,16 +7317,20 @@ async function handleAssistantUserMessage(message, displayText = message) {
   appendAssistantMessage("user", displayText);
   const wizardResult = assistantWizardReply(message);
   if (wizardResult) {
+    setAssistantTyping(false);
     if (wizardResult.reply) appendAssistantMessage("bot", wizardResult.reply, wizardResult.options || []);
     if (wizardResult.action) await applyAssistantAction(wizardResult.action);
     return;
   }
 
   try {
+    setAssistantTyping(true);
     const result = await assistantReply(message);
+    setAssistantTyping(false);
     appendAssistantMessage("bot", result.reply, result.options || []);
     await applyAssistantAction(result.action);
   } catch (error) {
+    setAssistantTyping(false);
     console.warn("Assistant message failed.", error);
     appendAssistantMessage("bot", "Tôi chưa thao tác được yêu cầu này. Hãy kiểm tra brief hoặc backend rồi thử lại trong LaunchOps.", assistantHomeOptions());
   }
@@ -6788,6 +7352,7 @@ assistantForm?.addEventListener("submit", (event) => {
   const message = assistantInput?.value.trim();
   if (!message) return;
   assistantInput.value = "";
+  autoGrowTextareaField(assistantInput);
   handleAssistantUserMessage(message).catch((error) => {
     console.warn("Assistant submit failed.", error);
   });
@@ -6799,6 +7364,12 @@ assistantInput?.addEventListener("keydown", (event) => {
     assistantForm?.requestSubmit();
   }
 });
+
+assistantInput?.addEventListener("input", () => {
+  autoGrowTextareaField(assistantInput);
+});
+
+autoGrowTextareaField(assistantInput);
 
 appendAssistantMessage(
   "bot",

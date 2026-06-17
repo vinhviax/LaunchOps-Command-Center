@@ -125,7 +125,7 @@
   var savingFriendlyEditId = '';
   var renderingFriendlyDraftCards = false;
   var FRIENDLY_STATUS_ORDER = ['running', 'upcoming', 'completed'];
-  var LAUNCH_CONFIG_FLOW = ['name', 'type', 'owner', 'dates', 'brief'];
+  var LAUNCH_CONFIG_FLOW = ['name', 'type', 'template', 'owner', 'targetDate', 'endDate', 'status', 'brief'];
   var NEW_LAUNCH_FLOW = LAUNCH_CONFIG_FLOW.slice();
   var EDIT_LAUNCH_FLOW = LAUNCH_CONFIG_FLOW.slice();
 
@@ -450,6 +450,7 @@
     var now = new Date();
     if (start && end && end < start) return friendlyCopy('End Launch không được sớm hơn Start Launch. Hãy sửa lại thời gian trước khi lưu hoặc phân tích.', 'End Launch cannot be earlier than Start Launch. Fix the schedule before saving or analyzing.');
     if (end && end < now && (status === 'running' || status === 'upcoming')) return friendlyCopy('End Launch đã ở quá khứ, nên launch không thể để trạng thái Đang chạy hoặc Sắp chạy. Hãy đổi sang Đã chạy hoặc sửa End Launch.', 'End Launch is in the past, so the launch cannot be Running or Upcoming. Change it to Completed or update End Launch.');
+    if (start && start > now && (status === 'running' || status === 'completed')) return friendlyCopy('Start Launch còn ở tương lai, nên launch chưa thể để trạng thái Đang chạy hoặc Đã chạy. Hãy đổi sang Sắp chạy hoặc sửa Start Launch.', 'Start Launch is still in the future, so the launch cannot be Running or Completed yet. Change it to Upcoming or update Start Launch.');
     if (start && start < now && status === 'upcoming') return friendlyCopy('Start Launch đã ở quá khứ, nên launch không thể để trạng thái Sắp chạy. Hãy đổi sang Đang chạy/Đã chạy hoặc sửa Start Launch.', 'Start Launch is in the past, so the launch cannot be Upcoming. Change it to Running/Completed or update Start Launch.');
     return '';
   }
@@ -467,10 +468,15 @@
     return normalize(option ? option.textContent : value);
   }
 
+  function quickActionLabelForSelectValue(selectId, value) {
+    return labelForSelectValue(selectId, value) || normalize(value);
+  }
+
   function readFriendlyFormData() {
     return {
       name: normalize((byId('launchName') && byId('launchName').value) || friendlyCopy('Launch mới', 'New launch')),
       type: (byId('launchType') && byId('launchType').value) || 'Game event',
+      templateId: (byId('launchTemplate') && byId('launchTemplate').value) || '',
       status: (byId('launchStatus') && byId('launchStatus').value) || 'upcoming',
       owner: normalize((byId('launchOwner') && byId('launchOwner').value) || ''),
       targetDate: (byId('launchTargetDate') && byId('launchTargetDate').value) || '',
@@ -489,6 +495,7 @@
     [
       ['launchName', data.name || friendlyCopy('Launch mới', 'New launch')],
       ['launchType', data.type || 'Game event'],
+      ['launchTemplate', data.templateId || ''],
       ['launchStatus', data.status || 'upcoming'],
       ['launchOwner', data.owner || ''],
       ['launchTargetDate', data.targetDate || ''],
@@ -762,6 +769,7 @@
     var sub = byId('detailSub');
     var launchName = normalize((byId('launchName') && byId('launchName').value) || ownText(title) || friendlyCopy('Launch mới', 'New launch'));
     var type = selectedText(byId('launchType')) || friendlyCopy('Chưa chọn phân loại', 'No type selected');
+    var template = selectedText(byId('launchTemplate')) || friendlyCopy('Chưa chọn template', 'No template selected');
     var status = byId('launchStatus') ? statusLabel(byId('launchStatus').value) : '';
     var owner = normalize((byId('launchOwner') && byId('launchOwner').value) || friendlyCopy('Chưa có owner', 'No owner yet'));
     if (title && title.textContent !== (launchName || friendlyCopy('Launch mới', 'New launch'))) title.textContent = launchName || friendlyCopy('Launch mới', 'New launch');
@@ -769,6 +777,7 @@
       clearNode(sub);
       addChip(sub, status, 'status');
       addChip(sub, type, '');
+      addChip(sub, template, '');
       addChip(sub, owner, '');
     }
   }
@@ -780,6 +789,7 @@
     [
       normalize((byId('launchName') && byId('launchName').value) || friendlyCopy('Launch mới', 'New launch')),
       selectedText(byId('launchType')) || friendlyCopy('Chưa chọn phân loại', 'No type selected'),
+      selectedText(byId('launchTemplate')) || friendlyCopy('Chưa chọn template', 'No template selected'),
       normalize((byId('launchOwner') && byId('launchOwner').value) || friendlyCopy('Chưa có owner', 'No owner yet'))
     ].forEach(function (item) {
       var chip = document.createElement('span');
@@ -807,6 +817,29 @@
     box.appendChild(msg);
     while (box.children.length > 9) box.removeChild(box.firstElementChild);
     box.scrollTop = box.scrollHeight;
+  }
+
+  function setTypingState(targetId, visible, text) {
+    var node = byId(targetId);
+    if (!node) return;
+    node.hidden = !visible;
+    if (visible) node.textContent = normalize(text) || friendlyCopy('Agent đang soạn câu trả lời...', 'Agent is drafting a reply...');
+  }
+
+  function setFriendlyChatTyping(visible, text) {
+    setTypingState('friendlyChatTyping', visible, text);
+  }
+
+  function setFriendlyLessonTyping(visible, text) {
+    setTypingState('friendlyLessonTyping', visible, text);
+  }
+
+  function autoGrowFriendlyTextarea(textarea, minHeight, maxHeight) {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    var nextHeight = Math.max(minHeight || 72, Math.min(textarea.scrollHeight || (minHeight || 72), maxHeight || 220));
+    textarea.style.height = nextHeight + 'px';
+    textarea.style.overflowY = (textarea.scrollHeight || nextHeight) > (maxHeight || 220) ? 'auto' : 'hidden';
   }
 
   function addLessonMessage(role, text) {
@@ -851,6 +884,7 @@
     'Checklist': 'Checklist',
     'Demo mode': 'Demo mode',
     'Export report': 'Export report',
+    'Giải thích flow': 'Explain flow',
     'Owner': 'Owner',
     'Red Team': 'Red Team',
     'Rule readiness': 'Readiness rule'
@@ -911,8 +945,11 @@
   function fieldHint(field) {
     if (field === 'name') return friendlyCopy('đặt tên launch ngắn, dễ nhận ra trong danh sách.', 'give the launch a short name that is easy to spot in the list.');
     if (field === 'type') return friendlyCopy('chọn phân loại để dùng đúng bộ luật đánh giá.', 'choose the launch type so the right scoring rules are used.');
+    if (field === 'template') return friendlyCopy('chọn template để bot bám đúng playbook/rubric của phân loại này.', 'choose the template so the bot follows the right playbook and rubric.');
     if (field === 'owner') return friendlyCopy('nhập owner chính để checklist có người chịu trách nhiệm.', 'add the main owner so checklist items have accountability.');
-    if (field === 'dates') return friendlyCopy('nhập Start - End đầy đủ ngày giờ theo dạng dd/mm/yyyy hh:mm - dd/mm/yyyy hh:mm.', 'enter Start - End with full date and time as dd/mm/yyyy hh:mm - dd/mm/yyyy hh:mm.');
+    if (field === 'targetDate') return friendlyCopy('nhập Start Launch đầy đủ ngày giờ theo dạng dd/mm/yyyy hh:mm.', 'enter Start Launch with full date and time as dd/mm/yyyy hh:mm.');
+    if (field === 'endDate') return friendlyCopy('nhập End Launch đầy đủ ngày giờ theo dạng dd/mm/yyyy hh:mm.', 'enter End Launch with full date and time as dd/mm/yyyy hh:mm.');
+    if (field === 'status') return friendlyCopy('chọn trạng thái đúng với thời gian Start/End hiện tại.', 'choose a status that matches the current Start/End schedule.');
     if (field === 'brief') return friendlyCopy('dán brief thô, càng rõ mục tiêu và phạm vi càng tốt.', 'paste the raw brief; clearer goals and scope are better.');
     if (field === 'postResult') return friendlyCopy('ghi kết quả thật sau launch để lưu bài học.', 'record the real post-launch result before saving lessons.');
     if (field === 'lesson') return friendlyCopy('ghi bài học ngắn, có thể dùng lại cho launch sau.', 'write a short lesson that can be reused next launch.');
@@ -1140,8 +1177,10 @@
     setChatActions([
       { label: 'Tên launch', action: 'field', value: 'name' },
       { label: 'Phân loại', action: 'field', value: 'type' },
+      { label: 'Template', action: 'field', value: 'template' },
       { label: 'Owner', action: 'field', value: 'owner' },
-      { label: 'Thời gian', action: 'field', value: 'dates' },
+      { label: 'Start Launch', action: 'field', value: 'targetDate' },
+      { label: 'End Launch', action: 'field', value: 'endDate' },
       { label: 'Trạng thái', action: 'field', value: 'status' },
       { label: 'Brief', action: 'field', value: 'brief' },
       { label: 'Rà soát tuần tự', action: 'edit-sequential' },
@@ -1158,6 +1197,7 @@
     }
     setControlValue(real, value);
     dispatchControlEvents(real);
+    if (typeof window.syncLaunchPreviewFromForm === 'function') window.syncLaunchPreviewFromForm();
     syncFriendlyFormFromReal();
     persistActiveFriendlySession(true);
     refreshFriendlyDetailPreview();
@@ -1179,6 +1219,15 @@
     var select = byId('launchType');
     var actions = [].slice.call((select && select.options) || []).slice(0, 8).map(function (option) {
       return { label: option.textContent, action: 'set-type', value: option.value };
+    });
+    actions.push({ label: 'Quay lại', action: 'edit' });
+    setChatActions(actions);
+  }
+
+  function showTemplateActions() {
+    var select = byId('launchTemplate');
+    var actions = [].slice.call((select && select.options) || []).slice(0, 8).map(function (option) {
+      return { label: option.textContent, action: 'set-template', value: option.value };
     });
     actions.push({ label: 'Quay lại', action: 'edit' });
     setChatActions(actions);
@@ -1207,6 +1256,12 @@
       chatInputPlaceholder(friendlyCopy('Gõ phân loại, hoặc gõ "giữ nguyên"', 'Type a type, or type "keep"'));
       setNpcSpeech(friendlyCopy('Đang chờ bạn chọn phân loại.', 'Waiting for you to choose the launch type.'));
       showTypeActions();
+    } else if (field === 'template') {
+      chatAwaiting = 'template';
+      addChatMessage('agent', friendlyCopy('Chọn hoặc gõ template để mình dùng đúng bộ luật cho launch này.', 'Choose or type the template so I use the right rule set for this launch.'));
+      chatInputPlaceholder(friendlyCopy('Gõ template, hoặc gõ "giữ nguyên"', 'Type a template, or type "keep"'));
+      setNpcSpeech(friendlyCopy('Đang chờ bạn chọn template.', 'Waiting for you to choose the template.'));
+      showTemplateActions();
     } else if (field === 'status') {
       chatAwaiting = 'status';
       addChatMessage('agent', friendlyCopy('Chọn hoặc gõ trạng thái launch: Sắp chạy, Đang chạy, hoặc Đã chạy.', 'Choose or type the launch status: Upcoming, Running, or Completed.'));
@@ -1217,10 +1272,14 @@
       addChatMessage('agent', friendlyCopy('Ai là owner chính của launch này?', 'Who is the main owner for this launch?'));
       chatInputPlaceholder('Ví dụ: PM LiveOps');
       setNpcSpeech(friendlyCopy('Đang chờ owner để cập nhật phần chi tiết launch.', 'Waiting for the owner so I can update the launch details.'));
-    } else if (field === 'dates') {
-      addChatMessage('agent', friendlyCopy('Gõ Start - End đầy đủ ngày giờ. Ví dụ: 12/06/2026 08:30 - 14/06/2026 23:59.', 'Type Start - End with full date and time. Example: 12/06/2026 08:30 - 14/06/2026 23:59.'));
-      chatInputPlaceholder('12/06/2026 08:30 - 14/06/2026 23:59');
-      setNpcSpeech(friendlyCopy('Đang chờ mốc thời gian. Start và End đều bắt buộc có giờ phút hh:mm.', 'Waiting for the schedule. Both Start and End must include hh:mm.'));
+    } else if (field === 'targetDate') {
+      addChatMessage('agent', friendlyCopy('Gõ Start Launch đầy đủ ngày giờ. Ví dụ: 12/06/2026 08:30.', 'Type Start Launch with full date and time. Example: 12/06/2026 08:30.'));
+      chatInputPlaceholder('12/06/2026 08:30');
+      setNpcSpeech(friendlyCopy('Đang chờ Start Launch. Bắt buộc có giờ phút hh:mm.', 'Waiting for Start Launch. hh:mm is required.'));
+    } else if (field === 'endDate') {
+      addChatMessage('agent', friendlyCopy('Gõ End Launch đầy đủ ngày giờ. Ví dụ: 14/06/2026 23:59.', 'Type End Launch with full date and time. Example: 14/06/2026 23:59.'));
+      chatInputPlaceholder('14/06/2026 23:59');
+      setNpcSpeech(friendlyCopy('Đang chờ End Launch. Bắt buộc có giờ phút hh:mm.', 'Waiting for End Launch. hh:mm is required.'));
     } else if (field === 'brief') {
       addChatMessage('agent', friendlyCopy('Dán brief thô vào đây. Không cần văn hay, chỉ cần đủ dữ liệu để Agent đọc.', 'Paste the raw brief here. It does not need to be polished, just readable enough for the Agent.'));
       chatInputPlaceholder(friendlyCopy('Dán brief launch...', 'Paste the launch brief...'));
@@ -1253,6 +1312,12 @@
       end: hasFriendlyDateTime(end) ? end : '',
       missingTime: Boolean(!hasFriendlyDateTime(start) || !hasFriendlyDateTime(end))
     };
+  }
+
+  function parseSingleFriendlyDateTime(text) {
+    var match = String(text || '').match(/(?:\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{1,2}-\d{1,2})(?:[T\s,]+\d{1,2}:\d{2})?/);
+    var value = normalize(match ? match[0] : text);
+    return hasFriendlyDateTime(value) ? value : '';
   }
 
   function beginNewLaunchFlow() {
@@ -1363,7 +1428,8 @@
       { label: 'Red Team', action: 'support-topic', value: 'red-team' },
       { label: 'Checklist', action: 'support-topic', value: 'checklist' },
       { label: 'Bài học', action: 'support-topic', value: 'lessons' },
-      { label: 'Tạo/sửa launch', action: 'support-topic', value: 'flow' }
+      { label: 'Giải thích flow', action: 'support-topic', value: 'flow' },
+      { label: 'Tạo/sửa launch', action: 'launch-flow-menu' }
     ];
   }
 
@@ -1619,7 +1685,9 @@
       addChatMessage('agent', friendlyCopy('Mình đang đọc ý tưởng và soạn brief launch đầy đủ theo format LaunchOps. Đợi mình một chút...', 'I am reading the idea and drafting a full LaunchOps brief. One moment...'));
       setNpcSpeech(friendlyCopy('Đang nhờ Agent AI soạn brief đầy đủ từ ý tưởng của Human.', 'Asking the AI Agent to draft a complete brief from the Human idea.'));
       updateGuidance(friendlyCopy('Đang chờ Agent AI viết brief...', 'Waiting for the AI Agent to write the brief...'));
+      setFriendlyChatTyping(true, friendlyCopy('Agent đang soạn brief launch...', 'Agent is drafting the launch brief...'));
       callAssistantForBriefWriter(ideaSeed, function (reply) {
+        setFriendlyChatTyping(false);
         if (reply) {
           if (setRealField('briefInput', reply)) {
             addChatMessage('agent', friendlyCopy('Mình đã soạn brief đầy đủ và ghi vào ô brief launch. Bản brief:', 'I drafted the full brief and filled the launch brief field. Draft:'));
@@ -1654,7 +1722,9 @@
       addChatMessage('agent', friendlyCopy('Mình đang xem brief, readiness và rủi ro để góp ý cụ thể cho bạn...', 'I am reviewing the brief, readiness, and risks to give specific feedback...'));
       setNpcSpeech(friendlyCopy('Đang xin góp ý từ Agent AI dựa trên brief và rủi ro hiện tại.', 'Asking the AI Agent for feedback based on the current brief and risks.'));
       updateGuidance(friendlyCopy('Đang chờ Agent AI trả lời...', 'Waiting for the AI Agent reply...'));
+      setFriendlyChatTyping(true, friendlyCopy('Agent đang soạn câu trả lời...', 'Agent is drafting a reply...'));
       callAssistantForChat(value, ctxForAdvice, function (reply) {
+        setFriendlyChatTyping(false);
         if (reply) {
           addChatMessage('agent', reply);
           setNpcSpeech(friendlyCopy('Agent AI vừa góp ý dựa trên brief launch hiện tại.', 'The AI Agent just gave feedback based on the current launch brief.'));
@@ -1699,6 +1769,13 @@
       return;
     }
 
+    if (chatAwaiting === 'template') {
+      var templateValue = optionValueFromText('launchTemplate', value);
+      if (templateValue && setRealField('launchTemplate', templateValue)) finishField(friendlyCopy('Đã cập nhật template launch.', 'Launch template updated.'), 'template');
+      else addChatMessage('agent', friendlyCopy('Mình chưa khớp được template này. Bạn có thể chọn bằng nút nhanh hoặc gõ đúng tên template đang hiển thị.', 'I could not match this template. You can use the quick buttons or type the visible template name.'));
+      return;
+    }
+
     if (chatAwaiting === 'status') {
       var statusValue = statusValueFromText(value);
       var statusError = statusValue ? validateFriendlySchedule({ status: statusValue }) : '';
@@ -1716,18 +1793,26 @@
       if (setRealField('launchOwner', value)) finishField(friendlyCopy('Đã cập nhật owner và hiển thị ngay trên Chi tiết launch.', 'Owner updated and shown in Launch details.'), 'owner');
       return;
     }
-    if (chatAwaiting === 'dates') {
-      var dates = parseDates(value);
-      var changedDates = false;
-      var dateError = dates.start && dates.end ? validateFriendlySchedule({ targetDate: dates.start, endDate: dates.end }) : '';
-      if (dateError) {
-        addChatMessage('agent', dateError);
+    if (chatAwaiting === 'targetDate') {
+      var startDate = parseSingleFriendlyDateTime(value);
+      var startDateError = startDate ? validateFriendlySchedule({ targetDate: startDate }) : '';
+      if (startDateError) {
+        addChatMessage('agent', startDateError);
         return;
       }
-      if (dates.start) changedDates = setRealField('launchTargetDate', dates.start) || changedDates;
-      if (dates.end) changedDates = setRealField('launchEndDate', dates.end) || changedDates;
-      if (changedDates) finishField(friendlyCopy('Đã cập nhật thời gian launch.', 'Launch schedule updated.'), 'dates');
-      else addChatMessage('agent', friendlyCopy('Mình chưa đọc được đủ ngày giờ. Bạn gõ theo dạng 12/06/2026 08:30 - 14/06/2026 23:59 nhé.', 'I could not read the full date and time. Type it like 12/06/2026 08:30 - 14/06/2026 23:59.'));
+      if (startDate && setRealField('launchTargetDate', startDate)) finishField(friendlyCopy('Đã cập nhật Start Launch.', 'Start Launch updated.'), 'targetDate');
+      else addChatMessage('agent', friendlyCopy('Mình chưa đọc được Start Launch đủ ngày giờ. Bạn gõ theo dạng 12/06/2026 08:30 nhé.', 'I could not read Start Launch with full date and time. Type it like 12/06/2026 08:30.'));
+      return;
+    }
+    if (chatAwaiting === 'endDate') {
+      var endDate = parseSingleFriendlyDateTime(value);
+      var endDateError = endDate ? validateFriendlySchedule({ endDate: endDate }) : '';
+      if (endDateError) {
+        addChatMessage('agent', endDateError);
+        return;
+      }
+      if (endDate && setRealField('launchEndDate', endDate)) finishField(friendlyCopy('Đã cập nhật End Launch.', 'End Launch updated.'), 'endDate');
+      else addChatMessage('agent', friendlyCopy('Mình chưa đọc được End Launch đủ ngày giờ. Bạn gõ theo dạng 14/06/2026 23:59 nhé.', 'I could not read End Launch with full date and time. Type it like 14/06/2026 23:59.'));
       return;
     }
     if (chatAwaiting === 'brief') {
@@ -1755,9 +1840,13 @@
       handleFriendlyAction('demo');
     } else if (fold(value).indexOf('export') !== -1 || fold(value).indexOf('xuat report') !== -1 || fold(value).indexOf('xuat bao cao') !== -1) {
       handleFriendlyAction('export');
-    } else if (low.indexOf('owner') !== -1) promptField('owner');
+    } else if (low.indexOf('template') !== -1) promptField('template');
+    else if (low.indexOf('owner') !== -1) promptField('owner');
     else if (low.indexOf('brief') !== -1) promptField('brief');
     else if (low.indexOf('tên') !== -1 || low.indexOf('ten') !== -1) promptField('name');
+    else if (fold(value).indexOf('start launch') !== -1 || fold(value).indexOf('gio bat dau') !== -1 || fold(value).indexOf('thoi gian start') !== -1) promptField('targetDate');
+    else if (fold(value).indexOf('end launch') !== -1 || fold(value).indexOf('gio ket thuc') !== -1 || fold(value).indexOf('thoi gian end') !== -1) promptField('endDate');
+    else if (low.indexOf('trạng thái') !== -1 || low.indexOf('trang thai') !== -1 || low.indexOf('status') !== -1) promptField('status');
     else if (fold(value).indexOf('ket qua sau launch') !== -1 || fold(value).indexOf('post launch') !== -1) {
       setStep(4);
       beginPostLaunchFlow('postResult');
@@ -1767,7 +1856,7 @@
       beginPostLaunchFlow('lesson');
     }
     else {
-      addChatMessage('agent', friendlyCopy('Mình có thể tạo launch, sửa tên, phân loại, owner, thời gian, brief, hoặc chạy phân tích. Bạn chọn một nút nhanh nhé.', 'I can create a launch, edit name/type/owner/schedule/brief, or run analysis. Pick a quick action.'));
+      addChatMessage('agent', friendlyCopy('Mình có thể tạo launch, sửa tên, phân loại, template, owner, Start Launch, End Launch, trạng thái, brief, hoặc chạy phân tích. Bạn chọn một nút nhanh nhé.', 'I can create a launch, edit name/type/template/owner/Start Launch/End Launch/status/brief, or run analysis. Pick a quick action.'));
       showHomeActions();
     }
   }
@@ -1856,6 +1945,18 @@
       clickRealButton('newLaunch');
       return;
     }
+    if (action === 'launch-flow-menu') {
+      addChatMessage('human', friendlyCopy('Tạo/sửa launch', 'Create/edit launch'));
+      addChatMessage('agent', friendlyCopy('Bạn muốn tạo launch mới hay sửa launch đang chọn? Chọn một hướng để mình điều hướng đúng flow.', 'Do you want to create a new launch or edit the selected launch? Pick one so I can route you into the right flow.'));
+      setNpcSpeech(friendlyCopy('Đang chờ Human chọn tạo mới hay sửa launch hiện tại.', 'Waiting for Human to choose between a new launch and the current launch.'));
+      setChatActions([
+        { label: 'Tạo launch mới', action: 'new' },
+        { label: 'Sửa launch này', action: 'edit' },
+        { label: 'Rà soát tuần tự', action: 'edit-sequential' },
+        { label: 'Quay lại', action: 'support' }
+      ]);
+      return;
+    }
     if (action === 'edit') {
       addChatMessage('human', friendlyCopy('Sửa launch này', 'Edit this launch'));
       showEditActions();
@@ -1894,10 +1995,17 @@
       return;
     }
     if (action === 'set-type') {
+      addChatMessage('human', quickActionLabelForSelectValue('launchType', value));
       if (setRealField('launchType', value)) finishField(friendlyCopy('Đã cập nhật phân loại launch.', 'Launch type updated.'), 'type');
       return;
     }
+    if (action === 'set-template') {
+      addChatMessage('human', quickActionLabelForSelectValue('launchTemplate', value));
+      if (setRealField('launchTemplate', value)) finishField(friendlyCopy('Đã cập nhật template launch.', 'Launch template updated.'), 'template');
+      return;
+    }
     if (action === 'set-status') {
+      addChatMessage('human', statusLabel(value));
       var quickStatusError = validateFriendlySchedule({ status: value });
       if (quickStatusError) addChatMessage('agent', quickStatusError);
       else if (setRealField('launchStatus', value)) finishField(friendlyCopy('Đã cập nhật trạng thái launch.', 'Launch status updated.'), 'status');
@@ -2081,6 +2189,7 @@
       event.preventDefault();
       var text = input.value;
       input.value = '';
+      autoGrowFriendlyTextarea(input, 72, 220);
       handleChatText(text);
     });
 
@@ -2091,6 +2200,10 @@
         else form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       }
     });
+    input.addEventListener('input', function () {
+      autoGrowFriendlyTextarea(input, 72, 220);
+    });
+    autoGrowFriendlyTextarea(input, 72, 220);
 
     actions.addEventListener('click', function (event) {
       var button = event.target.closest('[data-friendly-action]');
@@ -2109,6 +2222,7 @@
         event.preventDefault();
         var text = lessonInput.value;
         lessonInput.value = '';
+        autoGrowFriendlyTextarea(lessonInput, 72, 220);
         handleLessonChatText(text);
       });
       lessonInput.addEventListener('keydown', function (event) {
@@ -2118,6 +2232,10 @@
           else lessonForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         }
       });
+      lessonInput.addEventListener('input', function () {
+        autoGrowFriendlyTextarea(lessonInput, 72, 220);
+      });
+      autoGrowFriendlyTextarea(lessonInput, 72, 220);
     }
   }
 

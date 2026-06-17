@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260617s">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260617s">
+  <link rel="stylesheet" href="styles.css?v=fix-20260617y">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260617y">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -268,8 +268,9 @@
                 <div id="friendlyChatQuickActions" class="friendly-chat-actions" aria-label="Thao tác nhanh"></div>
               </div>
               <p id="friendlyVizTyped" class="friendly-viz-typed">Gợi ý tiếp theo: chọn thao tác hoặc gõ trực tiếp cho Mission Control.</p>
+              <div id="friendlyChatTyping" class="friendly-chat-typing" hidden>Agent đang soạn câu trả lời...</div>
               <form id="friendlyChatForm" class="friendly-chat-form friendly-chat-dock">
-                <textarea id="friendlyChatInput" rows="1" autocomplete="off" placeholder="Gõ câu trả lời hoặc dán brief ở đây"></textarea>
+                <textarea id="friendlyChatInput" rows="3" autocomplete="off" placeholder="Gõ câu trả lời hoặc dán brief ở đây"></textarea>
                 <button id="friendlyChatSend" type="submit">Gửi</button>
               </form>
               <div class="friendly-viz-proxy-fields" hidden>
@@ -347,8 +348,9 @@
                   <button type="button" data-friendly-action="lesson">Thêm bài học</button>
                   <button type="button" data-friendly-action="save-lesson">Lưu kết quả / bài học</button>
                 </div>
+                <div id="friendlyLessonTyping" class="friendly-chat-typing" hidden>Agent đang soạn câu trả lời...</div>
                 <form id="friendlyLessonChatForm" class="friendly-chat-form friendly-lesson-form">
-                  <textarea id="friendlyLessonChatInput" rows="1" autocomplete="off" placeholder="Nhập kết quả sau launch ở đây"></textarea>
+                  <textarea id="friendlyLessonChatInput" rows="3" autocomplete="off" placeholder="Nhập kết quả sau launch ở đây"></textarea>
                   <button type="submit">Gửi</button>
                 </form>
                 <div class="friendly-viz-proxy-fields" hidden>
@@ -476,9 +478,9 @@
               <span class="primary-action-pair">
                 <button id="analyzeBrief" type="button" class="primary">Chạy phân tích</button>
                 <button id="newLaunch" type="button" class="primary new-launch-action">Tạo launch mới</button>
+                <button id="deleteLaunch" type="button" class="danger-button launch-delete-action">Xóa launch</button>
               </span>
               <button class="help-button action-help" type="button" aria-label="Giải thích các nút thao tác launch" data-tooltip="Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.">?</button>
-              <button id="deleteLaunch" type="button" class="danger-button">Xóa launch</button>
             </div>
             <div id="analysisRunStatus" class="analysis-run-status" role="status" aria-live="polite"></div>
           </div>
@@ -872,7 +874,7 @@
     </div>
     <div id="assistantMessages" class="assistant-messages" aria-live="polite"></div>
     <form id="assistantForm" class="assistant-form">
-      <textarea id="assistantInput" autocomplete="off" rows="1" placeholder="Hỏi hoặc dán brief trong LaunchOps"></textarea>
+      <textarea id="assistantInput" autocomplete="off" rows="3" placeholder="Hỏi hoặc dán brief trong LaunchOps"></textarea>
       <button type="submit">Gửi</button>
     </form>
   </aside>
@@ -972,9 +974,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260617s"></script>
-  <script src="app.js?v=fix-20260617s"></script>
-  <script src="friendly-ui.js?v=fix-20260617s"></script>
-  <script src="i18n-clean.js?v=fix-20260617s"></script>
+  <script src="config.js?v=fix-20260617y"></script>
+  <script src="app.js?v=fix-20260617y"></script>
+  <script src="friendly-ui.js?v=fix-20260617y"></script>
+  <script src="i18n-clean.js?v=fix-20260617y"></script>
 </body>
 </html>
