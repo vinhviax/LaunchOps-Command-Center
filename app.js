@@ -5431,9 +5431,9 @@ async function analyze() {
   }
 
   analyzeButton.disabled = true;
-  analyzeButton.textContent = tr("Đang phân tích... tốn từ 2-5' tùy Brief", "Analyzing... takes 2-5 min depending on the brief");
+  analyzeButton.textContent = tr("Đang phân tích... tốn từ 1-2' tùy Brief", "Analyzing... takes 1-2 min depending on the brief");
   analysisSource.textContent = tr("Đang gọi AI...", "Calling AI...");
-  setAnalysisRunStatus("running", tr("Đang phân tích... tốn từ 2-5' tùy Brief", "Analyzing... takes 2-5 min depending on the brief"));
+  setAnalysisRunStatus("running", tr("Đang phân tích... tốn từ 1-2' tùy Brief", "Analyzing... takes 1-2 min depending on the brief"));
   document.body.classList.add("is-analyzing");
   analyzeButton.textContent = tr("Đang chạy...", "Running...");
   const startedAt = Date.now();

@@ -1749,8 +1749,8 @@ class WebAssistantFlowContractTests(unittest.TestCase):
     def test_analyze_status_copy_mentions_expected_duration(self):
         source = (SERVER_DIR.parent / "app.js").read_text(encoding="utf-8")
 
-        self.assertIn("Đang phân tích... tốn từ 2-5' tùy Brief", source)
-        self.assertIn("Analyzing... takes 2-5 min depending on the brief", source)
+        self.assertIn("Đang phân tích... tốn từ 1-2' tùy Brief", source)
+        self.assertIn("Analyzing... takes 1-2 min depending on the brief", source)
 
     def test_replay_to_step_one_restores_home_actions(self):
         source = (SERVER_DIR.parent / "friendly-ui.js").read_text(encoding="utf-8")
