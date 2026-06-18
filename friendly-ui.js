@@ -571,11 +571,9 @@
   }
 
   function friendlyListForStatus(status) {
-    var groups = [].slice.call(document.querySelectorAll('#launchGroups .launch-group'));
-    var statuses = friendlyVisibleStatuses();
-    var index = statuses.indexOf(status || 'upcoming');
-    if (index < 0) return null;
-    var group = groups[index];
+    var safeStatus = status || 'upcoming';
+    if (friendlyVisibleStatuses().indexOf(safeStatus) < 0) return null;
+    var group = document.querySelector('#launchGroups .launch-group[data-launch-group="' + safeStatus + '"]');
     return group ? group.querySelector('.launch-list') : null;
   }
 

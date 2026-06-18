@@ -251,6 +251,28 @@ class AnalysisRepository:
             ),
         )
 
+    def update_result(self, cur: Any, launch_id: str, analysis_id: str, result: dict[str, Any]) -> None:
+        decision = result.get("decision") if isinstance(result.get("decision"), dict) else {}
+        trace = result.get("agentsTrace") or result.get("trace") or []
+        cur.execute(
+            """
+            UPDATE analysis_runs
+            SET result_json = %s,
+                agents_trace_json = %s,
+                score = %s,
+                color = %s
+            WHERE launch_id = %s AND id = %s
+            """,
+            (
+                _json_dumps(result),
+                _json_dumps(trace, []),
+                decision.get("score"),
+                str(decision.get("color") or ""),
+                launch_id,
+                analysis_id,
+            ),
+        )
+
 
 class TemplateRepository:
     def upsert_from_launch(self, cur: Any, launch: dict[str, Any], product_id: str) -> None:
@@ -524,6 +546,15 @@ class LaunchRepository:
                 self.analyses.insert(cur, launch_id, analysis)
         return self.get(launch_id) or launch
 
+    def update_analysis_result(self, launch_id: str, analysis_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        ensure_cloud_schema()
+        stamp = now_iso()
+        with _cloud_connect() as conn:
+            with conn.cursor() as cur:
+                self.analyses.update_result(cur, launch_id, analysis_id, result)
+                cur.execute("UPDATE launches SET updated_at = %s WHERE id = %s", (stamp, launch_id))
+        return self.get(launch_id) or {}
+
     def save_postmortem(self, launch: dict[str, Any]) -> dict[str, Any]:
         saved = self.upsert(launch)
         ensure_cloud_schema()
@@ -577,6 +608,10 @@ def cloud_save_launch(launch: dict[str, Any]) -> dict[str, Any]:
 
 def cloud_append_analysis(launch: dict[str, Any], analysis: dict[str, Any]) -> dict[str, Any]:
     return LaunchRepository().append_analysis(launch, analysis)
+
+
+def cloud_update_analysis_result(launch_id: str, analysis_id: str, result: dict[str, Any]) -> dict[str, Any]:
+    return LaunchRepository().update_analysis_result(launch_id, analysis_id, result)
 
 
 def cloud_save_postmortem(launch: dict[str, Any]) -> dict[str, Any]:

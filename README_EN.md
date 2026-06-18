@@ -59,14 +59,14 @@ The full `/api/analyze` path runs 6 real LLM agents, each with its own role, mod
 
 | Agent | Role | Model |
 |---|---|---|
-| Readiness | Explains Green/Yellow/Red | `deepseek/deepseek-v4-pro` |
+| Readiness | Explains Green/Yellow/Red | `google/gemma-4-31b-it` |
 | Red Team | 5-persona critique | `minimax/minimax-m2.5` |
-| Checklist | Tasks + owner/deadline | `qwen/qwen3.7-plus` |
+| Checklist | Tasks + owner/deadline | `google/gemma-4-31b-it` |
 | Post-mortem | Post-launch questions/report | `google/gemma-4-31b-it` |
-| Memory | Distills recalled lessons into an insight | `qwen/qwen3.7-plus` |
-| Orchestrator | Executive go/no-go summary | `qwen/qwen3.7-plus` |
+| Memory | Distills recalled lessons into an insight | `google/gemma-4-31b-it` |
+| Orchestrator | Executive go/no-go summary | `google/gemma-4-31b-it` |
 
-The assistant chatbot is a separate LLM path (`deepseek/deepseek-v4-flash`). MCP/Bot calls use a deterministic fast path (`lcc`) returning in < 1s to avoid gateway timeouts.
+The assistant chatbot uses `google/gemma-4-31b-it`. All LLM paths now use only 2 allowed models: Gemma `google/gemma-4-31b-it` and Minimax `minimax/minimax-m2.5`; if env uses the short names `gemma-4-31b-it` or `minimax-m2.5`, the backend normalizes them to the MaaS IDs. MCP/Bot calls use a deterministic fast path (`lcc`) returning in < 1s to avoid gateway timeouts.
 
 ## It learns (controlled self-learning — live)
 
@@ -149,7 +149,7 @@ Many people only have a single key. LCC needs just **one** key + one base URL + 
 ```bash
 LLM_API_KEY=your_key_here
 LLM_BASE_URL=https://your-openai-compatible-endpoint/v1
-LLM_MODEL=your_model_name
+LLM_MODEL=google/gemma-4-31b-it
 PORT=8788 python server/app.py
 ```
 
@@ -197,14 +197,16 @@ OpenClaw connects via `npx mcp-remote <endpoint>/mcp`. For self-hosted bots/webh
 # Minimum (one key for all agents):
 LLM_API_KEY=...
 LLM_BASE_URL=https://.../v1
-LLM_MODEL=...
+LLM_MODEL=google/gemma-4-31b-it
 
-# Advanced — per-agent model/key (optional):
-LAUNCHOPS_MODEL_READINESS=deepseek/deepseek-v4-pro
+# Advanced — per-agent model/key (optional, only 2 models allowed):
+LAUNCHOPS_MODEL_READINESS=google/gemma-4-31b-it
 LAUNCHOPS_MODEL_REDTEAM=minimax/minimax-m2.5
-LAUNCHOPS_MODEL_CHECKLIST=qwen/qwen3.7-plus
+LAUNCHOPS_MODEL_CHECKLIST=google/gemma-4-31b-it
 LAUNCHOPS_MODEL_POSTMORTEM=google/gemma-4-31b-it
-LAUNCHOPS_MODEL_ASSISTANT=deepseek/deepseek-v4-flash
+LAUNCHOPS_MODEL_MEMORY=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ORCHESTRATOR=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ASSISTANT=google/gemma-4-31b-it
 
 # Cloud (optional):
 LAUNCHOPS_STORAGE_BACKEND=cloud

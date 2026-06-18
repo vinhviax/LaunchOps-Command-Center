@@ -1622,6 +1622,10 @@ const assistantInput = document.getElementById("assistantInput");
 const openCommunicationAppsButton = document.getElementById("openCommunicationApps");
 const closeCommunicationAppsButton = document.getElementById("closeCommunicationApps");
 const communicationAppsModal = document.getElementById("communicationAppsModal");
+const openDocsModalButton = document.getElementById("openDocsModal");
+const closeDocsModalButton = document.getElementById("closeDocsModal");
+const docsModal = document.getElementById("docsModal");
+const docsToast = document.getElementById("docsToast");
 const copyZaloGroupLinkButton = document.getElementById("copyZaloGroupLink");
 const copyCommStarterPromptButton = document.getElementById("copyCommStarterPrompt");
 const commStarterPrompt = document.getElementById("commStarterPrompt");
@@ -1655,6 +1659,10 @@ let previousLaunchView = "briefView";
 let templateConfigVersions = {};
 let controlledLearningBusy = "";
 let assistantWizard = null;
+let launchGroupOpenState = {};
+let checklistEditKey = "";
+let currentRenderedChecklist = [];
+let currentRenderedAnalysisId = "";
 
 function activeLaunchRole() {
   return adminSessionEnabled() ? "admin" : LOCKED_LAUNCH_ROLE;
@@ -2232,13 +2240,18 @@ function parseDateOnly(value) {
     };
   }
 
-  // Hiển thị: dd/mm/yyyy hoặc dd/mm/yyyy HH:mm.
+  // Hiển thị: dd/mm/yyyy hoặc mm/dd/yyyy tùy locale trình duyệt.
   const display = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s,]+(\d{1,2}):(\d{2}))?/);
   if (display) {
+    const first = Number(display[1]);
+    const second = Number(display[2]);
+    const slashLooksLikeUsDate = first <= 12 && second > 12;
+    const day = slashLooksLikeUsDate ? display[2] : display[1];
+    const month = slashLooksLikeUsDate ? display[1] : display[2];
     return {
       year: display[3],
-      month: padDatePart(display[2]),
-      day: padDatePart(display[1]),
+      month: padDatePart(month),
+      day: padDatePart(day),
       hour: display[4] !== undefined ? padDatePart(display[4]) : "",
       minute: display[5] !== undefined ? display[5] : ""
     };
@@ -3017,39 +3030,111 @@ function collectChecklistProgress() {
   });
 }
 
+function normalizeChecklistItem(item) {
+  const [task, owner, deadline, status, priority] = Array.isArray(item)
+    ? item
+    : [item?.task, item?.owner, item?.deadline, item?.status, item?.priority];
+  return {
+    task: String(task || "").trim(),
+    owner: String(owner || "").trim(),
+    deadline: String(deadline || "").trim(),
+    status: String(status || "").trim(),
+    priority: String(priority || "").trim()
+  };
+}
+
 function renderChecklist(items = activeTemplate().checklist) {
   collectChecklistProgress();
   if (!items?.length) {
+    currentRenderedChecklist = [];
+    checklistEditKey = "";
     checklistRows.innerHTML = `<div class="empty-state">${tr("Chưa có danh sách việc cần làm.", "No to-do list yet.")}</div>`;
     return;
   }
 
-  checklistRows.innerHTML = items.map((item, index) => {
-    const [task, owner, deadline, status, priority] = Array.isArray(item)
-      ? item
-      : [item.task, item.owner, item.deadline, item.status, item.priority];
+  currentRenderedChecklist = items.map(normalizeChecklistItem);
+  checklistRows.innerHTML = currentRenderedChecklist.map((item, index) => {
+    const { task, owner, deadline, status, priority } = item;
     const priorityClass = priorityClassName(priority);
     const statusClass = statusClassName(status);
     const itemKey = checklistItemKey(item, index);
     const checked = Boolean(checklistProgress[itemKey]);
+    const isEditing = checklistEditKey === itemKey;
     return `
       <article class="timeline-card ${priorityClass}${checked ? " is-done" : ""}">
-        <label class="checklist-done">
-          <input type="checkbox" data-checklist-done="${escapeHTML(itemKey)}" ${checked ? "checked" : ""}>
-          <span>${tr("Đã xong", "Done")}</span>
-        </label>
+        <div class="checklist-card-tools">
+          <label class="checklist-done">
+            <input type="checkbox" data-checklist-done="${escapeHTML(itemKey)}" ${checked ? "checked" : ""}>
+            <span>${tr("Đã xong", "Done")}</span>
+          </label>
+          <button class="ghost mini checklist-edit-button" type="button" data-checklist-edit="${escapeHTML(itemKey)}">${isEditing ? tr("Đang sửa", "Editing") : "Edit"}</button>
+        </div>
         <div class="timeline-content">
-          <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
-          <h4>${escapeHTML(friendlyText(task))}</h4>
-          <div class="timeline-meta">
-            <span class="meta-chip owner-chip"><em>${tr("Phụ trách", "Owner")}</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
-            <span class="meta-chip status-chip ${statusClass}"><em>${tr("Trạng thái", "Status")}</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
-            <span class="pill risk-priority ${priorityClass}"><em>${tr("Mức rủi ro", "Risk level")}</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
+          <div class="timeline-card-head">
+            <span class="timeline-date">${escapeHTML(formatDeadline(deadline))}</span>
           </div>
+          ${isEditing ? `
+            <div class="checklist-edit-form" data-checklist-form="${escapeHTML(itemKey)}">
+              <label>${tr("Thời gian", "Time")}<input data-checklist-field="deadline" value="${escapeHTML(deadline)}"></label>
+              <label>${tr("Nội dung", "Task")}<textarea data-checklist-field="task" rows="2">${escapeHTML(task)}</textarea></label>
+              <label>Owner<input data-checklist-field="owner" value="${escapeHTML(owner)}"></label>
+              <label>${tr("Trạng thái", "Status")}<select data-checklist-field="status">
+                ${["Todo", "Doing", "Done", "Blocked"].map((value) => `<option value="${value}" ${normalizeText(status) === normalizeText(value) ? "selected" : ""}>${escapeHTML(statusValueLabel(value))}</option>`).join("")}
+              </select></label>
+              <label>${tr("Mức rủi ro", "Risk level")}<select data-checklist-field="priority">
+                ${["High", "Medium", "Low"].map((value) => `<option value="${value}" ${normalizeText(priority) === normalizeText(value) ? "selected" : ""}>${escapeHTML(priorityLabel(value))}</option>`).join("")}
+              </select></label>
+              <div class="checklist-edit-actions">
+                <button class="primary mini" type="button" data-checklist-save="${escapeHTML(itemKey)}">${tr("Lưu", "Save")}</button>
+                <button class="ghost mini" type="button" data-checklist-cancel="${escapeHTML(itemKey)}">${tr("Hủy", "Cancel")}</button>
+              </div>
+            </div>
+          ` : `
+            <h4>${escapeHTML(friendlyText(task))}</h4>
+            <div class="timeline-meta">
+              <span class="meta-chip owner-chip"><em>${tr("Phụ trách", "Owner")}</em><strong>${escapeHTML(ownerLabel(owner))}</strong></span>
+              <span class="meta-chip status-chip ${statusClass}"><em>${tr("Trạng thái", "Status")}</em><strong>${escapeHTML(statusValueLabel(status))}</strong></span>
+              <span class="pill risk-priority ${priorityClass}"><em>${tr("Mức rủi ro", "Risk level")}</em><strong>${escapeHTML(priorityLabel(priority))}</strong></span>
+            </div>
+          `}
         </div>
       </article>
     `;
   }).join("");
+}
+
+async function saveChecklistEdit(itemKey) {
+  const index = currentRenderedChecklist.findIndex((item, itemIndex) => checklistItemKey(item, itemIndex) === itemKey);
+  const form = checklistRows?.querySelector(`[data-checklist-form="${CSS.escape(itemKey)}"]`);
+  if (index < 0 || !form) return;
+  const nextChecklist = currentRenderedChecklist.map((item) => ({ ...item }));
+  const fieldValue = (name) => form.querySelector(`[data-checklist-field="${name}"]`)?.value?.trim() || "";
+  nextChecklist[index] = {
+    task: fieldValue("task") || currentRenderedChecklist[index].task,
+    owner: fieldValue("owner"),
+    deadline: fieldValue("deadline"),
+    status: fieldValue("status"),
+    priority: fieldValue("priority")
+  };
+
+  if (backendAvailable && currentLaunch?.id && currentRenderedAnalysisId) {
+    const payload = await fetchJson(`${API_BASE}/launches/${encodeURIComponent(currentLaunch.id)}/checklist`, {
+      method: "POST",
+      body: JSON.stringify({ analysisId: currentRenderedAnalysisId, checklist: nextChecklist })
+    });
+    currentLaunch = sanitizeLaunchData(payload.launch);
+    upsertLaunchSummary(payload.summary || currentLaunch);
+  } else if (currentLaunch?.analyses?.length) {
+    const analysis = currentRenderedAnalysisId
+      ? currentLaunch.analyses.find((item) => item.id === currentRenderedAnalysisId)
+      : currentLaunch.analyses[currentLaunch.analyses.length - 1];
+    if (analysis?.result) analysis.result.checklist = nextChecklist;
+    upsertLaunchSummary(currentLaunch);
+  }
+  checklistEditKey = "";
+  renderChecklist(nextChecklist);
+  renderLaunchSnapshot();
+  analysisSource.textContent = tr("Đã cập nhật checklist.", "Checklist updated.");
 }
 
 function renderPostmortem(blocks) {
@@ -3402,11 +3487,13 @@ function renderLocalAnalysis(sourceLabel = "Rule-based local preview") {
     renderEmptyAnalysis(tr("Chưa có brief để phân tích.", "No brief to analyze yet."));
     return;
   }
+  currentRenderedAnalysisId = "";
   renderApiAnalysis(buildLocalAnalysisResult(briefText), sourceLabel);
 }
 
-function renderApiAnalysis(result, sourceOverride) {
+function renderApiAnalysis(result, sourceOverride, analysisId = "") {
   result = sanitizeAnalysisResult(result);
+  currentRenderedAnalysisId = analysisId || currentRenderedAnalysisId || "";
   const decision = result?.decision || {};
   const color = decision.color || "Yellow";
   const score = Number(decision.score) || 0;
@@ -3431,6 +3518,9 @@ function renderApiAnalysis(result, sourceOverride) {
 }
 
 function renderEmptyAnalysis(reason) {
+  currentRenderedAnalysisId = "";
+  currentRenderedChecklist = [];
+  checklistEditKey = "";
   renderDecision({
     color: "Yellow",
     score: 0,
@@ -3459,6 +3549,39 @@ function latestHistoryTimestamp(launch) {
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
 }
 
+function launchSortTimestamp(launch) {
+  const candidates = [
+    launch?.latestHistoryAt,
+    launch?.updatedAt,
+    launch?.targetDate,
+    launch?.endDate,
+    launch?.createdAt
+  ].filter(Boolean);
+  for (const value of candidates) {
+    const parsed = launchDateForRule(value);
+    if (parsed) return parsed.getTime();
+    const stamp = new Date(value).getTime();
+    if (Number.isFinite(stamp)) return stamp;
+  }
+  return 0;
+}
+
+function activeLaunchGroupStatus() {
+  return normalizeStatus(currentLaunch?.status || launchStatus?.value || "upcoming");
+}
+
+function openOnlyLaunchGroup(status) {
+  const normalized = normalizeStatus(status);
+  launchGroupOpenState = Object.fromEntries(STATUS_ORDER.map((item) => [item, item === normalized]));
+}
+
+function launchGroupIsOpen(status) {
+  if (Object.prototype.hasOwnProperty.call(launchGroupOpenState, status)) {
+    return Boolean(launchGroupOpenState[status]);
+  }
+  return status === activeLaunchGroupStatus();
+}
+
 function summarizeClientLaunch(launch) {
   launch = sanitizeLaunchData(launch);
   const analyses = launch?.analyses || [];
@@ -3480,6 +3603,33 @@ function summarizeClientLaunch(launch) {
   };
 }
 
+function normalizeLaunchSummaryEntry(launch) {
+  const clean = sanitizeLaunchData(launch);
+  if (!clean || typeof clean !== "object") return null;
+  if (Array.isArray(clean.analyses)) return summarizeClientLaunch(clean);
+  const status = normalizeStatus(clean.status);
+  return {
+    id: clean.id,
+    name: clean.name || "Launch chưa đặt tên",
+    type: clean.type || "Game event",
+    templateName: clean.templateName || templateDisplayName(clean.template || defaultTemplateForType(clean.type || "Game event")),
+    status,
+    owner: clean.owner || "",
+    targetDate: clean.targetDate || "",
+    updatedAt: clean.updatedAt || "",
+    latestHistoryAt: clean.latestHistoryAt || clean.updatedAt || "",
+    analysisCount: Number(clean.analysisCount) || 0,
+    lessonCount: Number(clean.lessonCount) || 0,
+    decision: clean.decision || null,
+    endDate: clean.endDate || ""
+  };
+}
+
+function normalizeLaunchSummaries(list = []) {
+  const source = Array.isArray(list) && list.length ? list : fallbackLaunches;
+  return source.map(normalizeLaunchSummaryEntry).filter((item) => item?.id);
+}
+
 function upsertLaunchSummary(launchOrSummary) {
   const cleanLaunch = sanitizeLaunchData(launchOrSummary);
   const summary = cleanLaunch.analyses ? summarizeClientLaunch(cleanLaunch) : cleanLaunch;
@@ -3495,19 +3645,20 @@ function statusClassFromDecision(decision) {
 
 function launchMatchesBoardFilter(launch) {
   const status = normalizeStatus(launch.status);
-  const matchesStatus = launchStatusFilter === "all" || status === launchStatusFilter;
   const query = normalizeText(launchSearchQuery.trim());
-  if (!matchesStatus) return false;
   if (!launchMatchesDateFilter(launch)) return false;
   if (!query) return true;
 
   const searchText = normalizeText([
     launch.name,
+    launch.type,
+    String(launch.type || "").replace(/_/g, " "),
     typeLabel(launch.type),
     launch.templateName,
     templateDisplayName(launch.template || defaultTemplateForType(launch.type || "Game event")),
     STATUS_LABELS[status],
-    launch.owner
+    launch.owner,
+    String(launch.type || "").includes("lucky") ? "lucky lucky spin golden spin quay thuong quay thưởng" : ""
   ].filter(Boolean).join(" "));
 
   return searchText.includes(query);
@@ -3523,8 +3674,8 @@ function renderLaunchGroups() {
     : STATUS_ORDER.filter((status) => status === launchStatusFilter);
   const isFiltering = Boolean(launchSearchQuery.trim()) || launchStatusFilter !== "all" || Boolean(launchDateFromFilter) || Boolean(launchDateToFilter);
 
-  // Card nháp cho launch mới chưa lưu (Pro mode) — Friendly có hệ draft riêng nên bỏ qua.
-  const proDraft = (!document.body.classList.contains("ui-mode-friendly") && draftMode && currentLaunch && !currentLaunch.id)
+  // Card nháp cho launch mới chưa lưu, luôn đứng đầu trong mục Đang Tạo.
+  const proDraft = (draftMode && currentLaunch && !currentLaunch.id)
     ? {
         status: normalizeStatus(currentLaunch.status),
         name: currentLaunch.name || "Launch mới",
@@ -3535,23 +3686,26 @@ function renderLaunchGroups() {
       }
     : null;
 
-  launchGroups.innerHTML = visibleStatuses.map((status) => {
-    const items = launches.filter((launch) => normalizeStatus(launch.status) === status && launchMatchesBoardFilter(launch));
-    const draftCardHtml = (proDraft && proDraft.status === status && (!isFiltering || launchMatchesBoardFilter({ name: proDraft.name, type: proDraft.type, owner: proDraft.owner, status })))
-      ? `
+  const draftSection = proDraft
+    ? `
+      <section class="launch-group launch-group-creating" data-launch-group="creating">
+        <h3>Đang Tạo <span class="launch-count">1</span></h3>
+        <div class="launch-list">
           <button class="launch-card active readiness-unknown pro-session-draft" type="button" data-launch-id="" aria-label="${tr("Launch mới chưa lưu", "New unsaved launch")}" title="${tr("Chưa lưu trong phiên này", "Not saved in this session")}">
             <span class="launch-card-badge readiness-unknown">${tr("Chưa lưu", "Not saved")}</span>
             <strong>${escapeHTML(proDraft.name)}</strong>
             <small class="launch-card-meta-line">${escapeHTML(typeLabel(proDraft.type))} · ${tr("Nháp", "Draft")}</small>
             <small class="launch-card-owner-line">${escapeHTML(proDraft.owner ? ownerLabel(proDraft.owner) : tr("Chưa có owner", "No owner yet"))} · ${tr("Chưa lưu", "Not saved")}</small>
-            <span class="launch-card-history empty">
-              <span>${tr("Lịch sử đã lưu", "Saved history")}</span>
-              <strong>0 ${tr("phân tích", "analyses")} · 0 ${tr("bài học", "lessons")}</strong>
-              <small>${tr("Chưa lưu", "Not saved")}</small>
-            </span>
           </button>
-        `
-      : "";
+        </div>
+      </section>
+    `
+    : "";
+
+  launchGroups.innerHTML = draftSection + visibleStatuses.map((status) => {
+    const items = launches
+      .filter((launch) => normalizeStatus(launch.status) === status && launchMatchesBoardFilter(launch))
+      .sort((a, b) => launchSortTimestamp(b) - launchSortTimestamp(a));
     const itemCards = items.length
       ? items.map((launch) => {
         const isActive = currentLaunch?.id === launch.id && !draftMode;
@@ -3583,18 +3737,77 @@ function renderLaunchGroups() {
         `;
       }).join("")
       : "";
-    const cards = (draftCardHtml || itemCards)
-      ? `${draftCardHtml}${itemCards}`
+    const cards = itemCards
+      ? itemCards
       : `<div class="empty-state">${isFiltering ? "Không có launch phù hợp." : STATUS_HINTS[status]}</div>`;
-    const groupCount = items.length + (draftCardHtml ? 1 : 0);
+    const groupCount = items.length;
 
     return `
-      <section class="launch-group">
+      <section class="launch-group" data-launch-group="${escapeHTML(status)}">
         <h3>${statusDisplayLabel(status)} <span class="launch-count">${groupCount}</span></h3>
         <div class="launch-list">${cards}</div>
       </section>
     `;
   }).join("");
+}
+
+function renderLaunchGroupsFallback(error) {
+  console.error("Launch explorer fallback renderer activated.", error);
+  if (!launchGroups) return;
+  launches = normalizeLaunchSummaries(launches);
+  const query = normalizeText(launchSearchQuery.trim());
+  const groups = STATUS_ORDER.map((status) => {
+    const items = launches
+      .filter((launch) => normalizeStatus(launch.status) === status)
+      .filter((launch) => {
+        if (!launchMatchesDateFilter(launch)) return false;
+        if (!query) return true;
+        return normalizeText([
+          launch.name,
+          typeLabel(launch.type),
+          launch.templateName,
+          launch.owner,
+          STATUS_LABELS[status]
+        ].filter(Boolean).join(" ")).includes(query);
+      })
+      .sort((a, b) => launchSortTimestamp(b) - launchSortTimestamp(a));
+    const cards = items.length
+      ? items.map((launch) => {
+          const active = currentLaunch?.id === launch.id && !draftMode;
+          const readinessClass = statusClassFromDecision(launch.decision) || "unknown";
+          const badge = launch.decision
+            ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
+            : tr("Chưa chấm", "Not scored");
+          return `
+            <button class="launch-card ${active ? "active" : ""} readiness-${escapeHTML(readinessClass)}" type="button" data-launch-id="${escapeHTML(launch.id)}">
+              <span class="launch-card-badge readiness-${escapeHTML(readinessClass)}">${escapeHTML(badge)}</span>
+              <strong>${escapeHTML(launch.name || "Launch chưa đặt tên")}</strong>
+              <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(launch.templateName || "")}</small>
+              <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : tr("Chưa có owner", "No owner yet"))} · ${escapeHTML(launch.latestHistoryAt ? formatDate(launch.latestHistoryAt) : tr("Chưa có lịch sử", "No history"))}</small>
+            </button>
+          `;
+        }).join("")
+      : `<div class="empty-state">${STATUS_HINTS[status]}</div>`;
+    return `
+      <section class="launch-group" data-launch-group="${escapeHTML(status)}">
+        <h3>${statusDisplayLabel(status)} <span class="launch-count">${items.length}</span></h3>
+        <div class="launch-list">${cards}</div>
+      </section>
+    `;
+  }).join("");
+  launchGroups.innerHTML = groups || `<div class="empty-state">${tr("Chưa tải được danh sách launch. Refresh lại trang hoặc kiểm tra backend local.", "Could not load launches. Refresh or check the local backend.")}</div>`;
+}
+
+function renderLaunchGroupsSafe() {
+  try {
+    launches = normalizeLaunchSummaries(launches);
+    renderLaunchGroups();
+    if (!launchGroups?.querySelector(".launch-group")) {
+      renderLaunchGroupsFallback(new Error("launchGroups rendered without groups"));
+    }
+  } catch (error) {
+    renderLaunchGroupsFallback(error);
+  }
 }
 
 function setFormFromLaunch(launch) {
@@ -4696,7 +4909,7 @@ function renderLessons() {
 }
 
 function renderLaunchWorkspace() {
-  renderLaunchGroups();
+  renderLaunchGroupsSafe();
   renderLaunchSnapshot();
   renderBriefGuide();
   renderTemplateConfig();
@@ -4926,6 +5139,7 @@ function renderLatestAnalysisOrPreview() {
   const analyses = currentLaunch?.analyses || [];
   const latest = analyses.length ? analyses[analyses.length - 1] : null;
   if (latest?.result) {
+    currentRenderedAnalysisId = latest.id || "";
     renderApiAnalysis(latest.result, `${tr("Lịch sử đã lưu", "Saved history")} · ${formatDate(latest.createdAt)}`);
     return;
   }
@@ -5024,8 +5238,8 @@ async function loadServerConfig() {
 async function loadLaunches() {
   if (!API_BASE) {
     backendAvailable = false;
-    launches = fallbackLaunches.map(sanitizeLaunchData).map(summarizeClientLaunch);
-    renderLaunchGroups();
+    launches = normalizeLaunchSummaries(fallbackLaunches);
+    renderLaunchGroupsSafe();
     const first = launches.find((item) => item.status === "running") || launches[0];
     if (first) {
       await selectLaunch(first.id);
@@ -5038,14 +5252,14 @@ async function loadLaunches() {
   try {
     const payload = await fetchJson(`${API_BASE}/launches`);
     backendAvailable = true;
-    launches = (payload.launches || []).map(sanitizeLaunchData);
+    launches = normalizeLaunchSummaries(payload.launches || []);
   } catch (error) {
     console.warn("Launch list API unavailable, using local fallback.", error);
     backendAvailable = false;
-    launches = fallbackLaunches.map(sanitizeLaunchData).map(summarizeClientLaunch);
+    launches = normalizeLaunchSummaries(fallbackLaunches);
   }
 
-  renderLaunchGroups();
+  renderLaunchGroupsSafe();
   const first = launches.find((item) => item.status === "running") || launches[0];
   if (first) {
     await selectLaunch(first.id);
@@ -5064,6 +5278,7 @@ async function selectLaunch(id) {
     }
     loadLaunchUiState(currentLaunch);
     draftMode = false;
+    openOnlyLaunchGroup(currentLaunch?.status || "upcoming");
     setFormFromLaunch(currentLaunch);
     renderLaunchWorkspace();
     renderLatestAnalysisOrPreview();
@@ -5094,6 +5309,7 @@ function startNewLaunch() {
     redTeamBriefSupplements: {},
     checklistProgress: {}
   };
+  openOnlyLaunchGroup(currentLaunch.status);
   loadLaunchUiState(currentLaunch);
   setFormFromLaunch(currentLaunch);
   renderLaunchWorkspace();
@@ -5154,6 +5370,7 @@ async function saveCurrentLaunch({ silent = false } = {}) {
       draftMode = false;
     }
     setFormFromLaunch(currentLaunch);
+    openOnlyLaunchGroup(currentLaunch?.status || launchData.status);
     renderLaunchWorkspace();
     if (!silent) analysisSource.textContent = backendAvailable
       ? tr("Đã lưu launch vào bộ nhớ local", "Launch saved to local storage")
@@ -5218,6 +5435,7 @@ async function analyze() {
   analysisSource.textContent = tr("Đang gọi AI...", "Calling AI...");
   setAnalysisRunStatus("running", tr("Đang phân tích... tốn từ 2-5' tùy Brief", "Analyzing... takes 2-5 min depending on the brief"));
   document.body.classList.add("is-analyzing");
+  analyzeButton.textContent = tr("Đang chạy...", "Running...");
   const startedAt = Date.now();
   logRunEvent("info", "analyze", `Bắt đầu phân tích "${currentLaunch?.name || "Launch mới"}" (backend=${backendAvailable ? "có" : "không"}).`);
 
@@ -5238,6 +5456,7 @@ async function analyze() {
         timeoutMs: ANALYZE_CLIENT_TIMEOUT_MS
       });
       currentLaunch = sanitizeLaunchData(payload.launch);
+      currentRenderedAnalysisId = (currentLaunch.analyses || []).slice(-1)[0]?.id || "";
       upsertLaunchSummary(payload.summary || currentLaunch);
       setFormFromLaunch(currentLaunch);
       renderLaunchWorkspace();
@@ -5258,6 +5477,7 @@ async function analyze() {
       briefSnapshot: text.slice(0, 2000),
       result
     });
+    currentRenderedAnalysisId = currentLaunch.analyses.slice(-1)[0]?.id || "";
     upsertLaunchSummary(currentLaunch);
     renderLaunchWorkspace();
     setAnalysisRunStatus("success", tr("Đã phân tích xong", "Analysis complete"));
@@ -5393,6 +5613,7 @@ async function saveLesson() {
 function showSavedAnalysis(analysisId) {
   const analysis = (currentLaunch?.analyses || []).find((item) => item.id === analysisId);
   if (!analysis) return;
+  currentRenderedAnalysisId = analysis.id || "";
   renderApiAnalysis(sanitizeAnalysisResult(analysis.result), `Lịch sử đã lưu · ${formatDate(analysis.createdAt)}`);
   activateTab("redTeam");
 }
@@ -7152,6 +7373,40 @@ function closeCommunicationAppsModal() {
   commAppsToast?.classList.remove("visible");
 }
 
+function docsBaseUrl() {
+  const fallback = "https://endpoint-b5a0d6b4-3849-4f0b-b4de-56768b9f1f01.agentbase-runtime.aiplatform.vngcloud.vn";
+  const origin = window.location?.origin || "";
+  if (!origin || origin === "null" || origin.startsWith("file:")) return fallback;
+  return origin.replace(/\/$/, "");
+}
+
+function updateDocsMcpSnippets() {
+  const base = docsBaseUrl();
+  const mcpUrl = `${base}/mcp`;
+  const endpointEl = document.getElementById("docsMcpEndpoint");
+  const remoteEl = document.getElementById("docsMcpRemote");
+  const openClawEl = document.getElementById("docsOpenClawCommand");
+  if (endpointEl) endpointEl.textContent = mcpUrl;
+  if (remoteEl) remoteEl.textContent = `npx -y mcp-remote ${mcpUrl}`;
+  if (openClawEl) {
+    openClawEl.textContent = `openclaw mcp set launchops_gateway '{"command":"npx","args":["-y","mcp-remote","${mcpUrl}"]}'\n# Sau đó gõ /restart trong OpenClaw`;
+  }
+}
+
+function openDocsModal() {
+  if (!docsModal) return;
+  updateDocsMcpSnippets();
+  docsModal.classList.remove("closed");
+  docsModal.setAttribute("aria-hidden", "false");
+  closeDocsModalButton?.focus({ preventScroll: true });
+}
+
+function closeDocsModal() {
+  docsModal?.classList.add("closed");
+  docsModal?.setAttribute("aria-hidden", "true");
+  docsToast?.classList.remove("visible");
+}
+
 function fallbackCopyText(text) {
   const textarea = document.createElement("textarea");
   textarea.value = text;
@@ -7197,6 +7452,17 @@ function showCommunicationAppsToast(messageOrSuccess = true) {
   commAppsToastTimer = window.setTimeout(() => {
     commAppsToast.classList.remove("visible");
   }, 3000);
+}
+
+let docsToastTimer = null;
+function showDocsToast(message = tr("Đã copy", "Copied")) {
+  if (!docsToast) return;
+  docsToast.textContent = message;
+  docsToast.classList.add("visible");
+  window.clearTimeout(docsToastTimer);
+  docsToastTimer = window.setTimeout(() => {
+    docsToast.classList.remove("visible");
+  }, 1800);
 }
 
 function closeIntroModal() {
@@ -7261,7 +7527,7 @@ document.getElementById("newLaunch").addEventListener("click", () => {
 window.launchopsOnLanguageApplied = () => {
   try {
     currentLang = localStorage.getItem("launchops_lang") || currentLang || "vi";
-    renderLaunchGroups();
+    renderLaunchGroupsSafe();
     renderLaunchWorkspace();
     renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
     renderLaunchTemplateOptions(launchTemplate?.value || baseTemplateIdForLaunch(currentLaunch));
@@ -7295,6 +7561,27 @@ redTeamCards?.addEventListener("click", (event) => {
     saveLaunchWithRedTeamSupplements().catch((error) => {
       console.warn("Red Team supplement save failed.", error);
       setAnalysisRunStatus("error", tr("Lưu brief bổ sung chưa thành công. Hãy thử lại.", "Could not save supplements. Try again."));
+    });
+  }
+});
+checklistRows?.addEventListener("click", (event) => {
+  const editButton = event.target.closest("[data-checklist-edit]");
+  if (editButton) {
+    checklistEditKey = editButton.dataset.checklistEdit || "";
+    renderChecklist(currentRenderedChecklist);
+    return;
+  }
+  const cancelButton = event.target.closest("[data-checklist-cancel]");
+  if (cancelButton) {
+    checklistEditKey = "";
+    renderChecklist(currentRenderedChecklist);
+    return;
+  }
+  const saveButton = event.target.closest("[data-checklist-save]");
+  if (saveButton) {
+    saveChecklistEdit(saveButton.dataset.checklistSave || "").catch((error) => {
+      console.warn("Checklist save failed.", error);
+      setAnalysisRunStatus("error", tr("Lưu checklist chưa thành công. Hãy thử lại.", "Could not save checklist. Try again."));
     });
   }
 });
@@ -7337,6 +7624,21 @@ if (openTemplateConfigButton) {
 
 openAssistantButton?.addEventListener("click", openAssistantPanel);
 closeAssistantButton?.addEventListener("click", closeAssistantPanel);
+openDocsModalButton?.addEventListener("click", openDocsModal);
+closeDocsModalButton?.addEventListener("click", closeDocsModal);
+docsModal?.addEventListener("click", (event) => {
+  if (event.target === docsModal) {
+    closeDocsModal();
+    return;
+  }
+  const copyButton = event.target.closest("[data-copy-docs]");
+  if (!copyButton) return;
+  const target = document.querySelector(copyButton.dataset.copyDocs || "");
+  const text = target?.textContent?.trim() || "";
+  copyCommunicationAppLink(text).then((copied) => {
+    showDocsToast(copied ? tr("Đã copy hướng dẫn.", "Copied docs snippet.") : tr("Chưa copy được. Hãy chọn và copy thủ công.", "Could not copy. Select and copy manually."));
+  });
+});
 openCommunicationAppsButton?.addEventListener("click", openCommunicationAppsModal);
 closeCommunicationAppsButton?.addEventListener("click", closeCommunicationAppsModal);
 copyZaloGroupLinkButton?.addEventListener("click", async () => {
@@ -7379,6 +7681,7 @@ communicationAppsModal?.addEventListener("click", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    closeDocsModal();
     closeCommunicationAppsModal();
     closeIntroModal();
   }
@@ -7617,32 +7920,45 @@ if (templateManager) {
 if (launchSearch) {
   launchSearch.addEventListener("input", () => {
     launchSearchQuery = launchSearch.value;
-    renderLaunchGroups();
+    renderLaunchGroupsSafe();
   });
 }
 
 if (launchStatusFilterSelect) {
   launchStatusFilterSelect.addEventListener("change", () => {
     launchStatusFilter = launchStatusFilterSelect.value || "all";
-    renderLaunchGroups();
+    if (launchStatusFilter === "all") {
+      openOnlyLaunchGroup(activeLaunchGroupStatus());
+    } else {
+      openOnlyLaunchGroup(launchStatusFilter);
+    }
+    renderLaunchGroupsSafe();
   });
 }
 
 if (launchDateFromInput) {
   launchDateFromInput.addEventListener("change", () => {
     launchDateFromFilter = launchDateFromInput.value || "";
-    renderLaunchGroups();
+    renderLaunchGroupsSafe();
   });
 }
 
 if (launchDateToInput) {
   launchDateToInput.addEventListener("change", () => {
     launchDateToFilter = launchDateToInput.value || "";
-    renderLaunchGroups();
+    renderLaunchGroupsSafe();
   });
 }
 
 launchGroups.addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-launch-group-toggle]");
+  if (toggle) {
+    const status = normalizeStatus(toggle.dataset.launchGroupToggle);
+    const willOpen = !launchGroupIsOpen(status);
+    launchGroupOpenState = Object.fromEntries(STATUS_ORDER.map((item) => [item, item === status ? willOpen : false]));
+    renderLaunchGroupsSafe();
+    return;
+  }
   const button = event.target.closest(".launch-card");
   if (!button) return;
   if (button.classList.contains("pro-session-draft") || !button.dataset.launchId) return;

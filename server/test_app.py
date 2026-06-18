@@ -190,6 +190,19 @@ class PerAgentApiKeyTests(unittest.TestCase):
         with patch.dict(os.environ, env, clear=True):
             self.assertEqual(app.llm_config_for_step("readiness")["apiKey"], "shared-key")
 
+    def test_llm_models_are_limited_to_gemma_and_minimax(self):
+        env = {
+            "LAUNCHOPS_MODEL_READINESS": "not-allowed-readiness",
+            "LAUNCHOPS_MODEL_REDTEAM": "minimax-m2.5",
+            "LAUNCHOPS_MODEL_CHECKLIST": "not-allowed-checklist",
+            "LAUNCHOPS_MODEL_ASSISTANT": "not-allowed-assistant",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            self.assertEqual(app.llm_config_for_step("readiness")["model"], "google/gemma-4-31b-it")
+            self.assertEqual(app.llm_config_for_step("redteam")["model"], "minimax/minimax-m2.5")
+            self.assertEqual(app.llm_config_for_step("checklist")["model"], "google/gemma-4-31b-it")
+            self.assertEqual(app.llm_config_for_step("assistant")["model"], "google/gemma-4-31b-it")
+
 
 class DecodeRequestBodyTests(unittest.TestCase):
     def test_utf8(self):
@@ -781,6 +794,36 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
         updated = app.save_launch_payload({"name": "Progress Test Launch", "brief": "Updated brief."}, existing_id=saved["id"])
         self.assertEqual(updated["redTeamBriefSupplements"], {"0:angry-user": "Add CS FAQ before launch."})
         self.assertEqual(updated["checklistProgress"], {"write-faq|cs|t-1": True})
+
+    def test_update_latest_checklist_persists_to_latest_analysis(self):
+        saved = app.save_launch_payload({
+            "name": "Editable Checklist Launch",
+            "brief": "Need editable action list after analysis.",
+        })
+        result = app.fallback_result("Initial analysis")
+        result["checklist"] = [
+            {"task": "Old task", "owner": "PM", "deadline": "17/06/2026", "status": "Todo", "priority": "High"},
+        ]
+        launch = app.append_analysis(saved, result, saved["brief"])
+
+        updated_items = [
+            {"task": "New task", "owner": "Ops", "deadline": "18/06/2026", "status": "Doing", "priority": "Medium"},
+        ]
+        updated = app.update_launch_checklist(launch["id"], updated_items)
+
+        self.assertEqual(updated["analyses"][-1]["result"]["checklist"], updated_items)
+        reloaded = app.get_launch(launch["id"])
+        self.assertEqual(reloaded["analyses"][-1]["result"]["checklist"], updated_items)
+
+    def test_update_latest_checklist_rejects_locked_sample(self):
+        sample = app.save_launch_payload({
+            "id": "golden-spin-demo-02-risk",
+            "name": "Golden Spin Demo 02 - Risk Draft",
+            "brief": "Sample launch.",
+            "isSample": True,
+        })
+        with self.assertRaises(app.PublicLockError):
+            app.update_launch_checklist(sample["id"], [{"task": "Change sample"}])
 
     def test_delete_launch_requires_explicit_confirmation(self):
         created = app.execute_launchops_tool("lcc_create_launch", self.required_launch_args(name="Delete Me"))

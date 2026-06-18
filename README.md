@@ -59,14 +59,14 @@ Full `/api/analyze` chạy 6 LLM agent thật, mỗi agent một vai trò, một
 
 | Agent | Vai trò | Model |
 |---|---|---|
-| Readiness | Giải thích Green/Yellow/Red | `deepseek/deepseek-v4-pro` |
+| Readiness | Giải thích Green/Yellow/Red | `google/gemma-4-31b-it` |
 | Red Team | Phản biện 5 persona | `minimax/minimax-m2.5` |
-| Checklist | Việc cần làm + owner/deadline | `qwen/qwen3.7-plus` |
+| Checklist | Việc cần làm + owner/deadline | `google/gemma-4-31b-it` |
 | Post-mortem | Câu hỏi/report sau launch | `google/gemma-4-31b-it` |
-| Memory | Tóm tắt bài học recall thành insight | `qwen/qwen3.7-plus` |
-| Orchestrator | Tổng hợp go/no-go executive summary | `qwen/qwen3.7-plus` |
+| Memory | Tóm tắt bài học recall thành insight | `google/gemma-4-31b-it` |
+| Orchestrator | Tổng hợp go/no-go executive summary | `google/gemma-4-31b-it` |
 
-Assistant chatbot là một luồng LLM riêng (`deepseek/deepseek-v4-flash`). MCP/Bot dùng đường fast path deterministic (`lcc`) trả < 1s để không timeout gateway.
+Assistant chatbot dùng `google/gemma-4-31b-it`. Toàn bộ LLM path hiện chỉ dùng 2 model được phép: Gemma `google/gemma-4-31b-it` và Minimax `minimax/minimax-m2.5`; nếu env nhập tên ngắn `gemma-4-31b-it` hoặc `minimax-m2.5`, backend tự map về MaaS ID chuẩn. MCP/Bot dùng đường fast path deterministic (`lcc`) trả < 1s để không timeout gateway.
 
 ## Nó tự học (controlled self-learning — đang chạy)
 
@@ -149,7 +149,7 @@ Nhiều người chỉ có một key. LCC chỉ cần **một** key + một base
 ```bash
 LLM_API_KEY=your_key_here
 LLM_BASE_URL=https://your-openai-compatible-endpoint/v1
-LLM_MODEL=your_model_name
+LLM_MODEL=google/gemma-4-31b-it
 PORT=8788 python server/app.py
 ```
 
@@ -197,14 +197,16 @@ OpenClaw kết nối qua `npx mcp-remote <endpoint>/mcp`. Với bot/webhook tự
 # Tối thiểu (một key cho tất cả agent):
 LLM_API_KEY=...
 LLM_BASE_URL=https://.../v1
-LLM_MODEL=...
+LLM_MODEL=google/gemma-4-31b-it
 
-# Nâng cao — tách model/key từng agent (tùy chọn):
-LAUNCHOPS_MODEL_READINESS=deepseek/deepseek-v4-pro
+# Nâng cao — tách model/key từng agent (tùy chọn, chỉ 2 model được phép):
+LAUNCHOPS_MODEL_READINESS=google/gemma-4-31b-it
 LAUNCHOPS_MODEL_REDTEAM=minimax/minimax-m2.5
-LAUNCHOPS_MODEL_CHECKLIST=qwen/qwen3.7-plus
+LAUNCHOPS_MODEL_CHECKLIST=google/gemma-4-31b-it
 LAUNCHOPS_MODEL_POSTMORTEM=google/gemma-4-31b-it
-LAUNCHOPS_MODEL_ASSISTANT=deepseek/deepseek-v4-flash
+LAUNCHOPS_MODEL_MEMORY=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ORCHESTRATOR=google/gemma-4-31b-it
+LAUNCHOPS_MODEL_ASSISTANT=google/gemma-4-31b-it
 
 # Cloud (tùy chọn):
 LAUNCHOPS_STORAGE_BACKEND=cloud

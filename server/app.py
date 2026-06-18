@@ -29,6 +29,7 @@ from db import (
     cloud_save_launch,
     cloud_save_postmortem,
     cloud_storage_requested,
+    cloud_update_analysis_result,
     find_lessons,
     get_product_snapshot,
     get_type_profile,
@@ -46,7 +47,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260618b"
+UI_CACHE_VERSION = "fix-20260618k"
 HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
@@ -1894,6 +1895,71 @@ def append_analysis(launch: dict[str, Any], result: dict[str, Any], brief: str) 
     launch["brief"] = brief
     launch["updatedAt"] = stamp
     cloud_result = try_cloud_storage("append_analysis", cloud_append_analysis, launch, analysis)
+    if cloud_result is not _CLOUD_STORAGE_ERROR:
+        return sanitize_launch_for_response(cloud_result) or cloud_result
+    write_json(launch_file(str(launch["id"])), launch)
+    return sanitize_launch_for_response(launch) or launch
+
+
+def sanitize_checklist_items(items: Any) -> list[dict[str, str]]:
+    if not isinstance(items, list):
+        raise ValueError("Checklist must be a list")
+    sanitized: list[dict[str, str]] = []
+    for item in items[:24]:
+        if isinstance(item, dict):
+            task = str(item.get("task") or "").strip()
+            owner = str(item.get("owner") or "").strip()
+            deadline = str(item.get("deadline") or "").strip()
+            status = str(item.get("status") or "").strip()
+            priority = str(item.get("priority") or "").strip()
+        elif isinstance(item, list):
+            task = str(item[0] if len(item) > 0 else "").strip()
+            owner = str(item[1] if len(item) > 1 else "").strip()
+            deadline = str(item[2] if len(item) > 2 else "").strip()
+            status = str(item[3] if len(item) > 3 else "").strip()
+            priority = str(item[4] if len(item) > 4 else "").strip()
+        else:
+            continue
+        if not task:
+            continue
+        sanitized.append({
+            "task": task[:280],
+            "owner": owner[:120],
+            "deadline": deadline[:80],
+            "status": status[:80],
+            "priority": priority[:40],
+        })
+    return sanitized
+
+
+def update_launch_checklist(launch_id: str, checklist: Any, analysis_id: str | None = None) -> dict[str, Any]:
+    launch = get_launch(launch_id)
+    if launch is None:
+        raise FileNotFoundError("Launch not found")
+    guard_sample_launch_mutation(launch, "update_checklist")
+    items = sanitize_checklist_items(checklist)
+    analyses = launch.get("analyses") if isinstance(launch.get("analyses"), list) else []
+    if not analyses:
+        raise ValueError("Launch has no analysis checklist")
+    selected = None
+    if analysis_id:
+        selected = next((item for item in analyses if isinstance(item, dict) and str(item.get("id") or "") == str(analysis_id)), None)
+    if selected is None:
+        selected = sorted(
+            [item for item in analyses if isinstance(item, dict)],
+            key=lambda item: str(item.get("createdAt") or ""),
+        )[-1]
+    result = selected.get("result") if isinstance(selected.get("result"), dict) else {}
+    result["checklist"] = items
+    selected["result"] = result
+    launch["updatedAt"] = now_iso()
+    cloud_result = try_cloud_storage(
+        "update_analysis_result",
+        cloud_update_analysis_result,
+        str(launch.get("id") or launch_id),
+        str(selected.get("id") or ""),
+        result,
+    )
     if cloud_result is not _CLOUD_STORAGE_ERROR:
         return sanitize_launch_for_response(cloud_result) or cloud_result
     write_json(launch_file(str(launch["id"])), launch)
@@ -4568,7 +4634,7 @@ def chat_completions_url(base_url: str) -> str:
 
 def extract_json(text: str) -> dict[str, Any]:
     cleaned = text.strip()
-    # Reasoning models (minimax, deepseek) có thể chèn block suy nghĩ trước JSON.
+    # Một số reasoning/chat models có thể chèn block suy nghĩ trước JSON.
     cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.S).strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
@@ -4849,6 +4915,26 @@ def normalize_agent_step(agent_step: str | None) -> str:
     normalized = re.sub(r"[^A-Z0-9]+", "_", str(agent_step or "default").upper()).strip("_")
     return normalized or "DEFAULT"
 
+GEMMA_LLM_MODEL = "google/gemma-4-31b-it"
+MINIMAX_LLM_MODEL = "minimax/minimax-m2.5"
+ALLOWED_LLM_MODELS = {GEMMA_LLM_MODEL, MINIMAX_LLM_MODEL}
+LLM_MODEL_ALIASES = {
+    "gemma-4-31b-it": GEMMA_LLM_MODEL,
+    "minimax-m2.5": MINIMAX_LLM_MODEL,
+}
+MINIMAX_AGENT_STEPS = {"REDTEAM", "RED_TEAM"}
+
+def default_llm_model_for_step(agent_step: str | None = None) -> str:
+    step = normalize_agent_step(agent_step)
+    return MINIMAX_LLM_MODEL if step in MINIMAX_AGENT_STEPS else GEMMA_LLM_MODEL
+
+def allowed_llm_model_for_step(model: str | None, agent_step: str | None = None) -> str:
+    value = str(model or "").strip()
+    value = LLM_MODEL_ALIASES.get(value, value)
+    if value in ALLOWED_LLM_MODELS:
+        return value
+    return default_llm_model_for_step(agent_step)
+
 def llm_config_for_step(agent_step: str | None = None) -> dict[str, str]:
     step = normalize_agent_step(agent_step)
     provider = first_env(f"LAUNCHOPS_PROVIDER_{step}", "LAUNCHOPS_PROVIDER_DEFAULT") or "agentbase"
@@ -4868,7 +4954,7 @@ def llm_config_for_step(agent_step: str | None = None) -> dict[str, str]:
         "LAUNCHOPS_LLM_BASE_URL",
         "LLM_BASE_URL",
     )
-    model = first_env(
+    configured_model = first_env(
         f"LAUNCHOPS_MODEL_{step}",
         f"LAUNCHOPS_{provider_key}_MODEL_{step}",
         f"LAUNCHOPS_{provider_key}_MODEL",
@@ -4876,6 +4962,7 @@ def llm_config_for_step(agent_step: str | None = None) -> dict[str, str]:
         "LAUNCHOPS_LLM_MODEL",
         "LLM_MODEL",
     )
+    model = allowed_llm_model_for_step(configured_model, step)
     return {
         "provider": provider,
         "providerKey": provider_key.lower(),
@@ -5415,11 +5502,13 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 "name": "launchops-server",
                 "uiCacheVersion": UI_CACHE_VERSION,
                 "models": {
-                    "readiness": os.getenv("LAUNCHOPS_MODEL_READINESS", "deepseek/deepseek-v4-pro"),
-                    "redteam": os.getenv("LAUNCHOPS_MODEL_REDTEAM", "minimax/minimax-m2.5"),
-                    "checklist": os.getenv("LAUNCHOPS_MODEL_CHECKLIST", "qwen/qwen3.7-plus"),
-                    "postmortem": os.getenv("LAUNCHOPS_MODEL_POSTMORTEM", "google/gemma-4-31b-it"),
-                    "assistant": os.getenv("LAUNCHOPS_MODEL_ASSISTANT", "deepseek/deepseek-v4-flash")
+                    "readiness": public_llm_config("readiness")["model"],
+                    "redteam": public_llm_config("redteam")["model"],
+                    "checklist": public_llm_config("checklist")["model"],
+                    "postmortem": public_llm_config("postmortem")["model"],
+                    "memory": public_llm_config("memory")["model"],
+                    "orchestrator": public_llm_config("orchestrator")["model"],
+                    "assistant": public_llm_config("assistant")["model"]
                 },
                 "role": current_agent_role(),
                 "storage": storage_backend_status(),
@@ -5830,6 +5919,28 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                 launch = save_post_result(launch, payload, memory_context)
             except PublicLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
+                return
+            json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
+            return
+
+        if len(parts) == 4 and parts[:2] == ["api", "launches"] and parts[3] == "checklist":
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            try:
+                launch = update_launch_checklist(
+                    parts[2],
+                    payload.get("checklist") if isinstance(payload, dict) else None,
+                    str(payload.get("analysisId") or "") if isinstance(payload, dict) else "",
+                )
+            except FileNotFoundError:
+                json_response(self, 404, {"ok": False, "error": "Launch not found"})
+                return
+            except PublicLockError as exc:
+                json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
+                return
+            except ValueError as exc:
+                json_response(self, 400, {"ok": False, "error": str(exc)})
                 return
             json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
             return

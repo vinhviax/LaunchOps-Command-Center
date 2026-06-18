@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260618b">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260618b">
+  <link rel="stylesheet" href="styles.css?v=fix-20260618k">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260618k">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -121,6 +121,7 @@
     </div>
     <div class="topbar-actions">
       <span id="analysisSource" class="sync-status">Bản local đã sẵn sàng</span>
+      <button id="openDocsModal" type="button" class="topbar-config-button">Docs</button>
       <button id="changeProduct" type="button" class="topbar-config-button">Đổi sản phẩm</button>
       <button id="openTemplateConfig" type="button" class="topbar-config-button">Cấu Hình</button>
       <div class="lang-switch" role="group" aria-label="Language / Ngôn ngữ"><button id="langViBtn" type="button" class="mode-btn active" data-lang="vi">VI</button><button id="langEnBtn" type="button" class="mode-btn" data-lang="en">EN</button></div>
@@ -886,6 +887,330 @@
   </aside>
   <button id="openAssistant" class="assistant-launcher" type="button">Trợ lý</button>
 
+  <section id="docsModal" class="docs-modal closed" role="dialog" aria-modal="true" aria-labelledby="docsTitle" aria-hidden="true">
+    <div class="docs-shell">
+      <header class="docs-head">
+        <div>
+          <span class="section-kicker">Tài liệu vận hành</span>
+          <h2 id="docsTitle">LaunchOps Command Center Docs</h2>
+          <p>Trang hướng dẫn nhanh cho reviewer, người vận hành launch và bot/MCP client muốn kết nối vào LCC.</p>
+        </div>
+        <button id="closeDocsModal" class="docs-close" type="button" aria-label="Đóng tài liệu">×</button>
+      </header>
+
+      <div class="docs-layout">
+        <nav class="docs-nav" aria-label="Mục lục Docs">
+          <a href="#docs-overview">Tổng quan</a>
+          <a href="#docs-workflow">Bắt đầu</a>
+          <a href="#docs-ui">Giao diện</a>
+          <a href="#docs-pro-mode">Pro mode</a>
+          <a href="#docs-friendly-mode">Friendly mode</a>
+          <a href="#docs-tabs">Từng tab</a>
+          <a href="#docs-recipes">Cách dùng</a>
+          <a href="#docs-chatbot">Chatbot</a>
+          <a href="#docs-admin">Admin config</a>
+          <a href="#docs-agents">Agent & dữ liệu</a>
+          <a href="#docs-mcp">MCP LCC</a>
+          <a href="#docs-safety">An toàn</a>
+        </nav>
+
+        <article class="docs-content">
+          <section id="docs-overview" class="docs-section">
+            <span class="docs-step">01</span>
+            <h3>LCC là gì?</h3>
+            <p><strong>LaunchOps Command Center</strong> là Agent Command Center giúp biến một launch brief còn mơ hồ thành quyết định vận hành rõ ràng: có điểm sẵn sàng, phản biện rủi ro, checklist hành động, lịch sử phân tích và bài học cho lần sau.</p>
+            <div class="docs-feature-grid">
+              <div><b>Input</b><span>Launch brief, phân loại, template, thời gian Start/End, owner.</span></div>
+              <div><b>Output</b><span>Readiness Green/Yellow/Red, Red Team, checklist, post-mortem, lessons.</span></div>
+              <div><b>Kênh dùng</b><span>Web UI, REST API, MCP, OpenClaw, Bot Chat và channel skill self-host.</span></div>
+            </div>
+          </section>
+
+          <section id="docs-workflow" class="docs-section">
+            <span class="docs-step">02</span>
+            <h3>Luồng vận hành launch</h3>
+            <ol class="docs-flow">
+              <li><b>Tạo hoặc chọn launch</b><span>Chọn trạng thái Đang chạy, Sắp chạy hoặc Đã chạy. Launch mới sẽ dùng template theo phân loại.</span></li>
+              <li><b>Nhập brief</b><span>Brief nên có mục tiêu/KPI, đối tượng, thời gian, owner, cơ chế vận hành, CS FAQ, rollback và bài học sau launch.</span></li>
+              <li><b>Chạy phân tích</b><span>Backend gọi pipeline agent để chấm readiness, phản biện, tạo checklist và lưu lịch sử.</span></li>
+              <li><b>Xử lý checklist</b><span>Tab Việc cần làm cho phép xem owner, deadline, trạng thái, mức rủi ro và chỉnh từng item sau khi phân tích.</span></li>
+              <li><b>Ghi bài học</b><span>Sau launch, nhập kết quả và lesson để agent có ngữ cảnh cho launch cùng loại trong tương lai.</span></li>
+            </ol>
+          </section>
+
+          <section id="docs-ui" class="docs-section">
+            <span class="docs-step">03</span>
+            <h3>Các khu vực trong Web UI</h3>
+            <div class="docs-two-col">
+              <div>
+                <h4>Sidebar launch</h4>
+                <p>Danh sách được nhóm theo trạng thái và sort theo lần lưu/lịch sử mới nhất. Bấm từng nhóm để xổ hoặc thu danh sách.</p>
+              </div>
+              <div>
+                <h4>Tóm tắt</h4>
+                <p>Nơi chỉnh metadata, thời gian, template, brief và bấm Chạy phân tích. Demo mode nạp nhanh brief mẫu để review.</p>
+              </div>
+              <div>
+                <h4>Phân tích</h4>
+                <p>Hiển thị breakdown điểm, rủi ro thiếu, Red Team 5 góc nhìn và trace agent/RAG để kiểm chứng.</p>
+              </div>
+              <div>
+                <h4>Việc cần làm</h4>
+                <p>Checklist hành động có owner, deadline, trạng thái, mức rủi ro. Có thể edit từng item của launch hiện tại.</p>
+              </div>
+              <div>
+                <h4>Lịch sử</h4>
+                <p>Mỗi lần phân tích lưu một bản ghi để mở lại, so sánh và tải báo cáo Markdown.</p>
+              </div>
+              <div>
+                <h4>Bài học</h4>
+                <p>Lưu kết quả sau launch, lesson learned và đề xuất cải tiến template theo cơ chế human approve.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="docs-pro-mode" class="docs-section">
+            <span class="docs-step">04</span>
+            <h3>Pro mode dùng để làm gì?</h3>
+            <p><strong>Pro mode</strong> là bảng điều khiển đầy đủ cho người vận hành launch. Dùng mode này khi bạn muốn tự kiểm tra metadata, đọc toàn bộ phân tích, sửa checklist, xem lịch sử và cấu hình template.</p>
+            <div class="docs-two-col">
+              <div>
+                <h4>Danh sách theo trạng thái</h4>
+                <p>Lọc launch theo tên, phân loại, trạng thái và khoảng ngày. Các nhóm Đang chạy, Sắp chạy, Đã chạy có thể thu/xổ; launch có lịch sử lưu mới nhất sẽ đứng trước.</p>
+              </div>
+              <div>
+                <h4>Header launch</h4>
+                <p>Hiển thị tên launch, trạng thái, phân loại, owner, điểm sẵn sàng và số lần phân tích/bài học. Đây là nơi kiểm tra nhanh launch đang mở có đúng không.</p>
+              </div>
+              <div>
+                <h4>Thanh tab</h4>
+                <p>Đi từ Tóm tắt sang Phân tích, Việc cần làm, Lịch sử, Bài học và Log. Mỗi tab là một bước trong vòng đời launch, không phải trang rời rạc.</p>
+              </div>
+              <div>
+                <h4>Các nút thao tác</h4>
+                <p>Lưu launch để giữ metadata/brief, Chạy phân tích để tạo kết quả mới, Tạo launch mới để mở draft, Xóa launch để đưa launch vào vùng lưu trữ nếu được phép.</p>
+              </div>
+            </div>
+            <div class="docs-callout">
+              <b>Khi nào dùng Pro?</b>
+              <span>Dùng Pro khi cần kiểm soát chi tiết: sửa brief, so sánh lịch sử phân tích, chỉnh checklist sau khi agent sinh ra, hoặc cấu hình bộ template cho từng loại launch.</span>
+            </div>
+          </section>
+
+          <section id="docs-friendly-mode" class="docs-section">
+            <span class="docs-step">05</span>
+            <h3>Friendly mode dùng để làm gì?</h3>
+            <p><strong>Friendly mode</strong> là lớp hướng dẫn bằng hội thoại và visual 5 bước cho người không muốn đọc dashboard dày. Friendly dùng cùng launch, cùng kết quả phân tích và cùng dữ liệu với Pro; nó không tạo một hệ thống điểm riêng.</p>
+            <div class="docs-feature-grid">
+              <div><b>1. Đọc brief</b><span>Chọn launch, dán brief hoặc dùng nút Nạp Brief Mẫu. Chat có thể hỏi từng phần còn thiếu để hoàn thiện brief.</span></div>
+              <div><b>2. Chấm điểm</b><span>Hiển thị gauge readiness, verdict Green/Yellow/Red, lý do điểm và nhóm rủi ro nổi bật.</span></div>
+              <div><b>3. Phản biện</b><span>Tóm tắt các góc nhìn Red Team để người vận hành biết ai đang lo điều gì và cần bằng chứng nào.</span></div>
+              <div><b>4. Việc cần làm</b><span>Hiển thị checklist ưu tiên trước launch theo owner/deadline/trạng thái, giúp team biết việc nào phải xử lý trước.</span></div>
+              <div><b>5. Bài học</b><span>Sau launch, nhập kết quả thực tế, phân tích sau launch và lưu lesson để lần sau agent recall được.</span></div>
+              <div><b>Mission Control</b><span>Chat trong Friendly có quick actions: tạo launch, sửa launch, lưu launch, chạy phân tích, tải báo cáo và mở bài học.</span></div>
+            </div>
+            <ul class="docs-list compact">
+              <li><b>Nên dùng Friendly</b> khi quay demo, onboarding người mới hoặc cần đi theo luồng tuyến tính từ brief tới lesson.</li>
+              <li><b>Nên quay lại Pro</b> khi cần chỉnh cấu hình template, xem trace/log, sửa checklist chi tiết hoặc audit lịch sử phân tích.</li>
+            </ul>
+          </section>
+
+          <section id="docs-tabs" class="docs-section">
+            <span class="docs-step">06</span>
+            <h3>Hướng dẫn từng tab</h3>
+            <div class="docs-tab-guide">
+              <article>
+                <h4>Tóm tắt</h4>
+                <p>Tab nhập liệu chính của launch. Điền tên launch, phân loại, template, trạng thái, owner, thời gian start/end và nội dung brief. Nút <b>Nạp Brief Mẫu</b> nạp kịch bản mẫu; <b>Demo mode</b> chuẩn bị dữ liệu trình diễn; <b>Tải báo cáo</b> xuất Markdown; <b>Lưu launch</b> lưu thay đổi; <b>Chạy phân tích</b> tạo kết quả mới; <b>Tạo launch mới</b> mở draft; <b>Xóa launch</b> chỉ dùng khi chắc chắn launch không còn cần trong danh sách chính.</p>
+              </article>
+              <article>
+                <h4>Phân tích</h4>
+                <p>Đọc kết quả sau khi chạy agent. Phần đầu là điểm readiness, verdict và việc cần làm tiếp. Bên dưới là Red Team cards, mỗi card có persona, điều họ lo, bằng chứng cần kiểm tra và hướng sửa. Phần breakdown/RAG giúp hiểu điểm đến từ nhóm rủi ro nào và có lesson cũ nào liên quan.</p>
+              </article>
+              <article>
+                <h4>Việc cần làm</h4>
+                <p>Danh sách checklist hành động trước launch. Mỗi item có checkbox Đã xong, deadline, nội dung, owner, trạng thái và mức rủi ro. Bấm <b>Edit</b> trên từng card để sửa trực tiếp; <b>Lưu</b> sẽ cập nhật checklist của analysis mới nhất của launch hiện tại, không sửa template chung.</p>
+              </article>
+              <article>
+                <h4>Lịch sử</h4>
+                <p>Mỗi lần bấm Chạy phân tích sẽ tạo một analysis run. Tab này dùng để mở lại kết quả cũ, so sánh số điểm qua từng lần sửa brief và kiểm tra launch đã tiến bộ chưa. Khi mở một run cũ, dashboard hiển thị lại snapshot của lần đó.</p>
+              </article>
+              <article>
+                <h4>Bài học</h4>
+                <p>Dùng sau khi launch đã chạy hoặc đã có kết quả thực tế. Nhập outcome, sự cố, quyết định giữ lại và lesson learned. Agent có thể gợi ý thay đổi template nhưng chỉ lưu thành thay đổi thật khi Human duyệt.</p>
+              </article>
+              <article>
+                <h4>Log</h4>
+                <p>Dùng để audit kỹ thuật: xem log phiên hiện tại, lỗi/cảnh báo khi phân tích, trace agent đã lưu và copy log để debug. Đây là tab dành cho người kiểm tra vận hành, không bắt buộc cho người dùng thường.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="docs-recipes" class="docs-section">
+            <span class="docs-step">07</span>
+            <h3>Cách dùng từng chức năng thường gặp</h3>
+            <div class="docs-tab-guide">
+              <article>
+                <h4>Tạo launch mới</h4>
+                <p>Ở tab <b>Tóm tắt</b>, bấm <b>Tạo launch mới</b>. Launch draft sẽ hiện trong nhóm <b>Sắp chạy</b>. Điền tên, phân loại, template, owner, start/end, dán brief rồi bấm <b>Lưu launch</b>. Sau khi lưu, launch mới sẽ có card riêng trong explorer bên trái.</p>
+              </article>
+              <article>
+                <h4>Sửa launch đang có</h4>
+                <p>Chọn launch ở sidebar, sửa metadata hoặc brief trong <b>Tóm tắt</b>, sau đó bấm <b>Lưu launch</b>. Nếu đổi phân loại, kiểm tra lại template vì template quyết định cách agent chấm rủi ro, tạo Red Team và checklist.</p>
+              </article>
+              <article>
+                <h4>Chat với bot</h4>
+                <p>Bấm <b>Trợ lý</b>. Có thể hỏi “launch này thiếu gì?”, “mở tab Phân tích”, “tạo launch mới”, “đổi owner”, hoặc “chạy phân tích”. Nếu bot hỏi tiếp, trả lời từng phần; bot sẽ dùng context launch đang mở để thao tác.</p>
+              </article>
+              <article>
+                <h4>Đọc readiness và phân tích</h4>
+                <p>Sau khi bấm <b>Chạy phân tích</b>, mở tab <b>Phân tích</b>. Đọc điểm tổng trước, rồi đọc lý do verdict. Green nghĩa là tương đối sẵn sàng, Yellow nghĩa là còn thiếu dữ kiện quan trọng, Red nghĩa là chưa nên launch nếu chưa bổ sung.</p>
+              </article>
+              <article>
+                <h4>Đọc Red Team card và bổ sung brief</h4>
+                <p>Mỗi Red Team card là một góc phản biện: persona đang lo điều gì, bằng chứng nào cần có, và nên sửa bằng cách nào. Nếu card có ô bổ sung brief, nhập thông tin còn thiếu ở đó để gom ý, rồi quay lại <b>Tóm tắt</b> cập nhật brief chính và chạy phân tích lại.</p>
+              </article>
+              <article>
+                <h4>Làm checklist</h4>
+                <p>Mở tab <b>Việc cần làm</b>. Tick <b>Đã xong</b> khi task đã xử lý. Bấm <b>Edit</b> để sửa deadline, nội dung, owner, trạng thái hoặc mức rủi ro của từng item. Đây là checklist riêng của launch hiện tại, không làm thay đổi checklist mẫu.</p>
+              </article>
+              <article>
+                <h4>Kiểm tra lịch sử</h4>
+                <p>Mở tab <b>Lịch sử</b> để xem từng lần phân tích. Dùng lịch sử để so sánh: sau khi bổ sung brief, điểm có tăng không, Red Team còn lo gì không, checklist có giảm việc rủi ro cao không.</p>
+              </article>
+              <article>
+                <h4>Ghi bài học và duyệt đề xuất</h4>
+                <p>Mở tab <b>Bài học</b> sau launch. Nhập kết quả thực tế, sự cố, quyết định và lesson. Nếu AI đề xuất cập nhật template, đọc kỹ delta: đề xuất nào hợp lý thì duyệt, đề xuất nào chỉ đúng cho một launch thì giữ trong lesson, không đưa vào template chung.</p>
+              </article>
+            </div>
+          </section>
+
+          <section id="docs-chatbot" class="docs-section">
+            <span class="docs-step">08</span>
+            <h3>Chatbot trong web dùng thế nào?</h3>
+            <p>Nút <strong>Trợ lý</strong> mở chatbot trong web. Bot hiểu ngữ cảnh launch đang chọn, có thể điều hướng tab, giải thích điểm, tạo/sửa launch theo wizard, hỗ trợ brief và gọi một số thao tác an toàn trong LCC.</p>
+            <div class="docs-command-grid">
+              <div><b>Hỏi giải thích</b><code>Vì sao launch này bị vàng?</code><span>Bot đọc context hiện tại và giải thích theo readiness/Red Team/checklist.</span></div>
+              <div><b>Điều hướng</b><code>Mở tab Việc cần làm</code><span>Bot chuyển dashboard tới tab phù hợp để bạn kiểm tra nhanh.</span></div>
+              <div><b>Tạo launch</b><code>Tạo launch mới cho sự kiện game cuối tuần</code><span>Bot hỏi tiếp tên, loại, owner, thời gian và brief trước khi lưu.</span></div>
+              <div><b>Sửa launch</b><code>Đổi owner thành PM LiveOps</code><span>Bot cập nhật launch đang mở nếu thao tác hợp lệ.</span></div>
+              <div><b>Chạy phân tích</b><code>Chạy phân tích launch này</code><span>Bot kích hoạt pipeline giống nút Chạy phân tích trong Pro/Friendly.</span></div>
+              <div><b>Giới hạn</b><code>Cấu hình template</code><span>Bot có thể giải thích hoặc mở màn hình cấu hình, nhưng thay đổi admin vẫn cần Human thao tác có chủ đích.</span></div>
+            </div>
+            <div class="docs-callout">
+              <b>Lưu ý</b>
+              <span>Chatbot là trợ lý thao tác trong LCC, không thay người vận hành phê duyệt rủi ro. Với dữ liệu quan trọng, hãy kiểm tra lại tab Phân tích, Việc cần làm và Bài học trước khi quyết định.</span>
+            </div>
+          </section>
+
+          <section id="docs-admin" class="docs-section">
+            <span class="docs-step">09</span>
+            <h3>Hướng dẫn cấu hình cho admin</h3>
+            <p>Nút <strong>Cấu Hình</strong> mở tab cấu hình template. Đây là khu vực thay đổi cách agent hiểu từng loại launch, vì vậy chỉ nên sửa khi bạn biết muốn thay đổi rubric, persona hoặc checklist mẫu nào.</p>
+            <div class="docs-tab-guide">
+              <article>
+                <h4>Catalog</h4>
+                <p>Quản lý product, phân loại launch và template được phép chọn. Phân loại là lựa chọn người dùng thấy trong form launch; template là bộ luật mà phân loại đó trỏ tới. Khi thêm template mới, cần gắn đúng phân loại để form Tóm tắt chỉ hiển thị lựa chọn hợp lệ.</p>
+              </article>
+              <article>
+                <h4>Phân loại rủi ro / Risk scoring</h4>
+                <p>Cấu hình nhóm rủi ro, điểm tối đa, tiêu chí đạt điểm, từ khóa fallback và câu giải thích khi brief thiếu dữ kiện. Đây là phần ảnh hưởng trực tiếp tới điểm Green/Yellow/Red, nên sau khi sửa phải chạy lại một launch thử để xem điểm có hợp lý không.</p>
+              </article>
+              <article>
+                <h4>Persona phản biện</h4>
+                <p>Định nghĩa các góc nhìn Red Team như PM, CS, kỹ thuật, kinh doanh hoặc dữ liệu. Mỗi persona nên có điều họ lo, bằng chứng cần xem và hướng sửa thực tế. Nếu Red Team nói quá chung chung, sửa persona trước khi sửa scoring.</p>
+              </article>
+              <article>
+                <h4>Checklist mẫu</h4>
+                <p>Định nghĩa các việc thường phải làm cho một loại launch: task, owner gợi ý, deadline tương đối, status và priority. Checklist trong tab Việc cần làm có thể sửa riêng theo launch; checklist mẫu chỉ nên sửa khi muốn các launch tương lai thay đổi.</p>
+              </article>
+              <article>
+                <h4>Phản biện bài học</h4>
+                <p>Cấu hình câu hỏi post-launch để thu outcome, sự cố, quyết định, nguyên nhân và điều cần thay đổi ở lần sau. Câu hỏi tốt phải kéo được dữ liệu cụ thể: số ticket, cost, lỗi vận hành, rule cần chuẩn hóa và checklist nào phải tick sớm hơn.</p>
+              </article>
+              <article>
+                <h4>Admin, lưu trữ và khóa public</h4>
+                <p>Admin dùng để giả lập người thao tác và kiểm soát cấu hình. Lưu trữ dùng để xem/khôi phục launch đã xóa nếu backend hỗ trợ. Lịch sử template cho biết mỗi lần lưu đã tạo snapshot nào. Khi public lock bật, dữ liệu mẫu và một số thao tác nhạy cảm sẽ bị chặn.</p>
+              </article>
+            </div>
+            <ul class="docs-list compact">
+              <li><b>Trước khi sửa template:</b> mở một launch mẫu cùng phân loại, đọc điểm hiện tại và xác định chính xác rule nào đang thiếu.</li>
+              <li><b>Sau khi sửa template:</b> lưu cấu hình, chạy lại phân tích trên một launch thử và kiểm tra tab Phân tích + Việc cần làm để bảo đảm output vẫn hợp lý.</li>
+              <li><b>Không dùng cấu hình admin</b> để sửa riêng một launch. Việc riêng từng launch nên sửa ở Tóm tắt, Việc cần làm hoặc Bài học.</li>
+            </ul>
+          </section>
+
+          <section id="docs-agents" class="docs-section">
+            <span class="docs-step">10</span>
+            <h3>Agent, template và dữ liệu</h3>
+            <p>LCC dùng một orchestrator điều phối các agent chuyên trách: readiness, red team, checklist, post-mortem, memory và summary. Điểm readiness vẫn dựa trên rubric/template deterministic; LLM dùng để giải thích, phản biện và cấu trúc hóa thông tin.</p>
+            <ul class="docs-list">
+              <li><b>Template</b> chứa risk groups, persona phản biện, checklist mẫu và câu hỏi bài học.</li>
+              <li><b>Cloud DB</b> lưu launch, analysis history, template version và post-mortem khi production bật storage cloud.</li>
+              <li><b>Memory/RAG</b> recall lesson cũ theo product, launch type và agent role để launch sau không lặp lỗi cũ.</li>
+              <li><b>Controlled self-learning</b> chỉ tạo đề xuất; Human approve thì mới thành version template mới.</li>
+            </ul>
+          </section>
+
+          <section id="docs-mcp" class="docs-section">
+            <span class="docs-step">11</span>
+            <h3>Cài MCP LCC</h3>
+            <p>LCC có MCP server riêng tại endpoint <code>/mcp</code>. Client MCP thật phải handshake qua <code>POST /mcp</code>; mở bằng browser hoặc <code>GET /mcp</code> sẽ thấy 405 là đúng thiết kế.</p>
+            <div class="docs-code-card">
+              <div class="docs-code-head">
+                <b>Endpoint MCP hiện tại</b>
+                <button class="docs-copy" type="button" data-copy-docs="#docsMcpEndpoint">Copy</button>
+              </div>
+              <pre id="docsMcpEndpoint">...</pre>
+            </div>
+            <div class="docs-code-card">
+              <div class="docs-code-head">
+                <b>OpenClaw / stdio client</b>
+                <button class="docs-copy" type="button" data-copy-docs="#docsMcpRemote">Copy</button>
+              </div>
+              <pre id="docsMcpRemote">...</pre>
+            </div>
+            <div class="docs-code-card">
+              <div class="docs-code-head">
+                <b>OpenClaw command</b>
+                <button class="docs-copy" type="button" data-copy-docs="#docsOpenClawCommand">Copy</button>
+              </div>
+              <pre id="docsOpenClawCommand">...</pre>
+            </div>
+            <div class="docs-command-grid">
+              <div><b>lcc</b><code>Phân tích nhanh từ brief</code><span>Trả readiness, Red Team, checklist và post-mortem dạng gọn, phù hợp bot hoặc gateway có timeout ngắn.</span></div>
+              <div><b>lcc_docs</b><code>Đọc hướng dẫn tool</code><span>Dùng trước khi cho bot làm việc để bot hiểu LCC, flow launch và giới hạn quyền.</span></div>
+              <div><b>lcc_catalog</b><code>Xem product/type/template</code><span>Cho client biết giá trị hợp lệ trước khi tạo hoặc cập nhật launch.</span></div>
+              <div><b>lcc_list_launches</b><code>Liệt kê launch</code><span>Lọc theo trạng thái hoặc từ khóa để bot tìm đúng launch cần thao tác.</span></div>
+              <div><b>lcc_create_launch</b><code>Tạo launch</code><span>Tạo bản ghi mới với tên, phân loại, template, owner, thời gian và brief.</span></div>
+              <div><b>lcc_update_launch</b><code>Cập nhật launch</code><span>Sửa metadata hoặc brief của launch đang có; nên gọi sau khi đã xác nhận đúng launch id.</span></div>
+              <div><b>lcc_analyze_launch</b><code>Chạy analysis</code><span>Tạo analysis run mới cho launch, lưu lịch sử và trả kết quả cho bot/client.</span></div>
+              <div><b>lcc_delete_launch</b><code>Xóa có xác nhận</code><span>Chỉ dùng khi client có xác nhận rõ; public lock hoặc sample lock có thể chặn.</span></div>
+            </div>
+            <ul class="docs-list compact">
+              <li>Dùng tool nhanh <code>lcc</code> để phân tích deterministic trong MCP/Bot, tránh timeout gateway.</li>
+              <li>Dùng <code>lcc_docs</code> hoặc chat <code>lcc docs</code> để bot tự đọc hướng dẫn tool.</li>
+              <li>Channel skill self-host có ở <code>/api/channel-skill</code>, <code>/openclaw/skill</code>, <code>/discord/skill</code>.</li>
+              <li>Tool cấu hình/template/admin bị guard; Bot public chỉ nên đọc catalog và thao tác launch hợp lệ.</li>
+            </ul>
+          </section>
+
+          <section id="docs-safety" class="docs-section">
+            <span class="docs-step">12</span>
+            <h3>Quyền, public lock và an toàn</h3>
+            <p>Bản public có cơ chế khóa dữ liệu mẫu để reviewer không làm xáo trộn demo. Người dùng nên tạo launch mới để thử; launch/template/phân loại mẫu không nên bị sửa trong public review.</p>
+            <div class="docs-callout">
+              <b>Luật nhớ nhanh</b>
+              <span>Không nhập secret, API key, dữ liệu khách hàng thật hoặc PII nhạy cảm vào brief. Guardrail sẽ mask/reject một số nội dung, nhưng người dùng vẫn phải tự giữ dữ liệu sạch.</span>
+            </div>
+          </section>
+        </article>
+      </div>
+
+      <div id="docsToast" class="comm-apps-toast docs-toast" role="status" aria-live="polite">Đã copy</div>
+    </div>
+  </section>
+
   <section id="communicationAppsModal" class="comm-apps-modal closed" role="dialog" aria-modal="true" aria-labelledby="commAppsTitle" aria-hidden="true">
     <div class="comm-apps-card">
       <div class="comm-apps-head">
@@ -980,9 +1305,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260618b"></script>
-  <script src="app.js?v=fix-20260618b"></script>
-  <script src="friendly-ui.js?v=fix-20260618b"></script>
-  <script src="i18n-clean.js?v=fix-20260618b"></script>
+  <script src="config.js?v=fix-20260618k"></script>
+  <script src="app.js?v=fix-20260618k"></script>
+  <script src="friendly-ui.js?v=fix-20260618k"></script>
+  <script src="i18n-clean.js?v=fix-20260618k"></script>
 </body>
 </html>
