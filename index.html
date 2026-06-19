@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260618l">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260618l">
+  <link rel="stylesheet" href="styles.css?v=fix-20260619e">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260619e">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -119,6 +119,9 @@
       <p class="eyebrow">V-Team · VinhVNN · GS9</p>
       <h1>LaunchOps Command Center</h1>
     </div>
+    <div id="topbarMarquee" class="topbar-marquee" aria-label="Thông báo dữ liệu demo">
+      <span>Một số quyền cấu hình đã được khóa để tránh loạn dữ liệu demo, nhưng bạn vẫn có thể tạo Phân Loại/Launch/Template mới để trải nghiệm full tính năng. Nếu quan tâm LCC, hãy liên hệ VinhVNN. Dự án được phát triển bởi 1 thành viên non-tech trong thời gian ngắn, mong nhận được vote để tiếp tục hoàn thiện. Toàn bộ dữ liệu demo đều là giả lập. 🤘🤘🤘</span>
+    </div>
     <div class="topbar-actions">
       <span id="analysisSource" class="sync-status">Bản local đã sẵn sàng</span>
       <button id="openDocsModal" type="button" class="topbar-config-button">Docs</button>
@@ -136,7 +139,7 @@
     <aside class="launch-board" aria-label="Launch board">
       <div class="board-head">
         <div>
-          <span class="section-kicker">Danh sách theo trạng thái</span>
+          <span class="section-kicker">Danh Sách Launch</span>
         </div>
       </div>
       <div class="board-filters" aria-label="Lọc danh sách launch">
@@ -397,16 +400,13 @@
               <input id="launchName" type="text" autocomplete="off">
             </label>
             <label class="field">
-              <span>Phân loại <button class="help-button inline" type="button" aria-label="Giải thích phân loại" data-tooltip="Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, internal tool hoặc hotfix.">?</button></span>
+              <span>Phân loại <button class="help-button inline" type="button" aria-label="Giải thích phân loại" data-tooltip="Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, production release hoặc internal tool.">?</button></span>
               <select id="launchType">
                 <option value="Game event">Sự kiện game</option>
                 <option value="Campaign marketing">Chiến dịch marketing</option>
                 <option value="Feature release">Ra mắt tính năng</option>
                 <option value="Production system release">Release hệ thống production</option>
                 <option value="Internal tool">Công cụ nội bộ</option>
-                <option value="Ops/process change">Thay đổi quy trình vận hành</option>
-                <option value="Partnership/commercial launch">Hợp tác / thương mại</option>
-                <option value="Emergency hotfix">Hotfix khẩn cấp</option>
               </select>
               <small id="launchTypeNote" class="field-note">Hiện tại chỉ tối ưu Sự Kiện Game</small>
             </label>
@@ -724,6 +724,7 @@
                     <span class="section-kicker">Cấu hình chung</span>
                     <h3>Phân loại & template gốc</h3>
                   </div>
+                  <div class="catalog-explainer-grid">
                   <div class="catalog-explainer">
                     <strong>Cách hiểu nhanh</strong>
                     <p><b>Phân loại</b> là loại launch người dùng chọn, ví dụ Sự kiện game hoặc Ra mắt tính năng. <b>Template</b> là bộ luật đánh giá mà phân loại đó dùng. Một template có thể dùng lại cho nhiều phân loại.</p>
@@ -731,6 +732,7 @@
                   <div class="catalog-explainer template-explainer">
                     <strong>Cách hiểu nhanh về Template</strong>
                     <p><b>Template</b> là bộ khung Agent dùng để chấm điểm, phản biện, tạo checklist và hỏi bài học. Khi phân loại trỏ đúng template, launch mới sẽ dùng đúng bộ luật ngay từ đầu.</p>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -975,7 +977,7 @@
             <p><strong>Pro mode</strong> là bảng điều khiển đầy đủ cho người vận hành launch. Dùng mode này khi bạn muốn tự kiểm tra metadata, đọc toàn bộ phân tích, sửa checklist, xem lịch sử và cấu hình template.</p>
             <div class="docs-two-col">
               <div>
-                <h4>Danh sách theo trạng thái</h4>
+                <h4>Danh Sách Launch</h4>
                 <p>Lọc launch theo tên, phân loại, trạng thái và khoảng ngày. Các nhóm Đang chạy, Sắp chạy, Đã chạy có thể thu/xổ; launch có lịch sử lưu mới nhất sẽ đứng trước.</p>
               </div>
               <div>
@@ -1129,8 +1131,8 @@
                 <p>Cấu hình câu hỏi post-launch để thu outcome, sự cố, quyết định, nguyên nhân và điều cần thay đổi ở lần sau. Câu hỏi tốt phải kéo được dữ liệu cụ thể: số ticket, cost, lỗi vận hành, rule cần chuẩn hóa và checklist nào phải tick sớm hơn.</p>
               </article>
               <article>
-                <h4>Admin, lưu trữ và khóa public</h4>
-                <p>Admin dùng để giả lập người thao tác và kiểm soát cấu hình. Lưu trữ dùng để xem/khôi phục launch đã xóa nếu backend hỗ trợ. Lịch sử template cho biết mỗi lần lưu đã tạo snapshot nào. Khi public lock bật, dữ liệu mẫu và một số thao tác nhạy cảm sẽ bị chặn.</p>
+                <h4>Admin, lưu trữ và khóa dữ liệu mẫu</h4>
+                <p>Admin dùng để giả lập người thao tác và kiểm soát cấu hình. Lưu trữ dùng để xem/khôi phục launch đã xóa nếu backend hỗ trợ. Lịch sử template cho biết mỗi lần lưu đã tạo snapshot nào. Dữ liệu mẫu được khóa theo từng launch/template/phân loại để tránh review làm loạn demo.</p>
               </article>
             </div>
             <ul class="docs-list compact">
@@ -1185,7 +1187,7 @@
               <div><b>lcc_create_launch</b><code>Tạo launch</code><span>Tạo bản ghi mới với tên, phân loại, template, owner, thời gian và brief.</span></div>
               <div><b>lcc_update_launch</b><code>Cập nhật launch</code><span>Sửa metadata hoặc brief của launch đang có; nên gọi sau khi đã xác nhận đúng launch id.</span></div>
               <div><b>lcc_analyze_launch</b><code>Chạy analysis</code><span>Tạo analysis run mới cho launch, lưu lịch sử và trả kết quả cho bot/client.</span></div>
-              <div><b>lcc_delete_launch</b><code>Xóa có xác nhận</code><span>Chỉ dùng khi client có xác nhận rõ; public lock hoặc sample lock có thể chặn.</span></div>
+              <div><b>lcc_delete_launch</b><code>Xóa có xác nhận</code><span>Chỉ dùng khi client có xác nhận rõ; sample lock có thể chặn dữ liệu mẫu.</span></div>
             </div>
             <ul class="docs-list compact">
               <li>Dùng tool nhanh <code>lcc</code> để phân tích deterministic trong MCP/Bot, tránh timeout gateway.</li>
@@ -1197,7 +1199,7 @@
 
           <section id="docs-safety" class="docs-section">
             <span class="docs-step">12</span>
-            <h3>Quyền, public lock và an toàn</h3>
+            <h3>Quyền và an toàn dữ liệu mẫu</h3>
             <p>Bản public có cơ chế khóa dữ liệu mẫu để reviewer không làm xáo trộn demo. Người dùng nên tạo launch mới để thử; launch/template/phân loại mẫu không nên bị sửa trong public review.</p>
             <div class="docs-callout">
               <b>Luật nhớ nhanh</b>
@@ -1233,6 +1235,10 @@
 Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center): LCC là gì, luồng Brief -&gt; Chấm điểm sẵn sàng (Green/Yellow/Red) -&gt; Phản biện Red Team -&gt; Checklist hành động -&gt; Post-mortem -&gt; Bài học kinh nghiệm. Sau đó liệt kê cách tôi có thể yêu cầu Bot hỗ trợ: phân tích rủi ro từ brief, liệt kê/xem/tạo/cập nhật/xóa launch, xem catalog sản phẩm/phân loại/template hợp lệ, và giải thích rõ phần cấu hình phân loại/template/sản phẩm là quyền Human Admin, Bot chỉ được đọc catalog. Cuối cùng liệt kê các tool/lệnh chính và khi nào dùng từng tool. Trả lời bằng tiếng Việt, có heading và bullet rõ ràng.</pre>
           <button id="copyCommStarterPrompt" class="comm-app-action" type="button">Copy prompt</button>
         </div>
+        <div class="comm-bot-trick">
+          <strong id="commBotTrickTitle">Trick khi dùng Bot</strong>
+          <p id="commBotTrickText">Khi xử lý xong 1 launch thì nên gõ /new để reset lại session nhằm để Bot không bị lẫn context cũ.</p>
+        </div>
       </section>
 
       <div class="comm-apps-list">
@@ -1251,7 +1257,7 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
           <div class="comm-app-row">
             <div>
               <b>Zalo Group <span id="commZaloGroupNote" class="comm-app-title-note">(chưa chính thức có thể bị disable)</span></b>
-              <small id="commZaloGroupHint">Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời.</small>
+              <small id="commZaloGroupHint">Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời, trưởng nhóm bấm vào duyệt.</small>
             </div>
             <button id="copyZaloGroupLink" class="comm-app-action" type="button" data-copy-url="https://bot.zaloplatforms.com/groups/invite/bot.AKFMGNfj">Copy</button>
           </div>
@@ -1305,9 +1311,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260618l"></script>
-  <script src="app.js?v=fix-20260618l"></script>
-  <script src="friendly-ui.js?v=fix-20260618l"></script>
-  <script src="i18n-clean.js?v=fix-20260618l"></script>
+  <script src="config.js?v=fix-20260619e"></script>
+  <script src="app.js?v=fix-20260619e"></script>
+  <script src="friendly-ui.js?v=fix-20260619e"></script>
+  <script src="i18n-clean.js?v=fix-20260619e"></script>
 </body>
 </html>

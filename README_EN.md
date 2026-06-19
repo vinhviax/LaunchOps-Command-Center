@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-18 — production is currently on the launch controls + model routing build on VNG AgentBase: image `v44`, runtime version 59, UI cache `fix-20260618l`, storage `cloud`, mode `remote_agents`, public-review lock OFF. The latest stable checkpoint before that was image `v43`, runtime version 58, cache `fix-20260618k`.
+> Updated 2026-06-19 — the latest GitHub source now includes the demo polish/cache `fix-20260619e`: cleaner sample/template/classification locks, mobile/topbar fixes, the collapsible `Launch List` explorer, and retuned sample briefs for a clearer Yellow/Green demo spread. Live production on VNG AgentBase is still image `v44`, runtime version 59, UI cache `fix-20260618l`, storage `cloud`, mode `remote_agents` until this newer batch is deployed.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
@@ -225,14 +225,12 @@ LAUNCHOPS_POSTMORTEM_URL=https://...
 LAUNCHOPS_AGENT_INVOCATION_TOKEN=...
 
 # Governance:
-LAUNCHOPS_PUBLIC_LOCK=false
 LAUNCHOPS_GUARDRAIL_ENABLED=true
 LAUNCHOPS_RATELIMIT_ENABLED=false
 LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN=50
 LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY=1000
 ```
 
-`LAUNCHOPS_PUBLIC_LOCK=true` is the flag used for public-review / mutation-locked mode. In `.env.example`, `LAUNCHOPS_RATELIMIT_ENABLED` currently defaults to `false`; production may enable it per environment.
 
 Never commit `.env` or real credentials.
 

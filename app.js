@@ -229,22 +229,16 @@ const LAUNCH_TEMPLATES = {
   "Production system release": PRODUCTION_SYSTEM_TEMPLATE,
   "Feature release": PRODUCTION_SYSTEM_TEMPLATE,
   "Campaign marketing": GENERIC_LAUNCH_TEMPLATE,
-  "Internal tool": GENERIC_LAUNCH_TEMPLATE,
-  "Ops/process change": GENERIC_LAUNCH_TEMPLATE,
-  "Partnership/commercial launch": GENERIC_LAUNCH_TEMPLATE,
-  "Emergency hotfix": PRODUCTION_SYSTEM_TEMPLATE
+  "Internal tool": GENERIC_LAUNCH_TEMPLATE
 };
-const PROTECTED_LAUNCH_TYPES = Object.freeze([...Object.keys(LAUNCH_TEMPLATES), "lucky_spin_event"]);
+const PROTECTED_LAUNCH_TYPES = Object.freeze(Object.keys(LAUNCH_TEMPLATES));
 const HIDDEN_CATALOG_LAUNCH_TYPES = new Set(["lucky_spin_event"]);
 const LAUNCH_TYPE_ORDER = [
   "Game event",
   "Campaign marketing",
   "Feature release",
   "Production system release",
-  "Internal tool",
-  "Ops/process change",
-  "Partnership/commercial launch",
-  "Emergency hotfix"
+  "Internal tool"
 ];
 
 const TEMPLATE_OPERATORS = [
@@ -284,15 +278,10 @@ const TEMPLATE_OPERATORS = [
 const TEMPLATE_EDITING_LOCKED = false;
 const ROLE_SWITCH_LOCKED = false;
 const LOCKED_LAUNCH_ROLE = "human";
-// Public review lock mirrors the server flag. Sample data stays protected for normal sessions.
-let PUBLIC_LOCK = false;
 const SAMPLE_LAUNCH_IDS = [
   "golden-spin-may-retro",
   "golden-spin-weekend-risk",
   "golden-spin-weekend-v2-ready",
-  "golden-spin-demo-01-retro",
-  "golden-spin-demo-02-risk",
-  "golden-spin-demo-03-ready",
   "monsoon-shop-retro",
   "monsoon-shop-live",
   "monsoon-shop-ready",
@@ -777,10 +766,7 @@ const TYPE_LABELS = {
   "Campaign marketing": "Chiến dịch marketing",
   "Feature release": "Ra mắt tính năng",
   "Production system release": "Release hệ thống production",
-  "Internal tool": "Công cụ nội bộ",
-  "Ops/process change": "Thay đổi quy trình vận hành",
-  "Partnership/commercial launch": "Hợp tác / thương mại",
-  "Emergency hotfix": "Hotfix khẩn cấp"
+  "Internal tool": "Công cụ nội bộ"
 };
 
 // Nhãn phân loại tiếng Anh — dùng khi UI là EN (kể cả type có tên VI mặc định).
@@ -790,10 +776,7 @@ const TYPE_LABELS_EN = {
   "Campaign marketing": "Marketing campaign",
   "Feature release": "Feature release",
   "Production system release": "Production system release",
-  "Internal tool": "Internal tool",
-  "Ops/process change": "Ops/process change",
-  "Partnership/commercial launch": "Partnership/commercial launch",
-  "Emergency hotfix": "Emergency hotfix"
+  "Internal tool": "Internal tool"
 };
 
 const TEMPLATE_NAME_LABELS = {
@@ -825,8 +808,6 @@ const TYPE_TEMPLATE_IDS = {
   "Game event": ["gameEvent", "shopCommercial", "loginRetention"],
   "Campaign marketing": ["generic"],
   "Internal tool": ["generic"],
-  "Ops/process change": ["generic"],
-  "Partnership/commercial launch": ["generic"],
   lucky_spin_event: ["luckySpin"]
 };
 
@@ -1238,66 +1219,6 @@ const fallbackLaunches = [
       "duyet reward cap va rule tat item hiem o 95% cap|business owner|t-1 ngay": true,
       "brief cs 2 ca truc voi macro mat luot/het qua/phat cham|cs lead|t-1 ngay": true
     },
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "golden-spin-demo-01-retro",
-    name: "Golden Spin Demo 01 - Retro Draft",
-    type: LUCKY_SPIN_TYPE,
-    status: "completed",
-    owner: "PM LiveOps",
-    targetDate: "2026-06-10 20:00",
-    endDate: "2026-06-12 23:59",
-    brief: luckySpinDraftRetroBrief,
-    template: LUCKY_SPIN_EVENT_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "golden-spin-demo-02-risk",
-    name: "Golden Spin Demo 02 - Risk Draft",
-    type: LUCKY_SPIN_TYPE,
-    status: "running",
-    owner: "PM LiveOps",
-    targetDate: "2026-06-17 08:30",
-    endDate: "2026-06-18 23:59",
-    brief: luckySpinDraftRiskBrief,
-    template: LUCKY_SPIN_EVENT_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "golden-spin-demo-03-ready",
-    name: "Golden Spin Demo 03 - Ready Draft",
-    type: LUCKY_SPIN_TYPE,
-    status: "upcoming",
-    owner: "PM LiveOps + Tech on-call",
-    targetDate: "2026-06-20 20:00",
-    endDate: "2026-06-22 23:59",
-    brief: luckySpinDraftReadyBrief,
-    template: LUCKY_SPIN_EVENT_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
     redTeamBriefSupplements: {},
     createdAt: DEMO_CREATED_AT,
     updatedAt: DEMO_CREATED_AT
@@ -1920,6 +1841,14 @@ function selectedTemplateType(template = activeTemplate()) {
   return templateTypeOptions().find((type) => defaultTemplateForType(type).name === template.name) || "Game event";
 }
 
+function isProtectedTemplateId(id) {
+  return PROTECTED_BASE_TEMPLATE_IDS.includes(id);
+}
+
+function isProtectedLaunchType(type) {
+  return PROTECTED_LAUNCH_TYPES.includes(type);
+}
+
 function renderTemplateSelectorOptions(template = activeTemplate(), editable = canEditTemplate()) {
   if (!templateSelector) return;
   templateSelector.innerHTML = BASE_TEMPLATE_OPTIONS.map(({ id, template: itemTemplate }) => {
@@ -1927,22 +1856,24 @@ function renderTemplateSelectorOptions(template = activeTemplate(), editable = c
   }).join("");
   templateSelector.value = configTemplateId();
   templateSelector.disabled = false;
-  templateSelector.title = editable
-    ? tr("Chọn template để cấu hình.", "Choose the template to configure.")
-    : tr("Bản review public chỉ cho xem cấu hình; vẫn có thể đổi template để đọc bộ luật.", "Public review mode is read-only; you can still switch templates to inspect their rules.");
+  const selectedLocked = isProtectedTemplateId(configTemplateId());
+  templateSelector.title = selectedLocked
+    ? tr("Template mẫu chỉ cho xem cấu hình; hãy tạo template mới nếu muốn chỉnh.", "Sample templates are read-only; create a custom template to edit.")
+    : tr("Template custom có thể chỉnh cấu hình đầy đủ.", "Custom templates can be edited fully.");
 }
 
 function renderTemplateNameEditor(editable = canEditTemplate()) {
   if (!templateNameEditor) return;
   const removableCount = BASE_TEMPLATE_OPTIONS.length > PROTECTED_BASE_TEMPLATE_IDS.length;
   templateNameEditor.innerHTML = BASE_TEMPLATE_OPTIONS.map(({ id, template }) => {
-    const protectedTemplate = PROTECTED_BASE_TEMPLATE_IDS.includes(id);
-    const removable = editable && !protectedTemplate && removableCount;
+    const protectedTemplate = isProtectedTemplateId(id);
+    const rowEditable = editable && !protectedTemplate;
+    const removable = rowEditable && removableCount;
     return `
-      <article class="catalog-row template-row" data-base-template="${escapeHTML(id)}">
+      <article class="catalog-row template-row ${protectedTemplate ? "is-protected" : "is-custom"}" data-base-template="${escapeHTML(id)}">
         <label>
-          <span>${escapeHTML(protectedTemplate ? configTerm("defaultTemplate") : configTerm("customTemplate"))}</span>
-          <input type="text" value="${escapeHTML(templateDisplayName(template))}" data-template-label="${escapeHTML(template.name)}"${disabledAttr(editable)}>
+          <span>${escapeHTML(protectedTemplate ? configTerm("defaultTemplate") : configTerm("customTemplate"))} <em class="catalog-lock-badge">${escapeHTML(protectedTemplate ? tr("Template mẫu", "Sample template") : tr("Template mới", "Custom template"))}</em></span>
+          <input type="text" value="${escapeHTML(templateDisplayName(template))}" data-template-label="${escapeHTML(template.name)}"${disabledAttr(rowEditable)}>
         </label>
         <button type="button" data-remove-base-template="${escapeHTML(id)}"${removable ? "" : " disabled"}>${configTerm("delete")}</button>
       </article>
@@ -1957,27 +1888,28 @@ function renderClassificationEditor(editable = canEditTemplate()) {
   `).join("");
   const launchTypes = templateTypeOptions();
   classificationEditor.innerHTML = launchTypes.map((type) => {
-    const protectedType = PROTECTED_LAUNCH_TYPES.includes(type);
-    const removable = editable && !protectedType && launchTypes.length > 1;
+    const protectedType = isProtectedLaunchType(type);
+    const rowEditable = editable && !protectedType;
+    const removable = rowEditable && launchTypes.length > 1;
     const templateIds = templateIdsForType(type);
     const hasUnusedTemplate = BASE_TEMPLATE_OPTIONS.some(({ id }) => !templateIds.includes(id));
     const templateRows = templateIds.map((templateId, index) => `
       <div class="classification-template-row" data-type-template-row="${index}">
-        <select data-type-template data-type-template-index="${index}"${disabledAttr(editable)}>${baseOptions}</select>
-        <button type="button" data-remove-type-template="${escapeHTML(type)}" data-type-template-index="${index}"${editable && index > 0 ? "" : " disabled"}>${configTerm("delete")}</button>
+        <select data-type-template data-type-template-index="${index}"${disabledAttr(rowEditable)}>${baseOptions}</select>
+        <button type="button" data-remove-type-template="${escapeHTML(type)}" data-type-template-index="${index}"${rowEditable && index > 0 ? "" : " disabled"}>${configTerm("delete")}</button>
       </div>
     `).join("");
     return `
-      <article class="catalog-row classification-row" data-launch-type="${escapeHTML(type)}">
+      <article class="catalog-row classification-row ${protectedType ? "is-protected" : "is-custom"}" data-launch-type="${escapeHTML(type)}">
         <label>
-          <span>${configTerm("classificationName")}</span>
-          <input type="text" value="${escapeHTML(typeLabel(type))}" data-type-label${disabledAttr(editable)}>
+          <span>${configTerm("classificationName")} <em class="catalog-lock-badge">${escapeHTML(protectedType ? tr("Phân loại mẫu", "Sample classification") : tr("Phân loại mới", "Custom classification"))}</em></span>
+          <input type="text" value="${escapeHTML(typeLabel(type))}" data-type-label${disabledAttr(rowEditable)}>
         </label>
         <label>
           <span>${configTerm("templateForClassification")}</span>
           <div class="classification-template-list">${templateRows}</div>
         </label>
-        <button type="button" data-add-template-for-type="${escapeHTML(type)}"${editable && hasUnusedTemplate ? "" : " disabled"} title="${escapeHTML(tr("Thêm template có sẵn cho phân loại này", "Attach an existing template to this classification"))}">+</button>
+        <button type="button" data-add-template-for-type="${escapeHTML(type)}"${rowEditable && hasUnusedTemplate ? "" : " disabled"} title="${escapeHTML(tr("Thêm template có sẵn cho phân loại này", "Attach an existing template to this classification"))}">+</button>
         <button type="button" data-remove-launch-type="${escapeHTML(type)}"${removable ? "" : " disabled"}>${configTerm("delete")}</button>
       </article>
     `;
@@ -2128,11 +2060,19 @@ function templateOperatorScope(item = {}) {
 }
 
 function canEditTemplate() {
-  return !PUBLIC_LOCK && isLaunchAdmin();
+  return true;
+}
+
+function canEditSelectedTemplate() {
+  return canEditTemplate() && !isProtectedTemplateId(configTemplateId());
+}
+
+function canEditLaunchType(type) {
+  return canEditTemplate() && !isProtectedLaunchType(type);
 }
 
 function canApproveTemplateSuggestion() {
-  return !PUBLIC_LOCK && isLaunchAdmin();
+  return isLaunchAdmin();
 }
 
 function disabledAttr(editable = canEditTemplate()) {
@@ -3741,10 +3681,22 @@ function renderLaunchGroups() {
       ? itemCards
       : `<div class="empty-state">${isFiltering ? "Không có launch phù hợp." : STATUS_HINTS[status]}</div>`;
     const groupCount = items.length;
+    const isOpen = launchGroupIsOpen(status);
+    const toggleLabel = isOpen
+      ? tr(`Thu gọn ${statusDisplayLabel(status)}`, `Collapse ${statusDisplayLabel(status)}`)
+      : tr(`Xổ ${statusDisplayLabel(status)}`, `Expand ${statusDisplayLabel(status)}`);
 
     return `
-      <section class="launch-group" data-launch-group="${escapeHTML(status)}">
-        <h3>${statusDisplayLabel(status)} <span class="launch-count">${groupCount}</span></h3>
+      <section class="launch-group ${isOpen ? "" : "is-collapsed"}" data-launch-group="${escapeHTML(status)}">
+        <h3>
+          <button class="launch-group-toggle" type="button" data-launch-group-toggle="${escapeHTML(status)}" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHTML(toggleLabel)}">
+            <span>${statusDisplayLabel(status)}</span>
+            <span class="launch-group-meta">
+              <span class="launch-count">${groupCount}</span>
+              <span class="launch-group-chevron" aria-hidden="true">▾</span>
+            </span>
+          </button>
+        </h3>
         <div class="launch-list">${cards}</div>
       </section>
     `;
@@ -3788,9 +3740,21 @@ function renderLaunchGroupsFallback(error) {
           `;
         }).join("")
       : `<div class="empty-state">${STATUS_HINTS[status]}</div>`;
+    const isOpen = launchGroupIsOpen(status);
+    const toggleLabel = isOpen
+      ? tr(`Thu gọn ${statusDisplayLabel(status)}`, `Collapse ${statusDisplayLabel(status)}`)
+      : tr(`Xổ ${statusDisplayLabel(status)}`, `Expand ${statusDisplayLabel(status)}`);
     return `
-      <section class="launch-group" data-launch-group="${escapeHTML(status)}">
-        <h3>${statusDisplayLabel(status)} <span class="launch-count">${items.length}</span></h3>
+      <section class="launch-group ${isOpen ? "" : "is-collapsed"}" data-launch-group="${escapeHTML(status)}">
+        <h3>
+          <button class="launch-group-toggle" type="button" data-launch-group-toggle="${escapeHTML(status)}" aria-expanded="${isOpen ? "true" : "false"}" aria-label="${escapeHTML(toggleLabel)}">
+            <span>${statusDisplayLabel(status)}</span>
+            <span class="launch-group-meta">
+              <span class="launch-count">${items.length}</span>
+              <span class="launch-group-chevron" aria-hidden="true">▾</span>
+            </span>
+          </button>
+        </h3>
         <div class="launch-list">${cards}</div>
       </section>
     `;
@@ -3924,12 +3888,15 @@ function renderTemplateOperatorOptions() {
 function renderTemplatePermissionState() {
   if (!templatePermissionState) return;
   const operator = activeTemplateOperator();
-  const allowed = canEditTemplate();
+  const selectedLocked = isProtectedTemplateId(configTemplateId());
+  const allowed = canEditSelectedTemplate();
   const stateClass = allowed ? "allowed" : "readonly";
-  const title = allowed ? tr("Full quyền chỉnh cấu hình", "Full config access") : tr("Chỉ xem cấu hình", "Read-only config");
-  const detail = allowed
-    ? tr("Admin nội bộ có thể sửa, lưu, khôi phục và duyệt đề xuất template.", "Internal admin can edit, save, restore, and approve template proposals.")
-    : tr("Quyền nâng cao chỉ dành cho phiên nội bộ của tác giả. Bản review public vẫn bảo vệ dữ liệu mẫu.", "Advanced access is reserved for internal maintainer sessions. Public review mode still protects sample data.");
+  const title = selectedLocked
+    ? tr("Template mẫu đang khóa chỉnh sửa", "Sample template is read-only")
+    : tr("Template custom có thể chỉnh sửa", "Custom template is editable");
+  const detail = selectedLocked
+    ? tr("Mẫu gốc được giữ nguyên để tránh loạn data demo. Hãy tạo template mới nếu muốn sửa rule, checklist hoặc bài học.", "Base samples stay locked to protect demo data. Create a custom template to edit rules, checklist, or lessons.")
+    : tr("Bạn có thể sửa, lưu, reset, xóa và gắn template custom cho phân loại custom.", "You can edit, save, reset, delete, and assign custom templates to custom classifications.");
 
   templatePermissionState.className = `permission-state ${stateClass}`;
   templatePermissionState.innerHTML = `
@@ -4155,8 +4122,8 @@ function blankTemplateItem(type) {
 }
 
 function addTemplateEditorItem(type) {
-  if (!canEditTemplate()) {
-    analysisSource.textContent = tr("Bạn có full quyền chỉnh cấu hình trong bản demo này.", "You have full config access in this demo.");
+  if (!canEditSelectedTemplate()) {
+    analysisSource.textContent = tr("Template mẫu đang khóa chỉnh sửa. Hãy tạo template mới để thêm rule.", "Sample templates are read-only. Create a custom template to add rules.");
     return;
   }
   const editable = true;
@@ -4180,8 +4147,8 @@ function addTemplateEditorItem(type) {
 }
 
 function removeTemplateEditorItem(button) {
-  if (!canEditTemplate()) {
-    analysisSource.textContent = tr("Bạn có full quyền chỉnh cấu hình trong bản demo này.", "You have full config access in this demo.");
+  if (!canEditSelectedTemplate()) {
+    analysisSource.textContent = tr("Template mẫu đang khóa chỉnh sửa. Hãy tạo template mới để xóa rule.", "Sample templates are read-only. Create a custom template to remove rules.");
     return;
   }
   const card = button.closest("[data-template-item]");
@@ -4198,16 +4165,17 @@ function renderTemplateConfig() {
   if (!templateName) return;
   const template = configTemplate();
   const maxScore = templateMax(template);
-  const editable = canEditTemplate();
+  const catalogEditable = canEditTemplate();
+  const editable = canEditSelectedTemplate();
 
   renderTemplateOperatorOptions();
   renderTemplatePermissionState();
   renderTemplateAdminList();
   renderTemplateVersionHistory();
   setTemplateEditorControls(editable);
-  renderTemplateSelectorOptions(template, editable);
+  renderTemplateSelectorOptions(template, catalogEditable);
   renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
-  renderTemplateCatalog(editable);
+  renderTemplateCatalog(catalogEditable);
   renderArchive();
 
   templateName.dataset.baseName = template.name;
@@ -5005,7 +4973,7 @@ function renderRunLog() {
 }
 
 function canMutateArchive() {
-  return !PUBLIC_LOCK && isLaunchAdmin();
+  return isLaunchAdmin();
 }
 
 function renderArchive() {
@@ -5196,24 +5164,7 @@ async function callLaunchOpsTool(name, args = {}, options = {}) {
   return payload;
 }
 
-function applyPublicLockUI() {
-  // Bottom-center notice when the author has locked admin actions during voting.
-  let banner = document.getElementById("publicLockBanner");
-  if (PUBLIC_LOCK) {
-    if (!banner) {
-      banner = document.createElement("div");
-      banner.id = "publicLockBanner";
-      banner.style.cssText = "position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9999;max-width:min(760px,calc(100vw - 28px));text-align:center;padding:8px 14px;border-radius:8px;font-size:12px;line-height:1.4;color:#fff;background:rgba(0,0,0,0.86);box-shadow:0 10px 30px rgba(0,0,0,0.22);pointer-events:none;";
-      document.body.appendChild(banner);
-    }
-    banner.hidden = false;
-    banner.textContent = tr(
-      "Tác giả tạm khóa 1 số quyền Admin để tránh dữ liệu DB xáo trộn trong quá trình vote để tránh ảnh hưởng trải nghiệm, BTC muốn review quyền Admin xin liên hệ domain: VinhVNN hoặc clone repo - Data mod không phải thực",
-      "The author temporarily locked some Admin actions to keep the demo database stable during voting and protect the experience. To review Admin access, contact domain VinhVNN or clone the repo - Data mod is not the real one."
-    );
-  } else if (banner) {
-    banner.hidden = true;
-  }
+function applySampleLockUI() {
   const sampleNotice = document.getElementById("sampleLaunchNotice");
   if (sampleNotice) {
     sampleNotice.textContent = tr(
@@ -5224,17 +5175,9 @@ function applyPublicLockUI() {
 }
 
 async function loadServerConfig() {
-  try {
-    const res = await fetch(`${API_BASE}/version`);
-    const data = await res.json();
-    PUBLIC_LOCK = Boolean(data && data.publicLock);
-  } catch (error) {
-    PUBLIC_LOCK = false;
-  }
-  applyPublicLockUI();
+  applySampleLockUI();
   try { applyLaunchPermissions(); } catch (error) { /* not ready yet */ }
 }
-
 async function loadLaunches() {
   if (!API_BASE) {
     backendAvailable = false;
@@ -5619,8 +5562,8 @@ function showSavedAnalysis(analysisId) {
 }
 
 function saveTemplateConfig() {
-  if (!canEditTemplate()) {
-    analysisSource.textContent = tr("Bạn có full quyền lưu cấu hình trong bản demo này.", "You have full config-save access in this demo.");
+  if (!canEditSelectedTemplate()) {
+    analysisSource.textContent = tr("Template mẫu đang khóa chỉnh sửa. Hãy tạo template mới để lưu cấu hình.", "Sample templates are read-only. Create a custom template to save configuration.");
     return;
   }
   const templateId = configTemplateId();
@@ -5644,8 +5587,8 @@ function saveTemplateConfig() {
 }
 
 function resetTemplateForSelectedType() {
-  if (!canEditTemplate()) {
-    analysisSource.textContent = tr("Bạn có full quyền nạp lại cấu hình trong bản demo này.", "You have full config-reload access in this demo.");
+  if (!canEditSelectedTemplate()) {
+    analysisSource.textContent = tr("Template mẫu đang khóa reset/sửa. Hãy tạo template mới để thao tác.", "Sample templates are locked for reset/edit. Create a custom template to continue.");
     return;
   }
   const templateId = configTemplateId();
@@ -5673,9 +5616,9 @@ function switchTemplateFromSelector() {
   selectedConfigTemplateId = selectedTemplateId;
   renderTemplateConfig();
   const selectedTemplate = configTemplate();
-  analysisSource.textContent = canEditTemplate()
+  analysisSource.textContent = canEditSelectedTemplate()
     ? tr(`Đang cấu hình template ${templateDisplayName(selectedTemplate)}`, `Configuring template ${templateDisplayName(selectedTemplate)}`)
-    : tr(`Đang xem template ${templateDisplayName(selectedTemplate)}. Bản review public không cho chỉnh sửa.`, `Viewing template ${templateDisplayName(selectedTemplate)}. The public review build is read-only.`);
+    : tr(`Đang xem template mẫu ${templateDisplayName(selectedTemplate)}. Mẫu này khóa chỉnh sửa để giữ data demo.`, `Viewing sample template ${templateDisplayName(selectedTemplate)}. This sample is locked to protect demo data.`);
 }
 
 function uniqueLaunchTypeKey(label) {
@@ -5719,8 +5662,8 @@ function addBaseTemplate() {
 }
 
 function addExistingTemplateForLaunchType(type) {
-  if (!canEditTemplate()) {
-    analysisSource.textContent = tr("Bản review public chỉ cho xem cấu hình, chưa cho thêm template.", "Public review mode is read-only; templates cannot be added.");
+  if (!canEditLaunchType(type)) {
+    analysisSource.textContent = tr("Phân loại mẫu đang khóa chỉnh sửa. Hãy tạo phân loại mới để gắn template.", "Sample classifications are read-only. Create a custom classification to attach templates.");
     return;
   }
   if (!launchTypeExists(type)) return;
@@ -5792,6 +5735,8 @@ function addLaunchType() {
 
 function updateTemplateLabel(input, { render = true } = {}) {
   if (!canEditTemplate()) return;
+  const templateId = input.closest("[data-base-template]")?.dataset.baseTemplate;
+  if (isProtectedTemplateId(templateId)) return;
   const templateNameKey = input.dataset.templateLabel;
   if (!templateNameKey) return;
   TEMPLATE_NAME_LABELS[templateNameKey] = input.value.trim() || templateNameKey;
@@ -5808,6 +5753,7 @@ function updateLaunchTypeLabel(input, { render = true } = {}) {
   if (!canEditTemplate()) return;
   const type = input.closest("[data-launch-type]")?.dataset.launchType;
   if (!launchTypeExists(type)) return;
+  if (!canEditLaunchType(type)) return;
   TYPE_LABELS[type] = input.value.trim() || type;
   if (render) {
     renderLaunchTypeOptions(currentLaunch?.type || launchType?.value);
@@ -5822,6 +5768,7 @@ function updateLaunchTypeTemplate(select) {
   if (!canEditTemplate()) return;
   const type = select.closest("[data-launch-type]")?.dataset.launchType;
   if (!launchTypeExists(type)) return;
+  if (!canEditLaunchType(type)) return;
   const index = Number(select.dataset.typeTemplateIndex || 0);
   const ids = templateIdsForType(type);
   ids[index] = select.value;
@@ -5841,7 +5788,7 @@ function updateLaunchTypeTemplate(select) {
 }
 
 function removeTemplateFromLaunchType(type, index) {
-  if (!canEditTemplate()) return;
+  if (!canEditLaunchType(type)) return;
   if (!launchTypeExists(type) || index <= 0) return;
   const ids = templateIdsForType(type);
   ids.splice(index, 1);
@@ -5857,7 +5804,7 @@ function removeLaunchType(type) {
     analysisSource.textContent = tr("Bạn có full quyền xóa phân loại trong bản demo này.", "You have full type-delete access in this demo.");
     return;
   }
-  if (!launchTypeExists(type) || PROTECTED_LAUNCH_TYPES.includes(type)) {
+  if (!launchTypeExists(type) || isProtectedLaunchType(type)) {
     analysisSource.textContent = tr("Phân loại mặc định đang được giữ lại để demo không mất dữ liệu mẫu.", "The default type is kept so the demo does not lose sample data.");
     return;
   }
@@ -6285,13 +6232,10 @@ function extractAssistantBlock(rawText, patterns) {
 function inferAssistantLaunchType(rawText) {
   const text = normalizeText(rawText);
   if (text.includes("su kien game") || text.includes("game event") || /\bgame\b/.test(text)) return "Game event";
-  if (text.includes("hotfix") || text.includes("khac phuc khan cap")) return "Emergency hotfix";
   if (text.includes("production") || text.includes("release he thong") || text.includes("he thong production")) return "Production system release";
   if (text.includes("feature") || text.includes("tinh nang")) return "Feature release";
   if (text.includes("marketing") || text.includes("campaign") || text.includes("chien dich")) return "Campaign marketing";
   if (text.includes("internal") || text.includes("noi bo") || text.includes("cong cu")) return "Internal tool";
-  if (/\bops\b/.test(text) || text.includes("process") || text.includes("quy trinh")) return "Ops/process change";
-  if (text.includes("partnership") || text.includes("hop tac") || text.includes("thuong mai")) return "Partnership/commercial launch";
   return "Game event";
 }
 
@@ -7407,6 +7351,40 @@ function closeDocsModal() {
   docsToast?.classList.remove("visible");
 }
 
+function closeMobileHelpTooltips(exceptButton = null) {
+  document.querySelectorAll(".help-button.tooltip-open").forEach((button) => {
+    if (button === exceptButton) return;
+    button.classList.remove("tooltip-open");
+    button.setAttribute("aria-expanded", "false");
+  });
+}
+
+function setupMobileHelpTooltips() {
+  const isTouchTooltipMode = () => window.matchMedia?.("(max-width: 768px)")?.matches;
+  document.addEventListener("click", (event) => {
+    const helpButton = event.target.closest?.(".help-button[data-tooltip]");
+    if (!isTouchTooltipMode()) {
+      closeMobileHelpTooltips();
+      return;
+    }
+    if (helpButton) {
+      event.preventDefault();
+      const willOpen = !helpButton.classList.contains("tooltip-open");
+      closeMobileHelpTooltips(helpButton);
+      helpButton.classList.toggle("tooltip-open", willOpen);
+      helpButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      return;
+    }
+    closeMobileHelpTooltips();
+  }, true);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMobileHelpTooltips();
+  });
+  window.addEventListener("resize", () => {
+    if (!isTouchTooltipMode()) closeMobileHelpTooltips();
+  });
+}
+
 function fallbackCopyText(text) {
   const textarea = document.createElement("textarea");
   textarea.value = text;
@@ -7542,6 +7520,7 @@ window.launchopsOnLanguageApplied = () => {
 
 
 document.getElementById("runLogFilter")?.addEventListener("change", renderRunLog);
+setupMobileHelpTooltips();
 redTeamCards?.addEventListener("input", (event) => {
   const field = event.target.closest("[data-redteam-brief]");
   if (!field) return;
@@ -8051,7 +8030,7 @@ const LAUNCHOPS_LANG_MAP = {
     commZaloStatus: "Đang hỗ trợ",
     commComingSoon: "Sắp có",
     commZaloDmHint: "Mở bot Zalo để chat trực tiếp với LaunchOps.",
-    commZaloGroupHint: "Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời.",
+    commZaloGroupHint: "Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời, trưởng nhóm bấm vào duyệt.",
     commTelegramDmHint: "Bot Telegram sẽ được mở sau.",
     commTelegramGroupHint: "Kết nối nhóm Telegram sẽ được mở sau.",
     commDiscordDmHint: "Bot Discord DM sẽ được mở sau.",
@@ -8064,6 +8043,8 @@ const LAUNCHOPS_LANG_MAP = {
     commPromptStatus: "Gọi lcc_docs",
     commPromptHint: "Copy prompt này để Bot trả hướng dẫn LCC, ví dụ lệnh/tool và cách bắt đầu phân tích hoặc tạo launch.",
     commStarterPrompt: "lcc docs\nHãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center): LCC là gì, luồng Brief -> Chấm điểm sẵn sàng (Green/Yellow/Red) -> Phản biện Red Team -> Checklist hành động -> Post-mortem -> Bài học kinh nghiệm. Sau đó liệt kê cách tôi có thể yêu cầu Bot hỗ trợ: phân tích rủi ro từ brief, liệt kê/xem/tạo/cập nhật/xóa launch, xem catalog sản phẩm/phân loại/template hợp lệ, và giải thích rõ phần cấu hình phân loại/template/sản phẩm là quyền Human Admin, Bot chỉ được đọc catalog. Cuối cùng liệt kê các tool/lệnh chính và khi nào dùng từng tool. Trả lời bằng tiếng Việt, có heading và bullet rõ ràng.",
+    commBotTrickTitle: "Trick khi dùng Bot",
+    commBotTrickText: "Khi xử lý xong 1 launch thì nên gõ /new để reset lại session nhằm để Bot không bị lẫn context cũ.",
     commPromptCopy: "Copy prompt",
     commCopyToast: "Dán link Bot vào nhóm Zalo mà bạn muốn mời",
     friendlyKicker: "Friendly mode",
@@ -8155,7 +8136,7 @@ const LAUNCHOPS_LANG_MAP = {
     commZaloStatus: "Available",
     commComingSoon: "Coming soon",
     commZaloDmHint: "Open the Zalo bot to chat directly with LaunchOps.",
-    commZaloGroupHint: "Copy the Zalo Group link and paste it into the Zalo group you want to invite.",
+    commZaloGroupHint: "Copy the Zalo Group link and paste it into the Zalo group you want to invite, then ask the group owner to approve it.",
     commTelegramDmHint: "Telegram DM bot will be available later.",
     commTelegramGroupHint: "Telegram Group connection will be available later.",
     commDiscordDmHint: "Discord DM bot will be available later.",
@@ -8168,6 +8149,8 @@ const LAUNCHOPS_LANG_MAP = {
     commPromptStatus: "Calls lcc_docs",
     commPromptHint: "Copy this prompt so the Bot returns the LCC guide, command/tool examples, and how to start analyzing or creating a launch.",
     commStarterPrompt: "lcc docs\nIntroduce LCC (LaunchOps Command Center) fully but concisely: what LCC is, the Brief -> Readiness scoring (Green/Yellow/Red) -> Red Team review -> Action checklist -> Post-mortem -> Lessons learned flow. Then list how I can ask the Bot for help: analyze launch risk from a brief, list/view/create/update/delete launches, view the valid product/classification/template catalog, and clearly explain that product/classification/template configuration is Human Admin only while the Bot may only read the catalog. Finally list the main tools/commands and when to use each tool. Reply in English with clear headings and bullets.",
+    commBotTrickTitle: "Bot usage trick",
+    commBotTrickText: "After finishing one launch, type /new to reset the session so the Bot does not mix in old context.",
     commPromptCopy: "Copy prompt",
     commCopyToast: "Paste the Bot link into the Zalo group you want to invite",
     friendlyKicker: "Friendly mode",
@@ -8192,7 +8175,7 @@ function updateUILanguage(lang) {
   currentLang = lang;
   localStorage.setItem("launchops_lang", lang);
   const dict = LAUNCHOPS_LANG_MAP[lang];
-  try { applyPublicLockUI(); } catch (error) { /* banner not ready */ }
+  try { applySampleLockUI(); } catch (error) { /* sample notice not ready */ }
 
   // Update active buttons state
   document.getElementById("langViBtn")?.classList.toggle("active", lang === "vi");
@@ -8256,7 +8239,7 @@ function updateUILanguage(lang) {
 
   // Sidebar kicker
   const boardKicker = document.querySelector(".board-head .section-kicker");
-  if (boardKicker) boardKicker.textContent = lang === "vi" ? "Danh sách theo trạng thái" : "Launches by Status";
+  if (boardKicker) boardKicker.textContent = lang === "vi" ? "Danh Sách Launch" : "Launch List";
 
   // Role
   const roleSpan = document.querySelector(".role-label");
@@ -8358,6 +8341,10 @@ function updateUILanguage(lang) {
   if (commPromptHint) commPromptHint.textContent = dict.commPromptHint;
   const commStarterPromptEl = document.getElementById("commStarterPrompt");
   if (commStarterPromptEl) commStarterPromptEl.textContent = dict.commStarterPrompt;
+  const commBotTrickTitle = document.getElementById("commBotTrickTitle");
+  if (commBotTrickTitle) commBotTrickTitle.textContent = dict.commBotTrickTitle;
+  const commBotTrickText = document.getElementById("commBotTrickText");
+  if (commBotTrickText) commBotTrickText.textContent = dict.commBotTrickText;
   const copyCommPrompt = document.getElementById("copyCommStarterPrompt");
   if (copyCommPrompt) copyCommPrompt.textContent = dict.commPromptCopy;
   ["commTelegramDmCta", "commTelegramGroupCta", "commDiscordDmCta", "commDiscordChannelCta"].forEach((id) => {

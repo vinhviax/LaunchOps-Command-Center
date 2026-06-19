@@ -43,7 +43,7 @@ const CLEAN_I18N_DICT = {
     statusUpcoming: "Sắp chạy",
     detailKicker: "Chi tiết launch",
     detailSub: "Tạo hoặc chọn launch trước khi phân tích.",
-    boardKicker: "Danh sách theo trạng thái",
+    boardKicker: "Danh Sách Launch",
     helpActionBtn: "Giải thích các nút thao tác launch",
     helpActionTooltip: "Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.",
     helpHistoryBtn: "Giải thích lịch sử phân tích",
@@ -142,7 +142,7 @@ const CLEAN_I18N_DICT = {
     commZaloStatus: "Đang hỗ trợ",
     commComingSoon: "Sắp có",
     commZaloDmHint: "Mở bot Zalo để chat trực tiếp với LaunchOps.",
-    commZaloGroupHint: "Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời.",
+    commZaloGroupHint: "Copy link Zalo Group và dán vào nhóm Zalo mà bạn muốn mời, trưởng nhóm bấm vào duyệt.",
     commTelegramDmHint: "Bot Telegram sẽ được mở sau.",
     commTelegramGroupHint: "Kết nối nhóm Telegram sẽ được mở sau.",
     commDiscordDmHint: "Bot Discord DM sẽ được mở sau.",
@@ -156,6 +156,8 @@ const CLEAN_I18N_DICT = {
     commPromptStatus: "Gọi lcc_docs",
     commPromptHint: "Copy prompt này để Bot trả hướng dẫn LCC, ví dụ lệnh/tool và cách bắt đầu phân tích hoặc tạo launch.",
     commStarterPrompt: "lcc docs\nHãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center): LCC là gì, luồng Brief -> Chấm điểm sẵn sàng (Green/Yellow/Red) -> Phản biện Red Team -> Checklist hành động -> Post-mortem -> Bài học kinh nghiệm. Sau đó liệt kê cách tôi có thể yêu cầu Bot hỗ trợ: phân tích rủi ro từ brief, liệt kê/xem/tạo/cập nhật/xóa launch, xem catalog sản phẩm/phân loại/template hợp lệ, và giải thích rõ phần cấu hình phân loại/template/sản phẩm là quyền Human Admin, Bot chỉ được đọc catalog. Cuối cùng liệt kê các tool/lệnh chính và khi nào dùng từng tool. Trả lời bằng tiếng Việt, có heading và bullet rõ ràng.",
+    commBotTrickTitle: "Trick khi dùng Bot",
+    commBotTrickText: "Khi xử lý xong 1 launch thì nên gõ /new để reset lại session nhằm để Bot không bị lẫn context cũ.",
     commPromptCopy: "Copy prompt"
   },
   en: {
@@ -201,7 +203,7 @@ const CLEAN_I18N_DICT = {
     statusUpcoming: "Upcoming",
     detailKicker: "Launch details",
     detailSub: "Create or select a launch to start analysis.",
-    boardKicker: "Launches by Status",
+    boardKicker: "Launch List",
     helpActionBtn: "Explain action buttons",
     helpActionTooltip: "Demo mode: load a mock brief to record a demo. Export report: download the Markdown report for this launch. Save launch: save metadata and brief. Run Analysis: send brief to backend/AI to generate readiness, red team, and checklist.",
     helpHistoryBtn: "Explain analysis history",
@@ -300,7 +302,7 @@ const CLEAN_I18N_DICT = {
     commZaloStatus: "Available",
     commComingSoon: "Coming soon",
     commZaloDmHint: "Open the Zalo bot to chat directly with LaunchOps.",
-    commZaloGroupHint: "Copy the Zalo Group link and paste it into the Zalo group you want to invite.",
+    commZaloGroupHint: "Copy the Zalo Group link and paste it into the Zalo group you want to invite, then ask the group owner to approve it.",
     commTelegramDmHint: "Telegram DM bot will be available later.",
     commTelegramGroupHint: "Telegram Group connection will be available later.",
     commDiscordDmHint: "Discord DM bot will be available later.",
@@ -314,6 +316,8 @@ const CLEAN_I18N_DICT = {
     commPromptStatus: "Calls lcc_docs",
     commPromptHint: "Copy this prompt so the Bot returns the LCC guide, command/tool examples, and how to start analyzing or creating a launch.",
     commStarterPrompt: "lcc docs\nIntroduce LCC (LaunchOps Command Center) fully but concisely: what LCC is, the Brief -> Readiness scoring (Green/Yellow/Red) -> Red Team review -> Action checklist -> Post-mortem -> Lessons learned flow. Then list how I can ask the Bot for help: analyze launch risk from a brief, list/view/create/update/delete launches, view the valid product/classification/template catalog, and clearly explain that product/classification/template configuration is Human Admin only while the Bot may only read the catalog. Finally list the main tools/commands and when to use each tool. Reply in English with clear headings and bullets.",
+    commBotTrickTitle: "Bot usage trick",
+    commBotTrickText: "After finishing one launch, type /new to reset the session so the Bot does not mix in old context.",
     commPromptCopy: "Copy prompt"
   }
 };
@@ -326,7 +330,7 @@ const TOOLTIP_I18N = {
   "AI đọc lịch sử phân tích và bài học đã lưu để đề xuất sửa template. Bản demo hiện mở quyền duyệt để bạn áp dụng trực tiếp.": "AI reads analysis history and saved lessons to suggest template edits. Approval is open in this demo so you can apply suggestions directly.",
   "Bản demo này mô phỏng người thao tác ở frontend. Khi lên production, danh sách này phải nối với đăng nhập thật hoặc quyền backend.": "This demo simulates operators on the frontend. In production, this list should connect to real authentication or backend permissions.",
   "Checklist biến phân tích thành việc cụ thể: làm gì, ai phụ trách, hạn nào, trạng thái ra sao và mức rủi ro thế nào.": "The checklist turns analysis into concrete tasks: what to do, who owns it, the deadline, the status, and the risk level.",
-  "Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, internal tool hoặc hotfix.": "Pick the launch type so the Agent understands the context: game event, marketing, feature release, internal tool, or hotfix.",
+  "Chọn loại launch để Agent hiểu ngữ cảnh: game event, marketing, feature release, production release hoặc internal tool.": "Pick the launch type so the Agent understands the context: game event, marketing, feature release, production release, or internal tool.",
   "Bản demo hiện mở full quyền thao tác: xem Log, sửa launch, chỉnh template và duyệt đề xuất đều dùng được.": "This demo opens full operator access: logs, launch edits, template editing, and suggestion approval are all available.",
   "Demo mode: nạp nhanh kịch bản mẫu để quay demo. Export report: tải báo cáo Markdown của launch hiện tại. Lưu launch: lưu metadata và brief sau khi bạn chỉnh. Chạy phân tích: gửi brief cho backend/AI để tạo readiness, phản biện, checklist và lưu vào lịch sử.": "Demo mode: quickly load a sample scenario for recording. Export report: download the Markdown report for this launch. Save launch: save metadata and brief after edits. Run analysis: send the brief to the backend/AI to generate readiness, red team, and checklist, and save it to history.",
   "Dán brief thô vào đây. Nếu chưa biết viết gì, bấm Nạp Brief Mẫu để xem ví dụ một brief còn thiếu dữ liệu.": "Paste the raw brief here. Not sure what to write? Click Load Sample Brief to see an example of an incomplete brief.",
@@ -1051,6 +1055,8 @@ function applyCleanTranslations(lang) {
   setTextById("commPromptStatus", dict.commPromptStatus);
   setTextById("commPromptHint", dict.commPromptHint);
   setTextById("commStarterPrompt", dict.commStarterPrompt);
+  setTextById("commBotTrickTitle", dict.commBotTrickTitle);
+  setTextById("commBotTrickText", dict.commBotTrickText);
   setTextById("copyCommStarterPrompt", dict.commPromptCopy);
   ["commTelegramDmCta", "commTelegramGroupCta", "commDiscordDmCta", "commDiscordChannelCta"].forEach((id) => setTextById(id, dict.commComingSoonCta));
   const commToast = document.getElementById("commAppsToast");

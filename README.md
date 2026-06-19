@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 18/06/2026 — production hiện đang chạy bản launch controls + model routing trên VNG AgentBase: image `v44`, runtime version 59, UI cache `fix-20260618l`, storage `cloud`, mode `remote_agents`, public-review lock OFF. Mốc ổn định gần nhất trước đó là image `v43`, runtime version 58, cache `fix-20260618k`.
+> Cập nhật 19/06/2026 — mã nguồn mới nhất trên GitHub đã có batch demo polish/cache `fix-20260619e`: sample/template/classification lock gọn hơn, mobile/topbar fixes, explorer `Danh Sách Launch`, và seed brief mẫu đã được chỉnh để demo có đủ Yellow/Green. Production live trên VNG AgentBase hiện vẫn đang chạy image `v44`, runtime version 59, UI cache `fix-20260618l`, storage `cloud`, mode `remote_agents` cho tới khi deploy batch mới.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 
@@ -225,14 +225,12 @@ LAUNCHOPS_POSTMORTEM_URL=https://...
 LAUNCHOPS_AGENT_INVOCATION_TOKEN=...
 
 # Governance:
-LAUNCHOPS_PUBLIC_LOCK=false
 LAUNCHOPS_GUARDRAIL_ENABLED=true
 LAUNCHOPS_RATELIMIT_ENABLED=false
 LAUNCHOPS_RATELIMIT_ANALYZE_PER_MIN=50
 LAUNCHOPS_RATELIMIT_ANALYZE_PER_DAY=1000
 ```
 
-`LAUNCHOPS_PUBLIC_LOCK=true` là cờ dùng cho public review / chế độ khóa mutation. `LAUNCHOPS_RATELIMIT_ENABLED` trong `.env.example` hiện để `false`; production có thể bật `true` tùy môi trường.
 
 Không commit `.env` hoặc credential thật.
 

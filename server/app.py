@@ -47,7 +47,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260618l"
+UI_CACHE_VERSION = "fix-20260619e"
 HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
@@ -1110,15 +1110,17 @@ DEMO_SAMPLE_IDS = {
     "golden-spin-may-retro",
     "golden-spin-weekend-risk",
     "golden-spin-weekend-v2-ready",
-    "golden-spin-demo-01-retro",
-    "golden-spin-demo-02-risk",
-    "golden-spin-demo-03-ready",
     "monsoon-shop-retro",
     "monsoon-shop-live",
     "monsoon-shop-ready",
     "hero-login-retro",
     "hero-login-live",
     "hero-login-ready",
+}
+REMOVED_SAMPLE_IDS = {
+    "golden-spin-demo-01-retro",
+    "golden-spin-demo-02-risk",
+    "golden-spin-demo-03-ready",
 }
 LEGACY_SAMPLE_IDS = {"lucky-wheel-weekend", "midweek-topup-campaign", "may-login-streak", "lucky-wheel-weekend-test"}
 
@@ -1131,6 +1133,10 @@ def clean_demo_sample(existing: dict[str, Any]) -> dict[str, Any]:
     if existing.get("updatedAt"):
         merged["updatedAt"] = existing.get("updatedAt")
     return merged
+
+
+def is_removed_sample_launch_id(launch_id: Any) -> bool:
+    return str(launch_id or "").strip().lower() in REMOVED_SAMPLE_IDS
 
 
 def sanitize_launch_for_response(launch: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -1165,34 +1171,55 @@ Bài học:
 
 Trạng thái nháp: Đang chạy.
 
-Mục tiêu:
-- Tăng doanh thu net 12% trong 72 giờ.
-- Đẩy conversion cho nhóm payer 7 ngày gần nhất.
+Mục tiêu doanh thu và segment:
+- KPI tăng doanh thu net 12% trong 72 giờ cho nhóm payer 7 ngày gần nhất.
+- Owner Commercial trực theo khung 09:00-23:00, LiveOps phụ trách điều phối.
 
-Offer hiện có:
-- Gói Gem 49k / 99k / 199k.
-- Bundle skin mùa hè giới hạn 1 lần/account.
-- Gói hoàn nguyên năng lượng mở theo giờ.
+Offer đang chạy:
+- Gói Gem 49k / 99k / 199k, bundle skin mùa hè giới hạn 1 lần/account.
+- Eligibility áp dụng cho payer cũ và user đủ điều kiện shop.
 
-Điểm còn thiếu:
-- Chưa chốt cap item hiếm của bundle skin.
-- Chưa rõ owner xử lý refund/chargeback ngoài giờ.
-- Chưa có ngưỡng tắt từng offer khi payment fail tăng cao.
-- FAQ cho giá sai, mua thành công nhưng nhận item chậm còn mỏng."""
+Economy guardrail:
+- Cap vật phẩm hiếm đã khóa theo ngày, rule tắt offer khi chạm 90% inventory cap.
+- Dashboard economy theo revenue, stock, bundle purchase và reward delivery.
+
+Payment và refund:
+- Theo dõi payment success, payment fail, refund và chargeback realtime.
+- Payment on-call xử lý refund/chargeback ngoài giờ.
+
+CS và thông điệp bán hàng:
+- CS FAQ có macro cho giá sai, mua thành công nhưng nhận item chậm, refund.
+- Message bán hàng hiển thị limit mua và thời gian xử lý item.
+
+Theo dõi sau launch:
+- Dashboard offer chính đã mở, kill switch từng offer do LiveOps kích hoạt khi payment fail vượt 3% trong 10 phút."""
     shop_ready_brief = """Tên launch: Festival Shop Premium Ready.
 
 Trạng thái nháp: Sắp chạy.
 
-Mục tiêu:
-- Tăng doanh thu shop 10% trong 3 ngày.
-- Nâng conversion nhóm payer cũ quay lại.
+Mục tiêu doanh thu và segment:
+- KPI tăng doanh thu shop 10% trong 3 ngày, conversion nhóm payer cũ tăng 6%.
+- Segment payer 30 ngày, whale cohort và người chơi quay lại đã tách dashboard riêng.
 
-Đã chốt:
-- Offer, giá, limit mua và eligibility cho từng gói.
-- Cap doanh thu, cap vật phẩm hiếm và rule tắt offer khi chạm 95% cap.
-- Dashboard realtime theo offer: impression, click, purchase success, payment fail, refund, chargeback.
-- CS FAQ cho payment fail, giá sai, nhận item chậm, refund.
-- LiveOps trực launch có kill switch theo từng offer và rollback card shop."""
+Offer, giá và limit mua:
+- Offer, giá và limit mua đã khóa theo từng gói; eligibility rõ cho payer cũ và user đủ điều kiện.
+- Bundle skin premium giới hạn 1 lần/account, giá và package đã QA trên staging.
+
+Economy guardrail:
+- Economy guardrail có cap doanh thu, cap vật phẩm hiếm và rule tắt offer khi chạm 95% cap.
+- Game economy owner duyệt cap, inventory và ngưỡng dừng offer trước T-1.
+
+Payment và refund:
+- Payment success, payment fail, refund, chargeback và reconcile order được theo dõi realtime.
+- Payment owner trực launch, có runbook refund và đối soát order lỗi trong 30 phút.
+
+CS và thông điệp bán hàng:
+- CS FAQ và thông điệp bán hàng đã có macro cho giá sai, nhận item chậm, refund.
+- Kênh support có escalation tới Payment owner và LiveOps Lead.
+
+Dashboard và kill switch:
+- Dashboard và kill switch offer đã test staging, rollback card shop đã diễn tập.
+- Ngưỡng pause: payment fail trên 3% trong 10 phút hoặc refund tăng gấp 2 baseline."""
     login_retro_brief = """Tên launch: Hành Trình Đăng Nhập 7 Ngày Retro.
 
 Trạng thái: Đã chạy từ 26/05/2026 đến 01/06/2026.
@@ -1213,31 +1240,54 @@ Bài học:
 
 Trạng thái nháp: Đang chạy.
 
-Mục tiêu:
-- Tăng login ngày 1-5 cho nhóm free user.
+Mục tiêu retention và cohort:
+- KPI tăng login ngày 1-5 cho nhóm free user, cohort quay lại 7 ngày được theo dõi riêng.
+- Retention PM phụ trách KPI, LiveOps PM trực vận hành hằng ngày.
 
-Rule hiện có:
-- Check-in mỗi ngày nhận 1 mốc quà.
-- Milestone lớn ở ngày 3 và ngày 7.
+Rule đang chạy:
+- Streak reset 05:00, mất streak nếu bỏ qua ngày; bù streak chỉ mở qua CS case hợp lệ.
+- Copy trong event giải thích rõ reset day và điều kiện nhận quà.
 
-Điểm còn thiếu:
-- Chưa khóa rõ có cho bù streak hay không.
-- Chưa có duplicate-claim check ở milestone ngày 7.
-- Trigger push trước giờ reset và FAQ mất streak còn mơ hồ.
-- Dashboard retention/claim success chưa có alert."""
+Mốc quà:
+- Mốc quà ngày 1/3/5/7 có cap quà tổng và cap claim/ngày.
+- Delivery theo queue, item ngày 7 có inventory riêng.
+
+Anti-abuse và duplicate claim:
+- Duplicate-claim check bật cho milestone ngày 7, anti-abuse multi-account theo device/account limit.
+- Abuse reviewer xử lý flag trong ngày.
+
+Nhắc lại và CS:
+- Push/inbox/banner nhắc lại trước reset 2 giờ; CS FAQ có macro mất streak, claim lỗi, reset sai giờ.
+
+Tracking và vận hành:
+- Dashboard retention, claim success và delivery đã mở; kill switch quà do LiveOps kích hoạt khi lỗi claim vượt 1%."""
     login_ready_brief = """Tên launch: Login Streak Festival Ready.
 
 Trạng thái nháp: Sắp chạy.
 
-Mục tiêu:
-- Tăng login day-1/day-7 cho cohort quay lại trong 14 ngày.
+Mục tiêu retention và cohort:
+- KPI tăng login day-1/day-7 cho cohort quay lại trong 14 ngày; baseline retention đã chốt.
+- Cohort free user, returning user và payer cũ được tách dashboard.
 
-Đã chốt:
-- Rule streak, reset 05:00, không bù streak và copy hiển thị rõ trong event.
-- Milestone reward theo ngày 1/3/5/7 với cap reward tổng.
-- Duplicate-claim check, anti-abuse multi-account và owner xử lý abuse.
-- Push/inbox/banner nhắc lại trước reset và khi người chơi bỏ streak.
-- Dashboard retention, streak completion, reward claim success và kill switch reward đã sẵn sàng."""
+Rule streak và reset:
+- Rule streak và reset đã khóa ở mốc 05:00, không bù streak đại trà, copy hiển thị rõ trong event.
+- Reset rule đã QA trên timezone, low-end device và flow mất mạng.
+
+Reward milestone:
+- Reward milestone ngày 1/3/5/7 có cap reward tổng, cap claim/ngày và inventory owner.
+- Milestone reward đã test claim success, retry queue và delivery log.
+
+Anti-abuse và duplicate claim:
+- Anti-abuse multi-account, duplicate claim check và device/account limit đã bật.
+- Abuse reviewer có dashboard flag và SLA xử lý trong 2 giờ.
+
+Nhắc lại và CS:
+- Push/inbox/banner nhắc lại trước reset; CS FAQ có macro mất streak, claim lỗi, reset sai giờ.
+- Kênh support và escalation tới Retention PM đã chốt.
+
+Tracking và vận hành:
+- Tracking và vận hành có dashboard retention, streak completion, claim success và reward delivery realtime.
+- Kill switch reward và rollback rule đã test staging; ngưỡng pause nếu claim lỗi vượt 1% trong 10 phút."""
     retro_brief = """Tên launch: Golden Spin tháng 5 Retro - sự kiện Lucky Spin đã chạy cuối tháng 5.
 
 Trạng thái: Đã chạy từ 29/05/2026 đến 31/05/2026.
@@ -1484,66 +1534,6 @@ Vận hành:
             "updatedAt": created,
         },
         {
-            "id": "golden-spin-demo-01-retro",
-            "name": "Golden Spin Demo 01 - Retro Draft",
-            "type": "lucky_spin_event",
-            "status": "completed",
-            "owner": "PM LiveOps",
-            "targetDate": "2026-06-10 20:00",
-            "endDate": "2026-06-12 23:59",
-            "brief": draft_retro_brief,
-            "template": template,
-            "templateVersions": [],
-            "lessonSuggestions": [],
-            "analyses": [],
-            "postLaunchResult": "",
-            "lessonsLearned": [],
-            "checklistProgress": {},
-            "redTeamBriefSupplements": {},
-            "createdAt": created,
-            "updatedAt": created,
-        },
-        {
-            "id": "golden-spin-demo-02-risk",
-            "name": "Golden Spin Demo 02 - Risk Draft",
-            "type": "lucky_spin_event",
-            "status": "running",
-            "owner": "PM LiveOps",
-            "targetDate": "2026-06-17 08:30",
-            "endDate": "2026-06-18 23:59",
-            "brief": draft_risk_brief,
-            "template": template,
-            "templateVersions": [],
-            "lessonSuggestions": [],
-            "analyses": [],
-            "postLaunchResult": "",
-            "lessonsLearned": [],
-            "checklistProgress": {},
-            "redTeamBriefSupplements": {},
-            "createdAt": created,
-            "updatedAt": created,
-        },
-        {
-            "id": "golden-spin-demo-03-ready",
-            "name": "Golden Spin Demo 03 - Ready Draft",
-            "type": "lucky_spin_event",
-            "status": "upcoming",
-            "owner": "PM LiveOps + Tech on-call",
-            "targetDate": "2026-06-20 20:00",
-            "endDate": "2026-06-22 23:59",
-            "brief": draft_ready_brief,
-            "template": template,
-            "templateVersions": [],
-            "lessonSuggestions": [],
-            "analyses": [],
-            "postLaunchResult": "",
-            "lessonsLearned": [],
-            "checklistProgress": {},
-            "redTeamBriefSupplements": {},
-            "createdAt": created,
-            "updatedAt": created,
-        },
-        {
             "id": "monsoon-shop-retro",
             "name": "Monsoon Gem Shop Retro",
             "type": "game_event_h5",
@@ -1670,7 +1660,7 @@ Vận hành:
 
 def seed_launches_if_empty() -> None:
     LAUNCHES_DIR.mkdir(parents=True, exist_ok=True)
-    for legacy_id in LEGACY_SAMPLE_IDS:
+    for legacy_id in LEGACY_SAMPLE_IDS | REMOVED_SAMPLE_IDS:
         try:
             launch_file(legacy_id).unlink(missing_ok=True)
         except OSError:
@@ -1697,13 +1687,19 @@ def list_launches() -> list[dict[str, Any]]:
                     break
             cloud_result = try_cloud_storage("list_launches_after_seed", cloud_list_launches)
         if cloud_result is not _CLOUD_STORAGE_ERROR:
-            return [sanitize_launch_for_response(item) or item for item in cloud_result]
+            return [
+                sanitize_launch_for_response(item) or item
+                for item in cloud_result
+                if not is_removed_sample_launch_id((item or {}).get("id") if isinstance(item, dict) else "")
+            ]
 
     seed_launches_if_empty()
     launches = []
     for path in sorted(LAUNCHES_DIR.glob("*.json")):
         try:
             launch = read_json(path)
+            if is_removed_sample_launch_id(launch.get("id")):
+                continue
             launches.append(sanitize_launch_for_response(launch) or launch)
         except (json.JSONDecodeError, OSError):
             write_backend_log(f"Skipped unreadable launch memory file: {path.name}")
@@ -1742,6 +1738,8 @@ def summarize_launch(launch: dict[str, Any]) -> dict[str, Any]:
 
 
 def get_launch(launch_id: str) -> dict[str, Any] | None:
+    if is_removed_sample_launch_id(launch_id):
+        return None
     try:
         path = launch_file(launch_id)
     except ValueError:
@@ -1794,12 +1792,7 @@ def list_archived_launches() -> list[dict[str, Any]]:
     return sorted(items, key=lambda item: str(item.get("archivedAt") or item.get("updatedAt") or ""), reverse=True)
 
 
-# Public review lock blocks configuration mutation. Seeded sample launches stay
-# immutable for API/tool callers so public demos can keep stable reference data.
-def public_lock_enabled() -> bool:
-    return truthy_env("LAUNCHOPS_PUBLIC_LOCK", "false")
-
-
+# Seeded sample launches stay immutable for API/tool callers so public demos keep stable reference data.
 def is_sample_launch_id(launch_id: Any) -> bool:
     lid = str(launch_id or "").strip().lower()
     return lid in DEMO_SAMPLE_IDS or lid in LEGACY_SAMPLE_IDS
@@ -1813,19 +1806,19 @@ def is_sample_launch(launch: dict[str, Any] | None) -> bool:
     return is_sample_launch_id(launch.get("id"))
 
 
-class PublicLockError(Exception):
+class SampleLaunchLockError(Exception):
     def __init__(self, action: str = "edit"):
-        self.code = "public_review_locked"
+        self.code = "sample_launch_locked"
         self.action = action
         self.message = (
-            "Tác giả tạm khóa quyền chỉnh sửa trong giai đoạn vote để giữ dữ liệu demo. "
-            "Reviewer có thể tự tạo launch mới để trải nghiệm, hoặc liên hệ domain VinhVNN để mở quyền Admin."
+            "Launch mẫu đang được giữ nguyên để dữ liệu demo ổn định. "
+            "Hãy tạo launch mới để trải nghiệm, hoặc mở quyền Admin nội bộ nếu cần chỉnh mẫu."
         )
         super().__init__(self.message)
 
 
-def public_lock_error(action: str) -> dict[str, Any]:
-    err = PublicLockError(action)
+def sample_launch_lock_error(action: str) -> dict[str, Any]:
+    err = SampleLaunchLockError(action)
     return {"ok": False, "error": err.code, "action": action, "message": err.message}
 
 
@@ -1835,7 +1828,7 @@ def guard_sample_launch_mutation(launch: Any, action: str) -> None:
     else:
         locked = is_sample_launch_id(launch)
     if locked:
-        raise PublicLockError(action)
+        raise SampleLaunchLockError(action)
 
 
 def save_launch_payload(payload: dict[str, Any], existing_id: str | None = None) -> dict[str, Any]:
@@ -2007,8 +2000,6 @@ def archive_launch(launch_id: str) -> dict[str, Any] | None:
 
 
 def restore_archived_launch(launch_id: str) -> dict[str, Any]:
-    if public_lock_enabled():
-        raise PublicLockError("restore_launch")
     archived = get_archived_launch(launch_id)
     if archived is None:
         raise FileNotFoundError(launch_id)
@@ -2027,8 +2018,6 @@ def restore_archived_launch(launch_id: str) -> dict[str, Any]:
 
 
 def purge_archived_launch(launch_id: str) -> bool:
-    if public_lock_enabled():
-        raise PublicLockError("purge_launch")
     if get_archived_launch(launch_id) is None:
         return False
     cloud_result = try_cloud_storage("purge_archived_launch", cloud_purge_archived_launch, launch_id)
@@ -2675,7 +2664,7 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         if launch is None:
             return launch_reference_error(args, suggestions)
         if is_sample_launch(launch):
-            return public_lock_error(tool_name)
+            return sample_launch_lock_error(tool_name)
         updates: dict[str, Any] = {"id": launch.get("id")}
         field_map = {
             "newName": "name",
@@ -2742,7 +2731,7 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         if launch is None:
             return launch_reference_error(args, suggestions)
         if is_sample_launch(launch):
-            return public_lock_error(tool_name)
+            return sample_launch_lock_error(tool_name)
         expected = f"DELETE {launch['id']}"
         if str(args.get("confirm") or "").strip() != expected:
             return {"ok": False, "error": "confirmation_required", "message": f"Set confirm to '{expected}' to delete this launch.", "summary": summarize_launch(launch)}
@@ -2765,8 +2754,6 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "typeId": type_id, "profile": profile}
 
     if tool_name == LCC_CREATE_TYPE_TOOL:
-        if public_lock_enabled():
-            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -2782,8 +2769,6 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "type": saved}
 
     if tool_name == LCC_PROPOSE_TEMPLATE_UPDATE_TOOL:
-        if public_lock_enabled():
-            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -2804,8 +2789,6 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "proposal": proposal, "launch": updated, "summary": summarize_launch(updated)}
 
     if tool_name == LCC_APPROVE_TEMPLATE_VERSION_TOOL:
-        if public_lock_enabled():
-            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -2850,8 +2833,6 @@ def execute_launchops_tool(tool_name: str, args: dict[str, Any], force_fast: boo
         return {"ok": True, "tool": tool_name, "proposal": proposal, "template": template, "launch": updated, "summary": summarize_launch(updated)}
 
     if tool_name == LCC_SET_LAUNCH_TEMPLATE_TOOL:
-        if public_lock_enabled():
-            return public_lock_error(tool_name)
         admin_block = require_mcp_admin_configuration(args, tool_name)
         if admin_block is not None:
             return admin_block
@@ -5511,8 +5492,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     "assistant": public_llm_config("assistant")["model"]
                 },
                 "role": current_agent_role(),
-                "storage": storage_backend_status(),
-                "publicLock": public_lock_enabled()
+                "storage": storage_backend_status()
             }).encode("utf-8"))
             return
 
@@ -5917,7 +5897,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             memory_context = memory_context_from_headers(self.headers, launch)
             try:
                 launch = save_post_result(launch, payload, memory_context)
-            except PublicLockError as exc:
+            except SampleLaunchLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
                 return
             json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
@@ -5936,7 +5916,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             except FileNotFoundError:
                 json_response(self, 404, {"ok": False, "error": "Launch not found"})
                 return
-            except PublicLockError as exc:
+            except SampleLaunchLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
                 return
             except ValueError as exc:
@@ -5952,7 +5932,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             try:
                 launch = save_launch_payload(payload, existing_id=parts[2])
                 json_response(self, 200, {"ok": True, "launch": launch, "summary": summarize_launch(launch)})
-            except PublicLockError as exc:
+            except SampleLaunchLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
             except LaunchScheduleError as exc:
                 json_response(self, 400, {"ok": False, "error": exc.code, "message": exc.message})
@@ -5964,7 +5944,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
         if len(parts) == 4 and parts[:2] == ["api", "archive"] and parts[3] == "restore":
             try:
                 restored = restore_archived_launch(parts[2])
-            except PublicLockError as exc:
+            except SampleLaunchLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
                 return
             except FileNotFoundError:
@@ -5994,7 +5974,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     json_response(self, 404, {"ok": False, "error": "Launch not found"})
                     return
                 json_response(self, 200, {"ok": True, "deletedId": parts[2], "archivedId": parts[2]})
-            except PublicLockError as exc:
+            except SampleLaunchLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
             except Exception as exc:
                 write_backend_log(f"Delete launch failed: {type(exc).__name__}")
@@ -6007,7 +5987,7 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
                     json_response(self, 404, {"ok": False, "error": "Archived launch not found"})
                     return
                 json_response(self, 200, {"ok": True, "purgedId": parts[2]})
-            except PublicLockError as exc:
+            except SampleLaunchLockError as exc:
                 json_response(self, 403, {"ok": False, "error": exc.code, "action": exc.action, "message": exc.message})
             except Exception as exc:
                 write_backend_log(f"Purge archived launch failed: {type(exc).__name__}")
