@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-21 - live production is now on hotfix `fix-20260621c`: all 9 sample launch briefs are now Vietnamese with proper accents, the `Mode vào LCC` picker copy is accented correctly, and production still keeps the 9 refreshed sample launches with auto status + lesson labels. Live production on VNG AgentBase is running image `v51`, runtime version 67, UI cache `fix-20260621c`, storage `cloud`, mode `remote_agents`.
+> Updated 2026-06-21 - the live demo has been polished with cleaner sample content and UI copy for a steadier review experience.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
