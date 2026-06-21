@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 21/06/2026 - production live đã lên hotfix `fix-20260621b`: sửa lỗi màn giới thiệu Demo không bấm được nút X / Vào Demo do JS bootstrap crash. Production live trên VNG AgentBase đang chạy image `v50`, runtime version 66, UI cache `fix-20260621b`, storage `cloud`, mode `remote_agents`; dữ liệu vẫn là đúng 9 launch mẫu mới với auto status và label bài học.
+> Cập nhật 21/06/2026 - production live đã lên hotfix `fix-20260621c`: 9 brief launch mẫu đã chuyển sang tiếng Việt có dấu, label chọn `Mode vào LCC` đã có dấu đúng, và production vẫn giữ 9 launch mẫu mới với auto status + label bài học. Production live trên VNG AgentBase đang chạy image `v51`, runtime version 67, UI cache `fix-20260621c`, storage `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 

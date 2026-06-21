@@ -47,7 +47,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260621b"
+UI_CACHE_VERSION = "fix-20260621c"
 HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
@@ -1229,75 +1229,75 @@ def default_sample_launches() -> list[dict[str, Any]]:
     def analysis(launch_id: str, brief: str, color: str, score: int, title: str, reason: str) -> list[dict[str, Any]]:
         return [{"id": f"analysis-{launch_id}", "createdAt": created, "briefSnapshot": brief[:2000], "result": sample_analysis_result(color, score, title, reason)}]
 
-    golden_retro = """Launch name: Golden Spin Retro Lessons.
+    golden_retro = """Tên launch: Golden Spin Retro Lessons.
 
-Status: Completed.
+Trạng thái: Đã chạy.
 
-Golden Spin ran last month to lift weekend login and small top-up packages. Players got 1 free spin per login day and extra spins from 49k/99k packages. Rewards included coupons, skin shards and 600 rare items.
+Golden Spin đã chạy tháng trước để tăng login cuối tuần và doanh thu gói nạp nhỏ. Người chơi nhận 1 lượt quay miễn phí mỗi ngày đăng nhập và thêm lượt quay khi mua gói 49k/99k. Phần thưởng gồm coupon, mảnh skin và 600 vật phẩm hiếm.
 
-Actual result: login +7%, small package revenue +9%, but CS tickets spiked in the first 8 hours because reset time 05:00 and disconnect cases were not clear. A group of alt accounts farmed spins before the team added a manual rule.
+Kết quả thực tế: login tăng 7%, doanh thu gói nhỏ tăng 9%, nhưng ticket CS tăng mạnh trong 8 giờ đầu vì chưa nói rõ giờ reset 05:00 và case mất kết nối khi quay. Một nhóm tài khoản phụ đã farm lượt trước khi team bổ sung rule kiểm tra thủ công.
 
-Saved lesson: every Lucky Spin brief needs reset time, reward cap, eligibility, anti-abuse dashboard, CS FAQ and kill switch before opening."""
-    golden_live = """Launch name: Golden Spin Weekend Live.
+Bài học đã lưu: mọi brief Lucky Spin phải có giờ reset, reward cap, điều kiện tham gia, dashboard anti-abuse, CS FAQ và kill switch trước khi mở."""
+    golden_live = """Tên launch: Golden Spin Weekend Live.
 
-Status: Running.
+Trạng thái: Đang chạy.
 
-Goal is weekend login +8% and small package revenue +10%. Event is live for level 10+ accounts created before the cutoff. Login gives 1 spin, small package top-up gives up to 3 extra spins per day.
+Mục tiêu là tăng login cuối tuần 8% và doanh thu gói nhỏ 10%. Event đang mở cho tài khoản level 10+ được tạo trước mốc cutoff. Đăng nhập nhận 1 lượt quay, nạp gói nhỏ nhận tối đa 3 lượt quay thêm mỗi ngày.
 
-Ready: reward cap, spin success / reward delivery dashboard, and Tech on-call for peak hour.
+Đã sẵn sàng: reward cap, dashboard spin success / reward delivery và Tech on-call trong giờ cao điểm.
 
-Watch items: device abuse rule is still soft, CS FAQ misses disconnect-during-spin cases, and ticket pause threshold is recommended but not yet signed by Business owner."""
-    golden_ready = """Launch name: Golden Spin Weekend Ready.
+Điểm cần theo dõi: rule chống abuse theo thiết bị vẫn đang ở mức cảnh báo mềm, CS FAQ còn thiếu case mất kết nối trong lúc quay, và ngưỡng pause ticket đã được đề xuất nhưng Business owner chưa ký duyệt."""
+    golden_ready = """Tên launch: Golden Spin Weekend Ready.
 
-Status: Upcoming.
+Trạng thái: Sắp chạy.
 
-This Golden Spin version applies old lessons: reset 05:00 is visible in popup, eligibility is level 10+ and account before cutoff, max 9 spins per account, abuse/refund accounts excluded.
+Phiên bản Golden Spin này đã áp dụng bài học cũ: giờ reset 05:00 hiển thị rõ trong popup, điều kiện tham gia là level 10+ và tài khoản tạo trước cutoff, tối đa 9 lượt quay mỗi tài khoản, loại trừ tài khoản abuse/refund.
 
-Reward cap is 150M, rare item shuts off at 95% cap, dashboard covers spin success/reward delivery/ticket/abuse, kill switch passed staging, CS FAQ covers lost spin, out of stock, delayed reward and disconnect.
+Reward cap là 150M, vật phẩm hiếm tự tắt khi đạt 95% cap, dashboard theo dõi spin success/reward delivery/ticket/abuse, kill switch đã test staging, CS FAQ đã cover mất lượt, hết quà, phát quà chậm và mất kết nối.
 
-War room opens 30 minutes before launch. T+48h post-mortem must record lessons for next month."""
-    storm_shop = """Launch name: Storm Gem Shop Retro.
+War room mở trước launch 30 phút. Post-mortem T+48h phải ghi lại lesson cho tháng sau."""
+    storm_shop = """Tên launch: Storm Gem Shop Retro.
 
-Status: Completed.
+Trạng thái: Đã chạy.
 
-Storm shop sold gem bundles and lightning skin effects for returning payers in 72 hours. Revenue beat target by 11%, but payment failures rose at peak hour, one bundle looked like it could be bought multiple times, and CS handled refund cases manually.
+Storm Gem Shop bán bundle gem và hiệu ứng skin sấm sét cho nhóm payer quay lại trong 72 giờ. Doanh thu vượt mục tiêu 11%, nhưng payment failure tăng ở giờ cao điểm, một bundle nhìn như có thể mua lặp nhiều lần, và CS phải xử lý refund thủ công.
 
-No formal lesson was added after launch, so the next checklist cannot reuse the finding yet."""
-    dragon_login = """Launch name: Dragon Login Streak Live.
+Chưa có bài học chính thức được thêm sau launch, nên checklist lần sau chưa thể tái sử dụng phát hiện này."""
+    dragon_login = """Tên launch: Dragon Login Streak Live.
 
-Status: Running.
+Trạng thái: Đang chạy.
 
-Seven-day login streak for players returning after 14 days. Reset rule is 05:00, reward milestones are day 1/3/5/7, day 7 has limited dragon skin. Retention and claim success dashboards are open.
+Chuỗi đăng nhập 7 ngày dành cho người chơi quay lại sau 14 ngày. Rule reset là 05:00, mốc thưởng ở ngày 1/3/5/7, ngày 7 có skin rồng giới hạn. Dashboard retention và claim success đã mở.
 
-Current risks: day-5 reminder is not segmented by timezone, duplicate-claim check is still soft flag, and lost-streak CS macro only exists in Vietnamese."""
-    guild_boss = """Launch name: Guild Boss Rush Live.
+Rủi ro hiện tại: nhắc ngày 5 chưa chia theo múi giờ, duplicate-claim check vẫn chỉ là soft flag, và macro CS cho case mất streak mới có tiếng Việt."""
+    guild_boss = """Tên launch: Guild Boss Rush Live.
 
-Status: Running.
+Trạng thái: Đang chạy.
 
-Weekend co-op event where guilds fight bosses from 20:00 to 22:00. KPI is active guild count and party battle count. Rewards use personal damage milestones and guild total damage.
+Event co-op cuối tuần, các guild đánh boss từ 20:00 đến 22:00. KPI là số guild active và số trận party battle. Phần thưởng dựa trên milestone sát thương cá nhân và tổng sát thương của guild.
 
-LiveOps and Tech owners are assigned, but leaderboard delay was 3-5 minutes on staging, tie-break rule is unclear, and reward rollback still needs Economy confirmation."""
-    phoenix_red = """Launch name: Phoenix Flash Sale Risk.
+LiveOps và Tech owner đã được phân công, nhưng leaderboard trên staging trễ 3-5 phút, rule tie-break chưa rõ, và rollback reward vẫn cần Economy xác nhận."""
+    phoenix_red = """Tên launch: Phoenix Flash Sale Risk.
 
-Status: Upcoming.
+Trạng thái: Sắp chạy.
 
-Two-hour Phoenix skin flash sale planned with a social campaign. Brief has revenue target and item list, but no payment owner, refund runbook, rare item cap, queue plan for CCU spike, CS FAQ or pause threshold.
+Flash sale skin Phoenix trong 2 giờ, đi kèm social campaign. Brief đã có mục tiêu doanh thu và danh sách vật phẩm, nhưng chưa có payment owner, runbook refund, cap vật phẩm hiếm, kế hoạch queue khi CCU tăng, CS FAQ hoặc ngưỡng pause.
 
-Big risk: if payment fails or price is wrong, CS has no macro and nobody is clearly allowed to shut off the offer."""
-    comeback_yellow = """Launch name: Comeback Login Sprint.
+Rủi ro lớn: nếu payment lỗi hoặc giá hiển thị sai, CS chưa có macro và chưa ai có quyền rõ ràng để tắt offer."""
+    comeback_yellow = """Tên launch: Comeback Login Sprint.
 
-Status: Upcoming.
+Trạng thái: Sắp chạy.
 
-Five-day login sprint for players inactive for 30 days. Cohort, D1/D5 login KPI, reward cap and claim success dashboard are ready.
+Sprint đăng nhập 5 ngày cho người chơi inactive 30 ngày. Cohort, KPI login D1/D5, reward cap và dashboard claim success đã sẵn sàng.
 
-Missing: copy for lost streak, duplicate-claim check for alt accounts, weekend CS schedule and pause rule when claim error exceeds 1%."""
-    skin_green = """Launch name: Skin Vault Preview Ready.
+Còn thiếu: copy cho case mất streak, duplicate-claim check cho tài khoản phụ, lịch trực CS cuối tuần và rule pause khi claim error vượt 1%."""
+    skin_green = """Tên launch: Skin Vault Preview Ready.
 
-Status: Upcoming.
+Trạng thái: Sắp chạy.
 
-Preview new skin vault for old payers, allowing browse and purchase reminder opt-in. No payment is charged during preview; only click, wishlist and intent survey are measured.
+Preview kho skin mới cho nhóm payer cũ, cho phép xem trước và đăng ký nhắc mua. Giai đoạn preview không thu tiền; chỉ đo click, wishlist và khảo sát ý định mua.
 
-KPI, segment, copy, click/wishlist dashboard, banner rollback, CS FAQ for sale-date confusion and duty owner are ready. Economy risk is low because there is no reward grant or payment charge."""
+KPI, segment, copy, dashboard click/wishlist, rollback banner, CS FAQ cho nhầm ngày mở bán và duty owner đều đã sẵn sàng. Rủi ro economy thấp vì chưa grant reward và chưa phát sinh thanh toán."""
 
     samples = [
         {"id": "golden-spin-retro-lessons", "name": "Golden Spin Retro Lessons", "type": "lucky_spin_event", "status": "completed", "owner": "LiveOps Lead", "targetDate": sample_launch_datetime(-10, 20), "endDate": sample_launch_datetime(-8, 23, 59), "brief": golden_retro, "template": template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("golden-spin-retro-lessons", golden_retro, "Yellow", 8, "Golden Spin has reusable lessons", "Launch hit KPI but left reset, CS and abuse risks."), "postLaunchResult": "Login and revenue targets passed, but lost-spin tickets and alt-account abuse appeared.", "lessonsLearned": [{"id": "lesson-golden-spin-reset", "createdAt": created, "text": "Golden Spin must include reset 05:00, reward cap, eligibility, anti-abuse dashboard and CS FAQ before opening."}], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
@@ -1324,6 +1324,18 @@ def seed_launches_if_empty() -> None:
         path = launch_file(launch["id"])
         if not path.exists():
             write_json(path, launch)
+            continue
+        try:
+            existing = read_json(path)
+        except Exception:
+            existing = {}
+        if (
+            existing.get("brief") != launch.get("brief")
+            or existing.get("name") != launch.get("name")
+            or existing.get("owner") != launch.get("owner")
+            or existing.get("template") != launch.get("template")
+        ):
+            write_json(path, launch)
 
 
 
@@ -1340,10 +1352,19 @@ def save_cloud_seed_launch(launch: dict[str, Any]) -> dict[str, Any] | None:
                 saved = appended
     return saved
 
+def sync_cloud_sample_launch(launch: dict[str, Any]) -> dict[str, Any] | None:
+    sample = dict(launch)
+    sample.pop("analyses", None)
+    sync_result = try_cloud_storage("sync_sample_launch", cloud_save_launch, sample)
+    if sync_result is _CLOUD_STORAGE_ERROR:
+        return None
+    return sync_result if isinstance(sync_result, dict) else sample
+
 def list_launches() -> list[dict[str, Any]]:
     cloud_result = try_cloud_storage("list_launches", cloud_list_launches)
     if cloud_result is not _CLOUD_STORAGE_ERROR:
         default_samples = default_sample_launches()
+        default_sample_by_id = {str(launch.get("id") or ""): launch for launch in default_samples}
         existing_ids = {str(item.get("id") or "") for item in cloud_result if isinstance(item, dict)}
         samples_to_sync = default_samples if not cloud_result else [
             launch for launch in default_samples if str(launch.get("id") or "") not in existing_ids
@@ -1362,6 +1383,16 @@ def list_launches() -> list[dict[str, Any]]:
                 if is_removed_sample_launch_id(item.get("id")):
                     continue
                 clean = sanitize_launch_for_response(item) or item
+                default_sample = default_sample_by_id.get(str(clean.get("id") or ""))
+                if default_sample and (
+                    clean.get("brief") != default_sample.get("brief")
+                    or clean.get("name") != default_sample.get("name")
+                    or clean.get("owner") != default_sample.get("owner")
+                    or clean.get("template") != default_sample.get("template")
+                ):
+                    seed_result = sync_cloud_sample_launch(default_sample)
+                    if seed_result is not None:
+                        clean = sanitize_launch_for_response(seed_result) or seed_result
                 clean, changed = apply_launch_time_status(clean)
                 if changed:
                     seed_result = try_cloud_storage("auto_status_launch", cloud_save_launch, clean)
