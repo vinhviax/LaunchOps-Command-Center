@@ -278,6 +278,8 @@ const TEMPLATE_OPERATORS = [
 const TEMPLATE_EDITING_LOCKED = false;
 const ROLE_SWITCH_LOCKED = false;
 const LOCKED_LAUNCH_ROLE = "human";
+var currentLaunch = null;
+var launchType = null;
 const SAMPLE_LAUNCH_IDS = [
   "golden-spin-retro-lessons",
   "golden-spin-live-risk",
@@ -1375,7 +1377,7 @@ const launchStatusFilterSelect = document.getElementById("launchStatusFilter");
 const launchDateFromInput = document.getElementById("launchDateFrom");
 const launchDateToInput = document.getElementById("launchDateTo");
 const launchName = document.getElementById("launchName");
-const launchType = document.getElementById("launchType");
+launchType = document.getElementById("launchType");
 const launchTemplate = document.getElementById("launchTemplate");
 const launchStatus = document.getElementById("launchStatus");
 const launchOwner = document.getElementById("launchOwner");
@@ -1477,7 +1479,6 @@ let checklistProgress = {};
 
 let launches = [];
 let archivedLaunches = [];
-let currentLaunch = null;
 let backendAvailable = Boolean(API_BASE);
 let draftMode = false;
 let templateOperatorId = "vinhvnn";
@@ -1607,6 +1608,7 @@ function normalizeTemplate(template, type = "Game event") {
 }
 
 function activeTemplate() {
+  if (!currentLaunch && !launchType) return normalizeTemplate(null, "Game event");
   const launch = currentLaunch || collectLaunchFromForm();
   return normalizeTemplate(launch?.template, launch?.type || launchType?.value || "Game event");
 }
