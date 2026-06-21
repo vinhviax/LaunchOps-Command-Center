@@ -161,9 +161,9 @@ For remote multi-agent, RAG, and Cloud DB like production, provision your own re
 
 ## Demo flow (Golden Spin)
 
-1. **Risky brief** — `Golden Spin Weekend Risk` → Yellow/Red readiness, low score, 5-persona Red Team + a checklist to fix.
-2. **Learn from retro** — `Golden Spin ... Retro` holds a stored lesson; it is recalled to ground the next analysis.
-3. **Ready brief** — `Golden Spin Weekend v2 Ready` applied lessons → Green 12/12; at full score there are no open risks/Red Team, and any new risk is recorded under Post-launch result to become the next lesson.
+1. **Live brief with risk** — `Golden Spin Weekend Live` → Yellow readiness, 5-persona Red Team + a checklist to watch.
+2. **Learn from retro** — `Golden Spin Retro Lessons` holds a stored lesson; it is recalled to ground the next analysis.
+3. **Ready brief** — `Golden Spin Weekend Ready` applied lessons → Green 12/12; at full score there are no open risks/Red Team, and any new risk is recorded under Post-launch result to become the next lesson.
 4. **Multi-agent proof** — open the trace tab to see `orchestration.mode=remote_agents`, 4 `remote_runtime` children, each recalling from its own store.
 
 Click **Load Sample Brief** or **Demo mode** to load it quickly.
@@ -245,7 +245,7 @@ styles.css · friendly.css
 config.js               # same-origin API config
 server/app.py           # Web server + API + MCP + 6-agent pipeline
 server/db.py            # local/cloud storage layer
-server/test_app.py      # stdlib unit tests (176 tests)
+server/test_app.py      # stdlib unit tests (182 tests)
 server/requirements.txt · server/schema.sql
 server/seed_knowledge.py · server/seed_demo_data.py · server/migrate_to_cloud_db.py
 data/ · prompts/ · Dockerfile · .env.example · README.md
@@ -254,7 +254,7 @@ data/ · prompts/ · Dockerfile · .env.example · README.md
 ## Test
 
 ```bash
-python -m unittest server.test_app    # 176 tests, stdlib, no .env needed
+python -m unittest server.test_app    # 182 tests, stdlib, no .env needed
 node --check app.js friendly-ui.js i18n-clean.js
 ```
 

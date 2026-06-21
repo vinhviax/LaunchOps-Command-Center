@@ -161,9 +161,9 @@ Mọi agent gọi OpenAI-compatible `/v1/chat/completions`. Muốn **tách model
 
 ## Demo flow (Golden Spin)
 
-1. **Brief rủi ro** — `Golden Spin Weekend Risk` → readiness Yellow/Red, điểm thấp, hiện Red Team 5 persona + checklist cần sửa.
-2. **Học từ retro** — `Golden Spin ... Retro` chứa bài học đã lưu; lesson này được recall để ground lần phân tích sau.
-3. **Brief sẵn sàng** — `Golden Spin Weekend v2 Ready` đã áp lessons → Green 12/12; khi full điểm thì không còn rủi ro mở/Red Team, rủi ro mới chỉ ghi ở Kết quả sau launch để thành lesson tiếp theo.
+1. **Brief đang chạy còn rủi ro** — `Golden Spin Weekend Live` → readiness Yellow, hiện Red Team 5 persona + checklist cần theo dõi.
+2. **Học từ retro** — `Golden Spin Retro Lessons` chứa bài học đã lưu; lesson này được recall để ground lần phân tích sau.
+3. **Brief sẵn sàng** — `Golden Spin Weekend Ready` đã áp lessons → Green 12/12; khi full điểm thì không còn rủi ro mở/Red Team, rủi ro mới chỉ ghi ở Kết quả sau launch để thành lesson tiếp theo.
 4. **Bằng chứng multi-agent** — mở tab trace để thấy `orchestration.mode=remote_agents`, 4 child `remote_runtime` và mỗi agent recall từ store riêng.
 
 Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
@@ -245,7 +245,7 @@ styles.css · friendly.css
 config.js               # same-origin API config
 server/app.py           # Web server + API + MCP + pipeline 6 agent
 server/db.py            # tầng storage local/cloud
-server/test_app.py      # unit test stdlib (176 test)
+server/test_app.py      # unit test stdlib (182 test)
 server/requirements.txt · server/schema.sql
 server/seed_knowledge.py · server/seed_demo_data.py · server/migrate_to_cloud_db.py
 data/ · prompts/ · Dockerfile · .env.example · README_EN.md
@@ -254,7 +254,7 @@ data/ · prompts/ · Dockerfile · .env.example · README_EN.md
 ## Test
 
 ```bash
-python -m unittest server.test_app    # 176 test, stdlib, không cần .env
+python -m unittest server.test_app    # 182 test, stdlib, không cần .env
 node --check app.js friendly-ui.js i18n-clean.js
 ```
 
