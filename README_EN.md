@@ -161,9 +161,9 @@ For remote multi-agent, RAG, and Cloud DB like production, provision your own re
 
 ## Demo flow (Golden Spin)
 
-1. **Live brief with risk** — `Golden Spin Weekend Live` → Yellow readiness, 5-persona Red Team + a checklist to watch.
-2. **Learn from retro** — `Golden Spin Retro Lessons` holds a stored lesson; it is recalled to ground the next analysis.
-3. **Ready brief** — `Golden Spin Weekend Ready` applied lessons → Green 12/12; at full score there are no open risks/Red Team, and any new risk is recorded under Post-launch result to become the next lesson.
+1. **Live brief with risk** — `Vòng Quay Golden Spin Đang Chạy` → Yellow readiness, 5-persona Red Team + a checklist to watch.
+2. **Learn from retro** — `Vòng Quay Golden Spin Đã Chạy` holds a stored lesson; it is recalled to ground the next analysis.
+3. **Ready brief** — `Vòng Quay Golden Spin Sắp Chạy` applied lessons → Green 12/12; at full score there are no open risks/Red Team, and any new risk is recorded under Post-launch result to become the next lesson.
 4. **Multi-agent proof** — open the trace tab to see `orchestration.mode=remote_agents`, 4 `remote_runtime` children, each recalling from its own store.
 
 Click **Load Sample Brief** or **Demo mode** to load it quickly.

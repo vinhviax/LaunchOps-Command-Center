@@ -161,9 +161,9 @@ Mọi agent gọi OpenAI-compatible `/v1/chat/completions`. Muốn **tách model
 
 ## Demo flow (Golden Spin)
 
-1. **Brief đang chạy còn rủi ro** — `Golden Spin Weekend Live` → readiness Yellow, hiện Red Team 5 persona + checklist cần theo dõi.
-2. **Học từ retro** — `Golden Spin Retro Lessons` chứa bài học đã lưu; lesson này được recall để ground lần phân tích sau.
-3. **Brief sẵn sàng** — `Golden Spin Weekend Ready` đã áp lessons → Green 12/12; khi full điểm thì không còn rủi ro mở/Red Team, rủi ro mới chỉ ghi ở Kết quả sau launch để thành lesson tiếp theo.
+1. **Brief đang chạy còn rủi ro** — `Vòng Quay Golden Spin Đang Chạy` → readiness Yellow, hiện Red Team 5 persona + checklist cần theo dõi.
+2. **Học từ retro** — `Vòng Quay Golden Spin Đã Chạy` chứa bài học đã lưu; lesson này được recall để ground lần phân tích sau.
+3. **Brief sẵn sàng** — `Vòng Quay Golden Spin Sắp Chạy` đã áp lessons → Green 12/12; khi full điểm thì không còn rủi ro mở/Red Team, rủi ro mới chỉ ghi ở Kết quả sau launch để thành lesson tiếp theo.
 4. **Bằng chứng multi-agent** — mở tab trace để thấy `orchestration.mode=remote_agents`, 4 child `remote_runtime` và mỗi agent recall từ store riêng.
 
 Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.

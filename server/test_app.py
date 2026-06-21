@@ -49,7 +49,8 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         launch = {"id": "golden-spin-retro-lessons", "brief": damaged_brief, "analyses": []}
         clean = app.sanitize_launch_for_response(launch)
         self.assertEqual(clean["id"], "golden-spin-retro-lessons")
-        self.assertIn("Golden Spin Retro", clean["brief"])
+        self.assertIn("Golden Spin", clean["brief"])
+        self.assertIn("V\u00f2ng Quay", clean["brief"])
         self.assertNotIn("??", clean["brief"])
 
     def test_default_demo_samples_include_all_game_template_triplets(self):
@@ -72,7 +73,11 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertNotIn("Lucky Wheel", names)
         self.assertNotIn("Midweek", names)
         self.assertIn("Shop", names)
-        self.assertIn("Login", names)
+        self.assertIn("\u0110\u0103ng Nh\u1eadp", names)
+        self.assertIn("V\u00f2ng Quay Golden Spin", names)
+        self.assertNotIn("Golden Spin Retro Lessons", names)
+        self.assertNotIn("Golden Spin Weekend Live", names)
+        self.assertNotIn("Golden Spin Weekend Ready", names)
 
     def test_default_demo_samples_keep_three_statuses_for_new_game_triplets(self):
         samples = {item["id"]: item for item in app.default_sample_launches()}
