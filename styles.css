@@ -5429,3 +5429,66 @@ body.is-analyzing #traceConsoleBody::after {
     flex: 1 1 100%;
   }
 }
+
+
+.product-mode-picker {
+  margin: 18px 0 16px;
+  padding: 14px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 10px;
+}
+.product-mode-picker > span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.product-mode-options {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.85);
+}
+.product-mode-option {
+  border: 0;
+  padding: 8px 16px;
+  color: var(--muted);
+  background: transparent;
+}
+.product-mode-option.active {
+  color: #fff;
+  background: var(--ink);
+}
+.product-mode-picker small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.launch-card-lesson-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--muted);
+}
+.launch-card-lesson-badge.has-lesson {
+  border-color: rgba(22, 163, 74, 0.28);
+  color: #15803d;
+  background: rgba(220, 252, 231, 0.78);
+}
+.launch-card-lesson-badge.no-lesson {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #92400e;
+  background: rgba(254, 243, 199, 0.8);
+}

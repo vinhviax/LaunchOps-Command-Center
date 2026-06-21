@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260619e">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260619e">
+  <link rel="stylesheet" href="styles.css?v=fix-20260621a">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260621a">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -97,6 +97,14 @@
       </div>
       <h2 id="productSelectTitle">Bạn đang vận hành sản phẩm nào?</h2>
       <p id="productSelectSubtitle">Mỗi sản phẩm có bộ phân loại và template riêng. Chọn một sản phẩm để vào LaunchOps Command Center.</p>
+      <div class="product-mode-picker" aria-label="Choose LCC entry mode">
+        <span id="productModeLabel">Mode vao LCC</span>
+        <div class="product-mode-options" role="group" aria-label="Choose LCC entry mode">
+          <button type="button" class="product-mode-option mode-btn" data-mode="friendly" aria-pressed="false">Friendly</button>
+          <button type="button" class="product-mode-option mode-btn active" data-mode="pro" aria-pressed="true">Pro</button>
+        </div>
+        <small id="productModeHint">LCC se nho mode ban dung gan nhat.</small>
+      </div>
       <div class="product-grid">
         <button type="button" class="product-card" data-product="demo">
           <span class="product-badge" id="productDemoBadge">Demo</span>
@@ -1311,9 +1319,9 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
   </section>
   <button id="openCommunicationApps" class="comm-apps-launcher" type="button">Kết Nối Ứng Dụng Chat</button>
 
-  <script src="config.js?v=fix-20260619e"></script>
-  <script src="app.js?v=fix-20260619e"></script>
-  <script src="friendly-ui.js?v=fix-20260619e"></script>
-  <script src="i18n-clean.js?v=fix-20260619e"></script>
+  <script src="config.js?v=fix-20260621a"></script>
+  <script src="app.js?v=fix-20260621a"></script>
+  <script src="friendly-ui.js?v=fix-20260621a"></script>
+  <script src="i18n-clean.js?v=fix-20260621a"></script>
 </body>
 </html>

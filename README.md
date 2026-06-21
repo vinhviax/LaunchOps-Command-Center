@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 21/06/2026 — mã nguồn mới nhất trên GitHub và production live đều đã ở batch demo polish/cache `fix-20260619e`: sample/template/classification lock gọn hơn, mobile/topbar fixes, explorer `Danh Sách Launch`, và seed brief mẫu đã được chỉnh để demo có đủ Yellow/Green. Production live trên VNG AgentBase đang chạy image `v45`, runtime version 60, UI cache `fix-20260619e`, storage `cloud`, mode `remote_agents`.
+> C?p nh?t 21/06/2026 ? production live ?? l?n batch `fix-20260621a`: m?n ch?n s?n ph?m c? ch?n mode v?o LCC, d? li?u production reset v? ??ng 9 launch m?u m?i, auto chuy?n tr?ng th?i theo start/end, v? launch ?? ch?y c? nh?n b?i h?c. Production live tr?n VNG AgentBase ?ang ch?y image `v49`, runtime version 65, UI cache `fix-20260621a`, storage `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 

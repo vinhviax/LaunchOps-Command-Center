@@ -40,6 +40,8 @@
     } catch (e) { /* ignore */ }
   }
 
+  window.LaunchOpsApplyMode = applyMode;
+
   function closeFloatingAssistant() {
     var panel = document.getElementById('assistantPanel');
     if (!panel) return;

@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-21 — the latest GitHub source and live production are both on the demo polish/cache `fix-20260619e`: cleaner sample/template/classification locks, mobile/topbar fixes, the collapsible `Launch List` explorer, and retuned sample briefs for a clearer Yellow/Green demo spread. Live production on VNG AgentBase is running image `v45`, runtime version 60, UI cache `fix-20260619e`, storage `cloud`, mode `remote_agents`.
+> Updated 2026-06-21 ? live production is now on batch `fix-20260621a`: the product selector includes an LCC entry-mode choice, production data has been reset to exactly 9 new sample launches, status auto-moves by start/end time, and completed launch cards show lesson status. Live production on VNG AgentBase is running image `v49`, runtime version 65, UI cache `fix-20260621a`, storage `cloud`, mode `remote_agents`.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 

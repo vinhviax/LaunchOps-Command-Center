@@ -46,25 +46,25 @@ class LegacyEncodingRepairTests(unittest.TestCase):
 
     def test_golden_spin_sample_resets_lossy_text(self):
         damaged_brief = "M" + "?c ti" + "?u, " + "??i t??ng ho?c ph?m vi c?n m? h?."
-        launch = {"id": "golden-spin-may-retro", "brief": damaged_brief, "analyses": []}
+        launch = {"id": "golden-spin-retro-lessons", "brief": damaged_brief, "analyses": []}
         clean = app.sanitize_launch_for_response(launch)
-        self.assertEqual(clean["id"], "golden-spin-may-retro")
-        self.assertIn("Golden Spin tháng 5", clean["brief"])
+        self.assertEqual(clean["id"], "golden-spin-retro-lessons")
+        self.assertIn("Golden Spin Retro", clean["brief"])
         self.assertNotIn("??", clean["brief"])
 
     def test_default_demo_samples_include_all_game_template_triplets(self):
         samples = app.default_sample_launches()
         ids = {item["id"] for item in samples}
         self.assertEqual(ids, {
-            "golden-spin-may-retro",
-            "golden-spin-weekend-risk",
-            "golden-spin-weekend-v2-ready",
-            "monsoon-shop-retro",
-            "monsoon-shop-live",
-            "monsoon-shop-ready",
-            "hero-login-retro",
-            "hero-login-live",
-            "hero-login-ready",
+            "golden-spin-retro-lessons",
+            "golden-spin-live-risk",
+            "golden-spin-weekend-ready",
+            "storm-shop-retro",
+            "dragon-login-live",
+            "guild-boss-live",
+            "phoenix-shop-upcoming-red",
+            "login-comeback-upcoming-yellow",
+            "skin-vault-upcoming-green",
         })
         self.assertTrue({"lucky_spin_event", "game_event_h5"}.issuperset({item["type"] for item in samples}))
         self.assertFalse(any(item["id"].startswith("golden-spin-demo-") for item in samples))
@@ -76,12 +76,38 @@ class LegacyEncodingRepairTests(unittest.TestCase):
 
     def test_default_demo_samples_keep_three_statuses_for_new_game_triplets(self):
         samples = {item["id"]: item for item in app.default_sample_launches()}
-        self.assertEqual(samples["monsoon-shop-retro"]["status"], "completed")
-        self.assertEqual(samples["monsoon-shop-live"]["status"], "running")
-        self.assertEqual(samples["monsoon-shop-ready"]["status"], "upcoming")
-        self.assertEqual(samples["hero-login-retro"]["status"], "completed")
-        self.assertEqual(samples["hero-login-live"]["status"], "running")
-        self.assertEqual(samples["hero-login-ready"]["status"], "upcoming")
+        self.assertEqual(samples["golden-spin-retro-lessons"]["status"], "completed")
+        self.assertEqual(samples["golden-spin-live-risk"]["status"], "running")
+        self.assertEqual(samples["golden-spin-weekend-ready"]["status"], "upcoming")
+        self.assertEqual(samples["phoenix-shop-upcoming-red"]["status"], "upcoming")
+        self.assertEqual(samples["login-comeback-upcoming-yellow"]["status"], "upcoming")
+        self.assertEqual(samples["dragon-login-live"]["status"], "running")
+
+
+    def test_default_demo_samples_have_expected_scores_and_lessons(self):
+        samples = {item["id"]: item for item in app.default_sample_launches()}
+        golden_done = samples["golden-spin-retro-lessons"]
+        golden_live = samples["golden-spin-live-risk"]
+        golden_next = samples["golden-spin-weekend-ready"]
+        red_next = samples["phoenix-shop-upcoming-red"]
+        yellow_next = samples["login-comeback-upcoming-yellow"]
+        self.assertGreater(len(golden_done.get("lessonsLearned") or []), 0)
+        self.assertEqual(golden_live["analyses"][-1]["result"]["decision"]["color"], "Yellow")
+        self.assertEqual(golden_next["analyses"][-1]["result"]["decision"]["color"], "Green")
+        self.assertEqual(red_next["analyses"][-1]["result"]["decision"]["color"], "Red")
+        self.assertEqual(yellow_next["analyses"][-1]["result"]["decision"]["color"], "Yellow")
+
+    def test_auto_status_from_schedule(self):
+        now = app.datetime(2026, 6, 21, 12, 0)
+        upcoming, changed = app.apply_launch_time_status({"status": "running", "targetDate": "2026-06-22 09:00", "endDate": "2026-06-23 09:00"}, now)
+        self.assertTrue(changed)
+        self.assertEqual(upcoming["status"], "upcoming")
+        running, changed = app.apply_launch_time_status({"status": "upcoming", "targetDate": "2026-06-21 09:00", "endDate": "2026-06-22 09:00"}, now)
+        self.assertTrue(changed)
+        self.assertEqual(running["status"], "running")
+        completed, changed = app.apply_launch_time_status({"status": "running", "targetDate": "2026-06-19 09:00", "endDate": "2026-06-21 11:59"}, now)
+        self.assertTrue(changed)
+        self.assertEqual(completed["status"], "completed")
 
     def test_default_demo_samples_have_required_launch_times(self):
         for launch in app.default_sample_launches():
@@ -238,31 +264,37 @@ class NormalizeAndSlugTests(unittest.TestCase):
         }, now=app.datetime(2026, 6, 17, 12, 0))
         self.assertEqual(result["error"], "end_before_start")
 
-    def test_schedule_rejects_running_or_upcoming_when_end_is_past(self):
-        result = app.validate_launch_schedule_rules({
+    def test_schedule_auto_status_allows_end_in_past(self):
+        launch = {
             "status": "running",
             "targetDate": "15/06/2026 08:30",
             "endDate": "16/06/2026 23:59",
-        }, now=app.datetime(2026, 6, 17, 12, 0))
-        self.assertEqual(result["error"], "end_in_past_status")
+        }
+        now = app.datetime(2026, 6, 17, 12, 0)
+        self.assertIsNone(app.validate_launch_schedule_rules(launch, now=now))
+        self.assertEqual(app.launch_status_from_schedule(launch, now), "completed")
 
-    def test_schedule_rejects_upcoming_when_start_is_past(self):
-        result = app.validate_launch_schedule_rules({
+    def test_schedule_auto_status_allows_start_in_past(self):
+        launch = {
             "status": "upcoming",
             "targetDate": "16/06/2026 08:30",
             "endDate": "18/06/2026 23:59",
-        }, now=app.datetime(2026, 6, 17, 12, 0))
-        self.assertEqual(result["error"], "start_in_past_upcoming")
+        }
+        now = app.datetime(2026, 6, 17, 12, 0)
+        self.assertIsNone(app.validate_launch_schedule_rules(launch, now=now))
+        self.assertEqual(app.launch_status_from_schedule(launch, now), "running")
 
-    def test_schedule_rejects_running_or_completed_when_start_is_future(self):
+    def test_schedule_auto_status_allows_start_in_future(self):
         for status in ("running", "completed"):
             with self.subTest(status=status):
-                result = app.validate_launch_schedule_rules({
+                launch = {
                     "status": status,
                     "targetDate": "20/06/2026 08:30",
                     "endDate": "22/06/2026 23:59",
-                }, now=app.datetime(2026, 6, 17, 12, 0))
-                self.assertEqual(result["error"], "start_in_future_not_started")
+                }
+                now = app.datetime(2026, 6, 17, 12, 0)
+                self.assertIsNone(app.validate_launch_schedule_rules(launch, now=now))
+                self.assertEqual(app.launch_status_from_schedule(launch, now), "upcoming")
 
     def test_schedule_allows_completed_past_launch(self):
         result = app.validate_launch_schedule_rules({
@@ -812,8 +844,8 @@ class LaunchOpsMcpToolTests(unittest.TestCase):
 
     def test_update_latest_checklist_rejects_locked_sample(self):
         sample = app.save_launch_payload({
-            "id": "golden-spin-weekend-risk",
-            "name": "Golden Spin Weekend Risk",
+            "id": "golden-spin-live-risk",
+            "name": "Golden Spin Weekend Live",
             "brief": "Sample launch.",
             "isSample": True,
         })

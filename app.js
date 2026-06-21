@@ -279,6 +279,15 @@ const TEMPLATE_EDITING_LOCKED = false;
 const ROLE_SWITCH_LOCKED = false;
 const LOCKED_LAUNCH_ROLE = "human";
 const SAMPLE_LAUNCH_IDS = [
+  "golden-spin-retro-lessons",
+  "golden-spin-live-risk",
+  "golden-spin-weekend-ready",
+  "storm-shop-retro",
+  "dragon-login-live",
+  "guild-boss-live",
+  "phoenix-shop-upcoming-red",
+  "login-comeback-upcoming-yellow",
+  "skin-vault-upcoming-green",
   "golden-spin-may-retro",
   "golden-spin-weekend-risk",
   "golden-spin-weekend-v2-ready",
@@ -1126,223 +1135,125 @@ const luckySpinGreenResult = {
   ]
 };
 
+function sampleLaunchDate(days, hour, minute = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, minute, 0, 0);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mi = String(date.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
+function sampleAnalysisResult(color, score, title, reason) {
+  const result = buildLocalAnalysisResult(reason, "memory_sample");
+  result.source = "memory_sample";
+  result.decision = { color, score, maxScore: 12, title, reason };
+  const scoreMap = { Green: [2, 2, 2, 2, 2, 2], Yellow: [2, 1, 1, 1, 1, 2], Red: [1, 0, 0, 1, 0, 1] };
+  const groupScores = scoreMap[color] || [1, 1, 1, 1, 1, 1];
+  const labels = ["Goal and segment", "Mechanic or offer", "Ops guardrail", "Anti-abuse or payment", "CS and comms", "Monitoring and rollback"];
+  result.riskBreakdown = labels.map((label, index) => ({ label, score: groupScores[index], maxScore: 2, missing: groupScores[index] === 2 ? "Ready." : "Need to close before launch." }));
+  result.topRisks = color === "Green" ? [] : ["Missing guardrail makes pause decisions unclear.", "CS can overload if copy or FAQ is not closed.", "Dashboard is not enough to catch first-30-minute issues."];
+  result.redTeam = color === "Green" ? [] : [
+    { persona: "Angry player", worry: "Players may not understand reward conditions or claim failures.", evidence: "Brief needs clear copy and case-based FAQ.", fix: "Close in-game message, FAQ and escalation before T-1." },
+    { persona: "Tech on-call", worry: "The team may not know when to pause.", evidence: "Brief needs dashboard and concrete error thresholds.", fix: "Add alert, kill switch and named pause owner." },
+    { persona: "Business owner", worry: "Reward cost or cohort can go out of control.", evidence: "Brief needs cap, segment and approval owner.", fix: "Lock cap, segment and offer/reward shutoff rule." }
+  ];
+  result.checklist = [
+    { task: "Close KPI, segment and launch duty owner", owner: "PM", deadline: "T-2 days", status: color === "Green" ? "Done" : "Todo", priority: "High" },
+    { task: "Lock reward or offer guardrail and pause threshold", owner: "Business Owner", deadline: "T-1 day", status: color === "Green" ? "Done" : "Todo", priority: "High" },
+    { task: "Prepare CS FAQ and in-game message", owner: "CS Lead", deadline: "T-1 day", status: color === "Green" ? "Done" : "Todo", priority: "High" },
+    { task: "Open realtime dashboard and test rollback", owner: "Tech on-call", deadline: "T-1 day", status: color === "Green" ? "Done" : "Todo", priority: "High" }
+  ];
+  return result;
+}
+
+function sampleAnalysis(id, brief, color, score, title, reason) {
+  return [{ id: `analysis-${id}`, createdAt: DEMO_CREATED_AT, briefSnapshot: brief.slice(0, 2000), result: sampleAnalysisResult(color, score, title, reason) }];
+}
+
+const goldenRetroBrief = `Launch name: Golden Spin Retro Lessons.
+
+Status: Completed.
+
+Golden Spin ran last month to lift weekend login and small top-up packages. Players got 1 free spin per login day and extra spins from 49k/99k packages. Rewards included coupons, skin shards and 600 rare items.
+
+Actual result: login +7%, small package revenue +9%, but CS tickets spiked in the first 8 hours because reset time 05:00 and disconnect cases were not clear. A group of alt accounts farmed spins before the team added a manual rule.
+
+Saved lesson: every Lucky Spin brief needs reset time, reward cap, eligibility, anti-abuse dashboard, CS FAQ and kill switch before opening.`;
+const goldenLiveBrief = `Launch name: Golden Spin Weekend Live.
+
+Status: Running.
+
+Goal is weekend login +8% and small package revenue +10%. Event is live for level 10+ accounts created before the cutoff. Login gives 1 spin, small package top-up gives up to 3 extra spins per day.
+
+Ready: reward cap, spin success / reward delivery dashboard, and Tech on-call for peak hour.
+
+Watch items: device abuse rule is still soft, CS FAQ misses disconnect-during-spin cases, and ticket pause threshold is recommended but not yet signed by Business owner.`;
+const goldenReadyBrief = `Launch name: Golden Spin Weekend Ready.
+
+Status: Upcoming.
+
+This Golden Spin version applies old lessons: reset 05:00 is visible in popup, eligibility is level 10+ and account before cutoff, max 9 spins per account, abuse/refund accounts excluded.
+
+Reward cap is 150M, rare item shuts off at 95% cap, dashboard covers spin success/reward delivery/ticket/abuse, kill switch passed staging, CS FAQ covers lost spin, out of stock, delayed reward and disconnect.
+
+War room opens 30 minutes before launch. T+48h post-mortem must record lessons for next month.`;
+const stormShopBrief = `Launch name: Storm Gem Shop Retro.
+
+Status: Completed.
+
+Storm shop sold gem bundles and lightning skin effects for returning payers in 72 hours. Revenue beat target by 11%, but payment failures rose at peak hour, one bundle looked like it could be bought multiple times, and CS handled refund cases manually.
+
+No formal lesson was added after launch, so the next checklist cannot reuse the finding yet.`;
+const dragonLoginBrief = `Launch name: Dragon Login Streak Live.
+
+Status: Running.
+
+Seven-day login streak for players returning after 14 days. Reset rule is 05:00, reward milestones are day 1/3/5/7, day 7 has limited dragon skin. Retention and claim success dashboards are open.
+
+Current risks: day-5 reminder is not segmented by timezone, duplicate-claim check is still soft flag, and lost-streak CS macro only exists in Vietnamese.`;
+const guildBossBrief = `Launch name: Guild Boss Rush Live.
+
+Status: Running.
+
+Weekend co-op event where guilds fight bosses from 20:00 to 22:00. KPI is active guild count and party battle count. Rewards use personal damage milestones and guild total damage.
+
+LiveOps and Tech owners are assigned, but leaderboard delay was 3-5 minutes on staging, tie-break rule is unclear, and reward rollback still needs Economy confirmation.`;
+const phoenixRedBrief = `Launch name: Phoenix Flash Sale Risk.
+
+Status: Upcoming.
+
+Two-hour Phoenix skin flash sale planned with a social campaign. Brief has revenue target and item list, but no payment owner, refund runbook, rare item cap, queue plan for CCU spike, CS FAQ or pause threshold.
+
+Big risk: if payment fails or price is wrong, CS has no macro and nobody is clearly allowed to shut off the offer.`;
+const comebackYellowBrief = `Launch name: Comeback Login Sprint.
+
+Status: Upcoming.
+
+Five-day login sprint for players inactive for 30 days. Cohort, D1/D5 login KPI, reward cap and claim success dashboard are ready.
+
+Missing: copy for lost streak, duplicate-claim check for alt accounts, weekend CS schedule and pause rule when claim error exceeds 1%.`;
+const skinGreenBrief = `Launch name: Skin Vault Preview Ready.
+
+Status: Upcoming.
+
+Preview new skin vault for old payers, allowing browse and purchase reminder opt-in. No payment is charged during preview; only click, wishlist and intent survey are measured.
+
+KPI, segment, copy, click/wishlist dashboard, banner rollback, CS FAQ for sale-date confusion and duty owner are ready. Economy risk is low because there is no reward grant or payment charge.`;
+
 const fallbackLaunches = [
-  {
-    id: "golden-spin-may-retro",
-    name: "Golden Spin tháng 5 Retro",
-    type: LUCKY_SPIN_TYPE,
-    status: "completed",
-    owner: "LiveOps Lead",
-    targetDate: "2026-05-29 20:00",
-    endDate: "2026-05-31 23:59",
-    brief: luckySpinRetroBrief,
-    template: LUCKY_SPIN_EVENT_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [
-      {
-        id: "analysis-golden-spin-may-retro",
-        createdAt: new Date("2026-06-01T09:00:00+07:00").toISOString(),
-        briefSnapshot: luckySpinRetroBrief.slice(0, 2000),
-        result: { ...luckySpinYellowResult, decision: { ...luckySpinYellowResult.decision, score: 8, title: "Launch tháng 5 chạy được nhưng để lại rủi ro lặp lại" } }
-      }
-    ],
-    postLaunchResult: "Golden Spin tháng 5 đạt mục tiêu login và doanh thu nhẹ, reward cost trong cap, nhưng ticket CS tăng trong 8 giờ đầu vì reset ngày, phát quà chậm và case mất lượt. Có 37 tài khoản phụ farm lượt quay trước khi team siết thủ công.",
-    lessonsLearned: [
-      { id: "lesson-golden-spin-reset", createdAt: new Date("2026-06-01T10:00:00+07:00").toISOString(), text: "Golden Spin phải ghi rõ reset ngày 05:00, điều kiện nhận lượt và ví dụ mất lượt ngay trong in-game message." },
-      { id: "lesson-golden-spin-cs", createdAt: new Date("2026-06-01T10:05:00+07:00").toISOString(), text: "CS FAQ phải có macro cho mất lượt, hết quà, phát quà chậm và escalation khi ticket gấp 2 baseline." },
-      { id: "lesson-golden-spin-abuse", createdAt: new Date("2026-06-01T10:10:00+07:00").toISOString(), text: "Event quay thưởng phải có eligibility, giới hạn lượt/ngày và dashboard abuse trước khi mở." }
-    ],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "golden-spin-weekend-risk",
-    name: "Golden Spin Weekend Risk",
-    type: LUCKY_SPIN_TYPE,
-    status: "upcoming",
-    owner: "PM LiveOps",
-    targetDate: "2026-06-19 20:00",
-    endDate: "2026-06-21 23:59",
-    brief: badBrief,
-    template: LUCKY_SPIN_EVENT_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [
-      { title: "Áp dụng lesson reset ngày", suggestion: "Thêm reset 05:00 và ví dụ mất lượt vào in-game message.", severity: "High" },
-      { title: "Áp dụng lesson chống farm", suggestion: "Thêm tuổi tài khoản, giới hạn lượt/ngày và abuse dashboard.", severity: "High" }
-    ],
-    analyses: [
-      {
-        id: "analysis-golden-spin-weekend-risk",
-        createdAt: new Date("2026-06-16T08:30:00+07:00").toISOString(),
-        briefSnapshot: badBrief.slice(0, 2000),
-        result: luckySpinYellowResult
-      }
-    ],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "golden-spin-weekend-v2-ready",
-    name: "Golden Spin Weekend v2 Ready",
-    type: LUCKY_SPIN_TYPE,
-    status: "upcoming",
-    owner: "PM LiveOps + Tech on-call",
-    targetDate: "2026-06-20 20:00",
-    endDate: "2026-06-22 23:59",
-    brief: luckySpinReadyBrief,
-    template: LUCKY_SPIN_EVENT_TEMPLATE,
-    templateVersions: [
-      { version: 1, createdAt: new Date("2026-06-16T07:30:00+07:00").toISOString(), template: LUCKY_SPIN_EVENT_TEMPLATE }
-    ],
-    lessonSuggestions: [],
-    analyses: [
-      {
-        id: "analysis-golden-spin-weekend-v2-ready",
-        createdAt: new Date("2026-06-16T09:00:00+07:00").toISOString(),
-        briefSnapshot: luckySpinReadyBrief.slice(0, 2000),
-        result: luckySpinGreenResult
-      }
-    ],
-    postLaunchResult: "",
-    lessonsLearned: [
-      { id: "lesson-applied-golden-spin-reset", createdAt: new Date("2026-06-16T09:05:00+07:00").toISOString(), text: "Đã áp dụng lesson tháng 5: reset 05:00, CS FAQ, reward cap, anti-abuse và dashboard realtime đều nằm trong brief trước khi chạy." }
-    ],
-    checklistProgress: {
-      "kiem tra dashboard spin success/reward delivery truoc gio mo|tech on-call|19/06/2026 19:30": true,
-      "duyet reward cap va rule tat item hiem o 95% cap|business owner|t-1 ngay": true,
-      "brief cs 2 ca truc voi macro mat luot/het qua/phat cham|cs lead|t-1 ngay": true
-    },
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "monsoon-shop-retro",
-    name: "Monsoon Gem Shop Retro",
-    type: "Game event",
-    status: "completed",
-    owner: "PM Monetization",
-    targetDate: "2026-06-02 09:00",
-    endDate: "2026-06-05 23:59",
-    brief: shopRetroBrief,
-    template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "monsoon-shop-live",
-    name: "Mùa Hè Sôi Động Shop Ingame",
-    type: "Game event",
-    status: "running",
-    owner: "Commercial Owner",
-    targetDate: "2026-06-17 09:00",
-    endDate: "2026-06-19 23:59",
-    brief: shopLiveBrief,
-    template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "monsoon-shop-ready",
-    name: "Festival Shop Premium Ready",
-    type: "Game event",
-    status: "upcoming",
-    owner: "LiveOps Lead",
-    targetDate: "2026-06-24 09:00",
-    endDate: "2026-06-27 23:59",
-    brief: shopReadyBrief,
-    template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "hero-login-retro",
-    name: "Hành Trình Đăng Nhập 7 Ngày Retro",
-    type: "Game event",
-    status: "completed",
-    owner: "Retention PM",
-    targetDate: "2026-05-26 05:00",
-    endDate: "2026-06-01 23:59",
-    brief: loginRetroBrief,
-    template: LOGIN_STREAK_RETENTION_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "hero-login-live",
-    name: "Đăng Nhập Nhận Quà Hè",
-    type: "Game event",
-    status: "running",
-    owner: "LiveOps PM",
-    targetDate: "2026-06-17 05:00",
-    endDate: "2026-06-23 23:59",
-    brief: loginLiveBrief,
-    template: LOGIN_STREAK_RETENTION_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  },
-  {
-    id: "hero-login-ready",
-    name: "Login Streak Festival Ready",
-    type: "Game event",
-    status: "upcoming",
-    owner: "Retention PM",
-    targetDate: "2026-06-25 05:00",
-    endDate: "2026-07-01 23:59",
-    brief: loginReadyBrief,
-    template: LOGIN_STREAK_RETENTION_TEMPLATE,
-    templateVersions: [],
-    lessonSuggestions: [],
-    analyses: [],
-    postLaunchResult: "",
-    lessonsLearned: [],
-    checklistProgress: {},
-    redTeamBriefSupplements: {},
-    createdAt: DEMO_CREATED_AT,
-    updatedAt: DEMO_CREATED_AT
-  }
+  { id: "golden-spin-retro-lessons", name: "Golden Spin Retro Lessons", type: LUCKY_SPIN_TYPE, status: "completed", owner: "LiveOps Lead", targetDate: sampleLaunchDate(-10, 20), endDate: sampleLaunchDate(-8, 23, 59), brief: goldenRetroBrief, template: LUCKY_SPIN_EVENT_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("golden-spin-retro-lessons", goldenRetroBrief, "Yellow", 8, "Golden Spin has reusable lessons", "Launch hit KPI but left reset, CS and abuse risks."), postLaunchResult: "Login and revenue targets passed, but lost-spin tickets and alt-account abuse appeared.", lessonsLearned: [{ id: "lesson-golden-spin-reset", createdAt: DEMO_CREATED_AT, text: "Golden Spin must include reset 05:00, reward cap, eligibility, anti-abuse dashboard and CS FAQ before opening." }], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "golden-spin-live-risk", name: "Golden Spin Weekend Live", type: LUCKY_SPIN_TYPE, status: "running", owner: "PM LiveOps", targetDate: sampleLaunchDate(-1, 20), endDate: sampleLaunchDate(2, 23, 59), brief: goldenLiveBrief, template: LUCKY_SPIN_EVENT_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("golden-spin-live-risk", goldenLiveBrief, "Yellow", 8, "Golden Spin live needs tighter guardrail", "Ready enough to run but CS, abuse and pause threshold still need watching."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "golden-spin-weekend-ready", name: "Golden Spin Weekend Ready", type: LUCKY_SPIN_TYPE, status: "upcoming", owner: "PM LiveOps + Tech", targetDate: sampleLaunchDate(3, 20), endDate: sampleLaunchDate(5, 23, 59), brief: goldenReadyBrief, template: LUCKY_SPIN_EVENT_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("golden-spin-weekend-ready", goldenReadyBrief, "Green", 12, "Golden Spin upcoming is ready", "Old lessons are applied; guardrail, CS, dashboard and rollback are ready."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "storm-shop-retro", name: "Storm Gem Shop Retro", type: "Game event", status: "completed", owner: "Commercial Owner", targetDate: sampleLaunchDate(-14, 9), endDate: sampleLaunchDate(-12, 23, 59), brief: stormShopBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("storm-shop-retro", stormShopBrief, "Yellow", 7, "Shop completed but lesson is missing", "Payment/refund issue happened but lessonsLearned is still empty."), postLaunchResult: "Revenue beat target but payment/refund cases overloaded CS.", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "dragon-login-live", name: "Dragon Login Streak Live", type: "Game event", status: "running", owner: "Retention PM", targetDate: sampleLaunchDate(-2, 5), endDate: sampleLaunchDate(4, 23, 59), brief: dragonLoginBrief, template: LOGIN_STREAK_RETENTION_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("dragon-login-live", dragonLoginBrief, "Yellow", 9, "Login streak live has a few ops gaps", "Needs timezone reminder, duplicate claim and EN CS macro."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "guild-boss-live", name: "Guild Boss Rush Live", type: "Game event", status: "running", owner: "Game PM", targetDate: sampleLaunchDate(-1, 20), endDate: sampleLaunchDate(1, 22), brief: guildBossBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("guild-boss-live", guildBossBrief, "Yellow", 7, "Guild Boss needs leaderboard check", "Leaderboard delay and tie-break rule can cause complaints."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "phoenix-shop-upcoming-red", name: "Phoenix Flash Sale Risk", type: "Game event", status: "upcoming", owner: "Commercial PM", targetDate: sampleLaunchDate(1, 19), endDate: sampleLaunchDate(1, 21), brief: phoenixRedBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("phoenix-shop-upcoming-red", phoenixRedBrief, "Red", 3, "Flash sale should not open yet", "Missing payment owner, refund, cap, queue, CS FAQ and pause threshold."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "login-comeback-upcoming-yellow", name: "Comeback Login Sprint", type: "Game event", status: "upcoming", owner: "Retention PM", targetDate: sampleLaunchDate(2, 5), endDate: sampleLaunchDate(6, 23, 59), brief: comebackYellowBrief, template: LOGIN_STREAK_RETENTION_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("login-comeback-upcoming-yellow", comebackYellowBrief, "Yellow", 8, "Comeback sprint is close but not done", "KPI, cohort and cap are ready, but lost-streak copy, anti-abuse and CS roster are missing."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "skin-vault-upcoming-green", name: "Skin Vault Preview Ready", type: "Game event", status: "upcoming", owner: "Product Marketing", targetDate: sampleLaunchDate(4, 10), endDate: sampleLaunchDate(6, 22), brief: skinGreenBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("skin-vault-upcoming-green", skinGreenBrief, "Green", 12, "Skin Vault Preview is ready", "Preview has no payment; KPI, segment, copy, dashboard and rollback are ready."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true }
 ];
 
 const MOJIBAKE_MARKERS = [
@@ -3662,12 +3573,16 @@ function renderLaunchGroups() {
         const badgeLabel = launch.decision
           ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
           : tr("Chưa chấm", "Not scored");
+        const lessonBadge = status === "completed"
+          ? `<span class="launch-card-lesson-badge ${lessonCount > 0 ? "has-lesson" : "no-lesson"}">${escapeHTML(lessonCount > 0 ? tr("C\u00f3 b\u00e0i h\u1ecdc", "Lesson added") : tr("Ch\u01b0a c\u00f3 b\u00e0i h\u1ecdc", "No lesson yet"))}</span>`
+          : "";
         return `
           <button class="launch-card ${isActive ? "active" : ""} readiness-${escapeHTML(readinessClass)}" type="button" data-launch-id="${escapeHTML(launch.id)}" aria-label="Mở chi tiết ${escapeHTML(launchNameText)}. ${escapeHTML(readinessLabel)}" title="${escapeHTML(readinessLabel)}">
             <span class="launch-card-badge readiness-${escapeHTML(readinessClass)}">${escapeHTML(badgeLabel)}</span>
             <strong>${escapeHTML(launchNameText)}</strong>
             <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(templateNameText)}</small>
             <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : tr("Chưa có owner", "No owner yet"))} · ${escapeHTML(lastSavedLabel)}</small>
+            ${lessonBadge}
             <span class="launch-card-history ${lastSavedAt ? "" : "empty"}">
               <span>${tr("Lịch sử đã lưu", "Saved history")}</span>
               <strong>${escapeHTML(analysisCount)} ${tr("phân tích", "analyses")} · ${escapeHTML(lessonCount)} ${tr("bài học", "lessons")}</strong>
@@ -3730,12 +3645,17 @@ function renderLaunchGroupsFallback(error) {
           const badge = launch.decision
             ? `${colorLabel(launch.decision.color || "Yellow")} ${launch.decision.score ?? 0}/${launch.decision.maxScore || templateMax(defaultTemplateForType(launch.type || "Game event"))}`
             : tr("Chưa chấm", "Not scored");
+          const lessonCount = Number(launch.lessonCount) || 0;
+          const lessonBadge = status === "completed"
+            ? `<span class="launch-card-lesson-badge ${lessonCount > 0 ? "has-lesson" : "no-lesson"}">${escapeHTML(lessonCount > 0 ? tr("C\u00f3 b\u00e0i h\u1ecdc", "Lesson added") : tr("Ch\u01b0a c\u00f3 b\u00e0i h\u1ecdc", "No lesson yet"))}</span>`
+            : "";
           return `
             <button class="launch-card ${active ? "active" : ""} readiness-${escapeHTML(readinessClass)}" type="button" data-launch-id="${escapeHTML(launch.id)}">
               <span class="launch-card-badge readiness-${escapeHTML(readinessClass)}">${escapeHTML(badge)}</span>
               <strong>${escapeHTML(launch.name || "Launch chưa đặt tên")}</strong>
               <small class="launch-card-meta-line">${escapeHTML(typeLabel(launch.type))} · ${escapeHTML(launch.templateName || "")}</small>
               <small class="launch-card-owner-line">${escapeHTML(launch.owner ? ownerLabel(launch.owner) : tr("Chưa có owner", "No owner yet"))} · ${escapeHTML(launch.latestHistoryAt ? formatDate(launch.latestHistoryAt) : tr("Chưa có lịch sử", "No history"))}</small>
+              ${lessonBadge}
             </button>
           `;
         }).join("")
@@ -7453,6 +7373,7 @@ function closeIntroModal() {
 
 function openProductSelect() {
   if (!productSelect) return;
+  syncProductModePicker();
   productSelect.classList.remove("closed");
   productSelect.setAttribute("aria-hidden", "false");
 }
@@ -7463,12 +7384,31 @@ function closeProductSelect() {
   productSelect.setAttribute("aria-hidden", "true");
 }
 
-function forceProModeForProductEntry() {
-  try { localStorage.setItem("launchops_ui_mode", "pro"); } catch (error) {}
-  document.body.classList.remove("ui-mode-friendly");
-  document.body.classList.add("ui-mode-pro");
-  document.querySelectorAll(".mode-btn[data-mode]").forEach((button) => {
-    const active = button.dataset.mode === "pro";
+function currentSelectedUiMode() {
+  const selected = document.querySelector(".product-mode-option.active[data-mode]");
+  if (selected?.dataset?.mode) return selected.dataset.mode;
+  try { return localStorage.getItem("launchops_ui_mode") || "pro"; } catch (error) { return "pro"; }
+}
+
+function applyProductSelectedUiMode(mode) {
+  const selectedMode = mode === "friendly" ? "friendly" : "pro";
+  try { localStorage.setItem("launchops_ui_mode", selectedMode); } catch (error) {}
+  if (window.LaunchOpsApplyMode) window.LaunchOpsApplyMode(selectedMode);
+  else {
+    document.body.classList.remove("ui-mode-friendly", "ui-mode-pro");
+    document.body.classList.add(`ui-mode-${selectedMode}`);
+    document.querySelectorAll(".mode-btn[data-mode]").forEach((button) => {
+      const active = button.dataset.mode === selectedMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+}
+
+function syncProductModePicker() {
+  const mode = currentSelectedUiMode();
+  document.querySelectorAll(".product-mode-option[data-mode]").forEach((button) => {
+    const active = button.dataset.mode === mode;
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", active ? "true" : "false");
   });
@@ -7477,7 +7417,7 @@ function forceProModeForProductEntry() {
 function selectProduct(id) {
   if (id !== "demo") return; // Product XYZ is locked in this demo
   try { localStorage.setItem("launchops_product", id); } catch (error) {}
-  forceProModeForProductEntry();
+  applyProductSelectedUiMode(currentSelectedUiMode());
   closeProductSelect();
 }
 
@@ -7636,9 +7576,15 @@ closeIntroModalButton?.addEventListener("click", closeIntroModal);
 enterDemoFromIntroButton?.addEventListener("click", closeIntroModal);
 
 productSelect?.addEventListener("click", (event) => {
+  const modeButton = event.target.closest(".product-mode-option[data-mode]");
+  if (modeButton) {
+    applyProductSelectedUiMode(modeButton.dataset.mode);
+    syncProductModePicker();
+    return;
+  }
   const card = event.target.closest(".product-card");
   if (!card) return;
-  if (card.classList.contains("locked")) {
+  if (card.classList.contains("locked") || card.dataset.product === "locked") {
     showLockedProductMessage();
     return;
   }
@@ -7733,7 +7679,7 @@ appendAssistantMessage(
 );
 
 document.getElementById("loadBadBrief").addEventListener("click", () => {
-  const sample = cloneData(fallbackLaunches.find((launch) => launch.id === "golden-spin-weekend-risk") || fallbackLaunches[0]);
+  const sample = cloneData(fallbackLaunches.find((launch) => launch.id === "golden-spin-live-risk") || fallbackLaunches[0]);
   sample.id = "";
   sample.name = tr("Brief Mẫu", "Sample Brief");
   sample.analyses = [];

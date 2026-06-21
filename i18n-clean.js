@@ -129,6 +129,8 @@ const CLEAN_I18N_DICT = {
     productTitle: "Bạn đang vận hành sản phẩm nào?",
     productSubtitle: "Mỗi sản phẩm có bộ phân loại và template riêng. Chọn một sản phẩm để vào LaunchOps Command Center.",
     productDemoDesc: "Bản demo dùng chung — đầy đủ phân loại mẫu (game event, marketing, feature release...).",
+    productModeLabel: "Mode vao LCC",
+    productModeHint: "LCC se nho mode ban dung gan nhat.",
     productDemoCta: "Vào →",
     productLockBadge: "Sắp có",
     productLockedTitle: "Sản Phẩm XYZ",
@@ -289,6 +291,8 @@ const CLEAN_I18N_DICT = {
     productTitle: "Which product are you operating?",
     productSubtitle: "Each product has its own classifications and templates. Pick one to enter LaunchOps Command Center.",
     productDemoDesc: "Shared demo build — full sample classifications (game event, marketing, feature release...).",
+    productModeLabel: "LCC entry mode",
+    productModeHint: "LCC remembers your most recent mode.",
     productDemoCta: "Enter →",
     productLockBadge: "Coming soon",
     productLockedTitle: "Product XYZ",
@@ -1025,6 +1029,8 @@ function applyCleanTranslations(lang) {
   }
   setTextById("productSelectTitle", dict.productTitle);
   setTextById("productSelectSubtitle", dict.productSubtitle);
+  setTextById("productModeLabel", dict.productModeLabel);
+  setTextById("productModeHint", dict.productModeHint);
   setTextById("productDemoDesc", dict.productDemoDesc);
   setTextById("productDemoCta", dict.productDemoCta);
   setTextById("productLockBadge", dict.productLockBadge);
