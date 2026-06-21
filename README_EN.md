@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-21 ? live production is now on hotfix `fix-20260621b`: fixed the Demo intro screen where the X / Enter Demo buttons could not be clicked because of a JS bootstrap crash. Live production on VNG AgentBase is running image `v50`, runtime version 66, UI cache `fix-20260621b`, storage `cloud`, mode `remote_agents`; data remains the exact 9 refreshed sample launches with auto status and lesson labels.
+> Updated 2026-06-21 - live production is now on hotfix `fix-20260621b`: fixed the Demo intro screen where the X / Enter Demo buttons could not be clicked because of a JS bootstrap crash. Live production on VNG AgentBase is running image `v50`, runtime version 66, UI cache `fix-20260621b`, storage `cloud`, mode `remote_agents`; data remains the exact 9 refreshed sample launches with auto status and lesson labels.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
