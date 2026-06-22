@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-21 - the live demo has been polished with cleaner sample content and UI copy for a steadier review experience.
+> Updated 2026-06-22 - the sample set now has 9 fuller launches split across 3 completed / 3 running / 3 upcoming scenarios; analysis, checklist, and lesson output follows the brief language.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
@@ -159,12 +159,12 @@ Every agent calls an OpenAI-compatible `/v1/chat/completions`. To give each agen
 
 For remote multi-agent, RAG, and Cloud DB like production, provision your own resources and fill your own `.env` (see [Env](#env)): VNG MaaS key, Cloud DB/PostgreSQL, AgentBase Memory/knowledge store(s), and 4 child runtimes. MCP Gateway is an optional integration path; the self-host channel skill can connect straight to the backend. Missing any piece, the app falls back safely: no DB → local; no Memory → memory off; no child → monolith in one runtime; no key → local rules.
 
-## Demo flow (Golden Spin)
+## Demo flow (sample launches)
 
-1. **Live brief with risk** — `Vòng Quay Golden Spin Đang Chạy` → Yellow readiness, 5-persona Red Team + a checklist to watch.
-2. **Learn from retro** — `Vòng Quay Golden Spin Đã Chạy` holds a stored lesson; it is recalled to ground the next analysis.
-3. **Ready brief** — `Vòng Quay Golden Spin Sắp Chạy` applied lessons → Green 12/12; at full score there are no open risks/Red Team, and any new risk is recorded under Post-launch result to become the next lesson.
-4. **Multi-agent proof** — open the trace tab to see `orchestration.mode=remote_agents`, 4 `remote_runtime` children, each recalling from its own store.
+1. **Completed with lessons** — the completed group has 1 Red (`Shop Đá Quý Bão Tố Đã Chạy`) and 2 Yellow launches; each has post-result + lessons for later recall.
+2. **Running now** — the running group has `Xem Trước Kho Skin Đang Chạy` as Green and 2 Yellow launches to monitor (`Vòng Quay Golden Spin Đang Chạy`, `Đua Boss Bang Hội Đang Chạy`).
+3. **Upcoming** — the upcoming group has 2 Green launches (`Vòng Quay Golden Spin Sắp Chạy`, `Festival Skin Phoenix Sắp Chạy`) and 1 Yellow (`Chuỗi Đăng Nhập Comeback Sắp Chạy`).
+4. **Multi-agent proof** — open the trace tab to see rubric-based readiness, agent-generated Red Team/checklist/post-mortem output, and completed-launch lessons reused as context.
 
 Click **Load Sample Brief** or **Demo mode** to load it quickly.
 
@@ -176,7 +176,7 @@ Click **Load Sample Brief** or **Demo mode** to load it quickly.
 - **Archive:** deleted user launches move to the Archive tab inside Config, where Admins can review, restore, or purge them; the public review build keeps it view-only while locked.
 - **Seed data:** sample launches, sample classifications, and sample templates are immutable for normal users; users can still create, edit, and delete their own custom data without damaging the demo set.
 - **Log:** view client events + server trace per launch in Pro mode (read-only in the public review build).
-- **VI/EN:** bilingual UI; LLM output follows the brief's language.
+- **VI/EN:** bilingual UI; analysis, checklist, and lesson output follows the brief language (Vietnamese brief returns Vietnamese, English brief returns English).
 
 ## MCP and tools
 

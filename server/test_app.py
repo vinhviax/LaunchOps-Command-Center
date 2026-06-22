@@ -86,7 +86,8 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertEqual(samples["golden-spin-weekend-ready"]["status"], "upcoming")
         self.assertEqual(samples["phoenix-shop-upcoming-red"]["status"], "upcoming")
         self.assertEqual(samples["login-comeback-upcoming-yellow"]["status"], "upcoming")
-        self.assertEqual(samples["dragon-login-live"]["status"], "running")
+        self.assertEqual(samples["dragon-login-live"]["status"], "completed")
+        self.assertEqual(samples["skin-vault-upcoming-green"]["status"], "running")
 
 
     def test_default_demo_samples_have_expected_scores_and_lessons(self):
@@ -96,11 +97,86 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         golden_next = samples["golden-spin-weekend-ready"]
         red_next = samples["phoenix-shop-upcoming-red"]
         yellow_next = samples["login-comeback-upcoming-yellow"]
+        running_green = samples["skin-vault-upcoming-green"]
         self.assertGreater(len(golden_done.get("lessonsLearned") or []), 0)
+        self.assertEqual(golden_done["analyses"][-1]["result"]["decision"]["color"], "Yellow")
         self.assertEqual(golden_live["analyses"][-1]["result"]["decision"]["color"], "Yellow")
         self.assertEqual(golden_next["analyses"][-1]["result"]["decision"]["color"], "Green")
-        self.assertEqual(red_next["analyses"][-1]["result"]["decision"]["color"], "Red")
+        self.assertEqual(red_next["analyses"][-1]["result"]["decision"]["color"], "Green")
         self.assertEqual(yellow_next["analyses"][-1]["result"]["decision"]["color"], "Yellow")
+        self.assertEqual(running_green["analyses"][-1]["result"]["decision"]["color"], "Green")
+
+    def test_default_demo_samples_match_target_status_and_color_mix(self):
+        groups = {"completed": [], "running": [], "upcoming": []}
+        for launch in app.default_sample_launches():
+            groups[launch["status"]].append(launch)
+
+        self.assertEqual({status: len(items) for status, items in groups.items()}, {
+            "completed": 3,
+            "running": 3,
+            "upcoming": 3,
+        })
+
+        colors_by_status = {
+            status: sorted(item["analyses"][-1]["result"]["decision"]["color"] for item in items)
+            for status, items in groups.items()
+        }
+        self.assertEqual(colors_by_status["completed"], ["Red", "Yellow", "Yellow"])
+        self.assertEqual(colors_by_status["running"], ["Green", "Yellow", "Yellow"])
+        self.assertEqual(colors_by_status["upcoming"], ["Green", "Green", "Yellow"])
+
+        for launch in groups["completed"]:
+            with self.subTest(launch=launch["id"]):
+                self.assertGreater(len(launch.get("lessonsLearned") or []), 0)
+                self.assertTrue(str(launch.get("postLaunchResult") or "").strip())
+
+    def test_vietnamese_demo_samples_do_not_show_english_analysis_copy(self):
+        blocked_phrases = (
+            "Need to close before launch.",
+            "Missing guardrail",
+            "CS can overload",
+            "Dashboard is not enough",
+            "Angry player",
+            "Players may not",
+            "Close in-game message",
+            "Prepare CS FAQ",
+            "Open realtime dashboard",
+            "Login and revenue grew",
+            "must define coupon fallback",
+            "Track mailbox pending",
+            "Revenue beat target",
+            "D3 retention passed target",
+            "need reset timezone",
+        )
+
+        def strings(value):
+            if isinstance(value, str):
+                yield value
+            elif isinstance(value, dict):
+                for item in value.values():
+                    yield from strings(item)
+            elif isinstance(value, list):
+                for item in value:
+                    yield from strings(item)
+
+        for launch in app.default_sample_launches():
+            if app.detect_brief_language(launch.get("brief") or "") != "vi":
+                continue
+            haystack = "\n".join(strings({
+                "analyses": launch.get("analyses"),
+                "postLaunchResult": launch.get("postLaunchResult"),
+                "lessonsLearned": launch.get("lessonsLearned"),
+            }))
+            for phrase in blocked_phrases:
+                with self.subTest(launch=launch["id"], phrase=phrase):
+                    self.assertNotIn(phrase, haystack)
+
+    def test_fallback_result_matches_english_brief_language(self):
+        brief = "Weekend Lucky Spin launch for active players. Owner is missing and rollback is unclear."
+        result = app.readiness_agent(brief, {"brief": brief}, force_fast=True)
+        self.assertEqual(app.detect_brief_language(brief), "en")
+        self.assertNotIn("Chưa", result["decision"]["title"])
+        self.assertIn("Goal", result["riskBreakdown"][0]["label"])
 
     def test_auto_status_from_schedule(self):
         now = app.datetime(2026, 6, 21, 12, 0)

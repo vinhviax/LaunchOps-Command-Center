@@ -47,7 +47,7 @@ WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260621d"
+UI_CACHE_VERSION = "fix-20260622e"
 HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
@@ -1022,12 +1022,12 @@ def lucky_spin_sample_result(color: str = "Yellow", score: int = 7) -> dict[str,
 
 def in_game_shop_template() -> dict[str, Any]:
     risk_groups = [
-        {"label": "Mục tiêu doanh thu và segment", "maxScore": 2},
-        {"label": "Offer, giá và limit mua", "maxScore": 2},
-        {"label": "Economy guardrail", "maxScore": 2},
-        {"label": "Payment và refund", "maxScore": 2},
-        {"label": "CS và thông điệp bán hàng", "maxScore": 2},
-        {"label": "Dashboard và kill switch", "maxScore": 2},
+        {"key": "scope", "label": "Mục tiêu doanh thu và segment", "maxScore": 2, "checks": ["doanh thu", "conversion", "segment", "offer"]},
+        {"key": "offer", "label": "Offer, giá và limit mua", "maxScore": 2, "checks": ["gia", "offer", "limit", "bundle", "eligibility"]},
+        {"key": "economy", "label": "Economy guardrail", "maxScore": 2, "checks": ["economy", "cap", "vat pham", "nguong dung"]},
+        {"key": "payment", "label": "Payment và refund", "maxScore": 2, "checks": ["payment", "refund", "chargeback", "purchase"]},
+        {"key": "cs", "label": "CS và thông điệp bán hàng", "maxScore": 2, "checks": ["faq", "cs", "message", "price", "refund"]},
+        {"key": "ops", "label": "Dashboard và kill switch", "maxScore": 2, "checks": ["dashboard", "kill switch", "rollback", "alert"]},
     ]
     red_team = ["Người mua nhạy giá", "Payment owner", "Game economy owner", "CS Lead", "LiveOps trực launch"]
     checklist = [
@@ -1055,12 +1055,12 @@ def in_game_shop_template() -> dict[str, Any]:
 
 def login_retention_template() -> dict[str, Any]:
     risk_groups = [
-        {"label": "Mục tiêu retention và cohort", "maxScore": 2},
-        {"label": "Rule streak và reset", "maxScore": 2},
-        {"label": "Reward milestone", "maxScore": 2},
-        {"label": "Anti-abuse và duplicate claim", "maxScore": 2},
-        {"label": "Nhắc lại và CS", "maxScore": 2},
-        {"label": "Tracking và vận hành", "maxScore": 2},
+        {"key": "goal", "label": "Mục tiêu retention và cohort", "maxScore": 2, "checks": ["retention", "login", "cohort", "baseline"]},
+        {"key": "rule", "label": "Rule streak và reset", "maxScore": 2, "checks": ["streak", "reset", "mat streak", "bo bu"]},
+        {"key": "reward", "label": "Reward milestone", "maxScore": 2, "checks": ["reward", "milestone", "claim", "cap"]},
+        {"key": "abuse", "label": "Anti-abuse và duplicate claim", "maxScore": 2, "checks": ["abuse", "duplicate", "multi account", "claim"]},
+        {"key": "message", "label": "Nhắc lại và CS", "maxScore": 2, "checks": ["push", "banner", "faq", "message", "ticket"]},
+        {"key": "ops", "label": "Tracking và vận hành", "maxScore": 2, "checks": ["dashboard", "alert", "retention", "kill switch"]},
     ]
     red_team = ["Người chơi quên check-in", "Retention PM", "Reward abuse reviewer", "CS Lead", "LiveOps trực event"]
     checklist = [
@@ -1161,6 +1161,7 @@ REMOVED_SAMPLE_IDS = {
     "hero-login-ready",
 }
 LEGACY_SAMPLE_IDS = {"lucky-wheel-weekend", "midweek-topup-campaign", "may-login-streak", "lucky-wheel-weekend-test"}
+SAMPLE_DATA_VERSION = "20260622-language-output"
 
 
 def clean_demo_sample(existing: dict[str, Any]) -> dict[str, Any]:
@@ -1191,33 +1192,96 @@ def sample_launch_datetime(days: int, hour: int, minute: int = 0, now: datetime 
     return target.strftime("%Y-%m-%d %H:%M")
 
 
-def sample_analysis_result(color: str, score: int, title: str, reason: str) -> dict[str, Any]:
+def sample_analysis_result(color: str, score: int, title: str, reason: str, brief: str = "") -> dict[str, Any]:
     result = sample_decision(color, score, reason)
     result["decision"].update({"maxScore": 12, "title": title})
     group_scores = {"Green": [2, 2, 2, 2, 2, 2], "Yellow": [2, 1, 1, 1, 1, 2], "Red": [1, 0, 0, 1, 0, 1]}.get(color, [1, 1, 1, 1, 1, 1])
-    labels = ["Goal and segment", "Mechanic or offer", "Ops guardrail", "Anti-abuse or payment", "CS and comms", "Monitoring and rollback"]
+    output_en = detect_brief_language(brief) == "en"
+    labels = (
+        ["Goal and segment", "Mechanic or offer", "Ops guardrail", "Anti-abuse or payment", "CS and comms", "Monitoring and rollback"]
+        if output_en
+        else ["Mục tiêu và phân khúc", "Cơ chế hoặc ưu đãi", "Điều kiện kiểm soát vận hành", "Chống lạm dụng hoặc thanh toán", "CS và truyền thông", "Theo dõi hệ thống và phương án quay lại"]
+    )
     result["riskBreakdown"] = [
-        {"label": label, "score": group_scores[index], "maxScore": 2, "missing": "Ready." if group_scores[index] == 2 else "Need to close before launch."}
+        {
+            "label": label,
+            "score": group_scores[index],
+            "maxScore": 2,
+            "missing": (
+                "Ready." if group_scores[index] == 2 else "Need to close before launch."
+            ) if output_en else (
+                "Đã đủ rõ để vận hành." if group_scores[index] == 2 else "Cần chốt rõ trước khi launch."
+            ),
+        }
         for index, label in enumerate(labels)
     ]
-    result["topRisks"] = [] if color == "Green" else [
-        "Missing guardrail makes pause decisions unclear.",
-        "CS can overload if copy or FAQ is not closed.",
-        "Dashboard is not enough to catch first-30-minute issues.",
-    ]
-    result["redTeam"] = [] if color == "Green" else [
-        {"persona": "Angry player", "worry": "Players may not understand reward conditions or claim failures.", "evidence": "Brief needs clear copy and case-based FAQ.", "fix": "Close in-game message, FAQ and escalation before T-1."},
-        {"persona": "Tech on-call", "worry": "The team may not know when to pause.", "evidence": "Brief needs dashboard and concrete error thresholds.", "fix": "Add alert, kill switch and named pause owner."},
-        {"persona": "Business owner", "worry": "Reward cost or cohort can go out of control.", "evidence": "Brief needs cap, segment and approval owner.", "fix": "Lock cap, segment and offer/reward shutoff rule."},
-    ]
-    result["checklist"] = [
-        {"task": "Close KPI, segment and launch duty owner", "owner": "PM", "deadline": "T-2 days", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
-        {"task": "Lock reward or offer guardrail and pause threshold", "owner": "Business Owner", "deadline": "T-1 day", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
-        {"task": "Prepare CS FAQ and in-game message", "owner": "CS Lead", "deadline": "T-1 day", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
-        {"task": "Open realtime dashboard and test rollback", "owner": "Tech on-call", "deadline": "T-1 day", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
-    ]
+    if output_en:
+        result["topRisks"] = [] if color == "Green" else [
+            "Missing guardrail makes pause decisions unclear.",
+            "CS can overload if copy or FAQ is not closed.",
+            "Dashboard is not enough to catch first-30-minute issues.",
+        ]
+        result["redTeam"] = [] if color == "Green" else [
+            {"persona": "Angry player", "worry": "Players may not understand reward conditions or claim failures.", "evidence": "Brief needs clear copy and case-based FAQ.", "fix": "Close in-game message, FAQ and escalation before T-1."},
+            {"persona": "Tech on-call", "worry": "The team may not know when to pause.", "evidence": "Brief needs dashboard and concrete error thresholds.", "fix": "Add alert, kill switch and named pause owner."},
+            {"persona": "Business owner", "worry": "Reward cost or cohort can go out of control.", "evidence": "Brief needs cap, segment and approval owner.", "fix": "Lock cap, segment and offer/reward shutoff rule."},
+        ]
+        result["checklist"] = [
+            {"task": "Close KPI, segment and launch duty owner", "owner": "PM", "deadline": "T-2 days", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+            {"task": "Lock reward or offer guardrail and pause threshold", "owner": "Business Owner", "deadline": "T-1 day", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+            {"task": "Prepare CS FAQ and in-game message", "owner": "CS Lead", "deadline": "T-1 day", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+            {"task": "Open realtime dashboard and test rollback", "owner": "Tech on-call", "deadline": "T-1 day", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+        ]
+    else:
+        result["topRisks"] = [] if color == "Green" else [
+            "Thiếu ngưỡng kiểm soát nên quyết định pause chưa rõ.",
+            "CS có thể quá tải nếu nội dung thông báo hoặc FAQ chưa chốt.",
+            "Dashboard chưa đủ để bắt lỗi trong 30 phút đầu.",
+        ]
+        result["redTeam"] = [] if color == "Green" else [
+            {"persona": "Người chơi bức xúc", "worry": "Người chơi có thể không hiểu điều kiện nhận thưởng hoặc lỗi nhận quà.", "evidence": "Brief cần nội dung hiển thị rõ và FAQ theo từng tình huống.", "fix": "Chốt thông báo trong game, FAQ và escalation trước T-1."},
+            {"persona": "Kỹ thuật trực sự cố", "worry": "Team có thể không biết khi nào cần pause.", "evidence": "Brief cần dashboard và ngưỡng lỗi cụ thể.", "fix": "Thêm cảnh báo, nút dừng khẩn cấp và người có quyền pause."},
+            {"persona": "Người phụ trách kinh doanh", "worry": "Chi phí thưởng hoặc cohort có thể vượt kiểm soát.", "evidence": "Brief cần cap, phân khúc và owner duyệt ưu đãi.", "fix": "Khóa cap, phân khúc và rule tắt offer/phần thưởng."},
+        ]
+        result["checklist"] = [
+            {"task": "Chốt KPI, phân khúc và người trực launch", "owner": "PM", "deadline": "T-2", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+            {"task": "Khóa guardrail phần thưởng hoặc ưu đãi và ngưỡng pause", "owner": "Người phụ trách kinh doanh", "deadline": "T-1", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+            {"task": "Chuẩn bị CS FAQ và thông báo trong game", "owner": "Lead CS", "deadline": "T-1", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+            {"task": "Mở dashboard realtime và test phương án quay lại", "owner": "Kỹ thuật trực sự cố", "deadline": "T-1", "status": "Done" if color == "Green" else "Todo", "priority": "High"},
+        ]
     clear_prelaunch_open_risks_if_ready(result)
     return result
+
+
+SAMPLE_VI_OUTPUT_REWRITES = {
+    "Login and revenue grew, but coupon exhaustion, mailbox delay and unclear rollback forced a 40-minute pause.": "Login và doanh thu tăng, nhưng coupon hết sớm, mailbox delay và rollback chưa rõ khiến event phải pause 40 phút.",
+    "Lucky Spin must define coupon fallback, item cap, mailbox error threshold, CS FAQ and reward rollback before opening.": "Lucky Spin phải chốt rule thay thế khi coupon hết, cap item hiếm, ngưỡng lỗi mailbox, CS FAQ và rollback reward trước khi mở.",
+    "Track mailbox pending, reward delivery, ticket spike and account-farming signals in the first 15 minutes.": "Theo dõi mailbox pending, reward delivery, ticket tăng đột biến và dấu hiệu farm tài khoản trong 15 phút đầu.",
+    "Revenue beat target, but payment failure and refund handling overloaded CS during peak hours.": "Doanh thu vượt mục tiêu, nhưng lỗi thanh toán và xử lý hoàn tiền làm CS quá tải trong giờ cao điểm.",
+    "Commercial shop launches need payment owner, refund macro, purchase limit copy, reconcile report and payment-fail pause threshold.": "Launch shop commercial cần owner thanh toán, macro hoàn tiền, nội dung giới hạn mua, báo cáo đối soát và ngưỡng pause khi payment fail.",
+    "D3 retention passed target, D7 missed by 4%; timezone confusion and English CS macro gaps created avoidable tickets.": "Retention D3 đạt mục tiêu, D7 hụt 4%; reset timezone chưa rõ và thiếu macro CS song ngữ tạo thêm ticket có thể tránh được.",
+    "Login streak launches need reset timezone, lost-streak rule, duplicate-claim check and bilingual CS macros before opening.": "Launch login streak cần reset timezone, rule mất streak, kiểm tra claim trùng và macro CS song ngữ trước khi mở.",
+}
+
+
+def localize_sample_text(value: Any, language: str) -> Any:
+    if language == "en":
+        return value
+    if isinstance(value, str):
+        return SAMPLE_VI_OUTPUT_REWRITES.get(value, value)
+    if isinstance(value, list):
+        return [localize_sample_text(item, language) for item in value]
+    if isinstance(value, dict):
+        return {key: localize_sample_text(item, language) for key, item in value.items()}
+    return value
+
+
+def localize_sample_launch_outputs(launch: dict[str, Any]) -> dict[str, Any]:
+    language = detect_brief_language(str(launch.get("brief") or ""))
+    localized = localize_sample_text(launch, language)
+    if isinstance(localized, dict):
+        localized["sampleDataVersion"] = SAMPLE_DATA_VERSION
+    return localized
 
 
 def default_sample_launches() -> list[dict[str, Any]]:
@@ -1227,90 +1291,251 @@ def default_sample_launches() -> list[dict[str, Any]]:
     login_template = login_retention_template()
 
     def analysis(launch_id: str, brief: str, color: str, score: int, title: str, reason: str) -> list[dict[str, Any]]:
-        return [{"id": f"analysis-{launch_id}", "createdAt": created, "briefSnapshot": brief[:2000], "result": sample_analysis_result(color, score, title, reason)}]
+        return [{"id": f"analysis-{launch_id}", "createdAt": created, "briefSnapshot": brief[:2000], "result": sample_analysis_result(color, score, title, reason, brief)}]
 
-    golden_retro = """Tên launch: Vòng Quay Golden Spin Đã Chạy.
+    golden_retro = """Tên launch: Vòng Quay Golden Spin Cuối Tuần Đã Chạy.
+Phân loại: Sự kiện game / Lucky Spin
+Trạng thái: Đã chạy
+Owner chính: PM LiveOps
+Team liên quan: LiveOps, Backend, CS, Data/BI, Marketing
 
-Trạng thái: Đã chạy.
+Mục tiêu:
+- Tăng người chơi quay lại game trong cuối tuần.
+- Tăng doanh thu gói nạp nhỏ.
+- Tạo hoạt động nhẹ trước bản cập nhật lớn.
 
-Golden Spin đã chạy tháng trước để tăng login cuối tuần và doanh thu gói nạp nhỏ. Người chơi nhận 1 lượt quay miễn phí mỗi ngày đăng nhập và thêm lượt quay khi mua gói 49k/99k. Phần thưởng gồm coupon, mảnh skin và 600 vật phẩm hiếm.
+Cơ chế:
+- Đăng nhập mỗi ngày nhận 1 lượt quay miễn phí.
+- Nạp bất kỳ gói nào trong event nhận thêm 3 lượt quay.
+- Mỗi tài khoản tối đa 10 lượt quay/ngày.
+- Phần thưởng gửi qua mailbox trong game.
 
-Kết quả thực tế: login tăng 7%, doanh thu gói nhỏ tăng 9%, nhưng ticket CS tăng mạnh trong 8 giờ đầu vì chưa nói rõ giờ reset 05:00 và case mất kết nối khi quay. Một nhóm tài khoản phụ đã farm lượt trước khi team bổ sung rule kiểm tra thủ công.
+Kết quả sau launch:
+- Login tăng 6%, doanh thu gói nhỏ tăng 8%, nhưng event phải pause 40 phút trong tối đầu tiên.
+- Coupon 20% hết sớm hơn dự kiến; rule thay thế khi coupon hết chưa được chốt trước launch.
+- Mailbox delay làm ticket CS tăng gấp 3 lần baseline.
+- Dashboard có số lượt quay và reward sent, nhưng không có ngưỡng pause cụ thể cho mailbox error hoặc lượt quay bất thường.
+- Rollback phát thưởng chưa có runbook chi tiết, Tech và CS xử lý theo chat tay.
 
-Bài học đã lưu: mọi brief Lucky Spin phải có giờ reset, reward cap, điều kiện tham gia, dashboard anti-abuse, CS FAQ và kill switch trước khi mở."""
+Bài học đã lưu:
+- Lucky Spin phải có rule hết coupon, cap item hiếm, ngưỡng pause, CS FAQ và rollback reward trước khi mở.
+- Dashboard phải có mailbox error, reward pending, tài khoản farm lượt quay và owner được quyền pause trong 15 phút đầu."""
     golden_live = """Tên launch: Vòng Quay Golden Spin Đang Chạy.
+Phân loại: Sự kiện game / Lucky Spin
+Trạng thái: Đang chạy
+Owner chính: PM LiveOps
+Team liên quan: LiveOps, Backend, CS, Data/BI, Marketing
 
-Trạng thái: Đang chạy.
+Mục tiêu:
+- Tăng login cuối tuần 8%.
+- Tăng doanh thu gói nạp nhỏ 10%.
+- Kiểm tra liệu bài học từ Golden Spin trước đã giảm ticket CS hay chưa.
 
-Mục tiêu là tăng login cuối tuần 8% và doanh thu gói nhỏ 10%. Event đang mở cho tài khoản level 10+ được tạo trước mốc cutoff. Đăng nhập nhận 1 lượt quay, nạp gói nhỏ nhận tối đa 3 lượt quay thêm mỗi ngày.
+Cơ chế:
+- Người chơi level 10+ nhận 1 lượt quay miễn phí mỗi ngày đăng nhập.
+- Nạp gói nhỏ nhận tối đa 3 lượt quay thêm mỗi ngày.
+- Tối đa 9 lượt quay/tài khoản/ngày; tài khoản tạo sau cutoff không được nhận lượt nạp.
+- Coupon, item hiếm và vàng đều có cap theo ngày.
 
-Đã sẵn sàng: reward cap, dashboard spin success / reward delivery và Tech on-call trong giờ cao điểm.
+Đã sẵn sàng:
+- Dashboard spin success, reward sent, mailbox pending và số ticket CS đang mở.
+- Tech on-call trực 20:00-23:00; Data/BI kiểm tra số liệu mỗi ngày.
 
-Điểm cần theo dõi: rule chống abuse theo thiết bị vẫn đang ở mức cảnh báo mềm, CS FAQ còn thiếu case mất kết nối trong lúc quay, và ngưỡng pause ticket đã được đề xuất nhưng Business owner chưa ký duyệt."""
+Điểm còn cần theo dõi:
+- Rule chống farm theo thiết bị mới ở mức cảnh báo mềm, chưa tự khóa.
+- CS FAQ đã có case hết coupon và phát quà chậm, nhưng chưa có macro cho mất kết nối trong lúc quay.
+- Ngưỡng pause mailbox error đã đề xuất 2% trong 10 phút nhưng Business owner chưa ký duyệt.
+- Không có rollback tự động nếu mailbox pending vượt ngưỡng; Tech vẫn cần xác nhận tay trước khi pause."""
     golden_ready = """Tên launch: Vòng Quay Golden Spin Sắp Chạy.
+Phân loại: Sự kiện game / Lucky Spin
+Trạng thái: Sắp chạy
+Owner chính: PM LiveOps + Tech Lead
+Team liên quan: LiveOps, Backend, CS, Data/BI, Marketing
 
-Trạng thái: Sắp chạy.
+Mục tiêu:
+- Tăng login cuối tuần 8-10%.
+- Tăng doanh thu gói nạp nhỏ 8%.
+- Chạy lại format Lucky Spin nhưng dùng bài học từ lần đã pause.
 
-Phiên bản Golden Spin này đã áp dụng bài học cũ: giờ reset 05:00 hiển thị rõ trong popup, điều kiện tham gia là level 10+ và tài khoản tạo trước cutoff, tối đa 9 lượt quay mỗi tài khoản, loại trừ tài khoản abuse/refund.
+Cơ chế:
+- Đăng nhập mỗi ngày nhận 1 lượt quay miễn phí.
+- Nạp gói nhỏ nhận thêm 3 lượt quay, tối đa 9 lượt/ngày.
+- Tài khoản level 10+, tạo trước cutoff, không trong danh sách abuse/refund.
+- Coupon hết sẽ tự chuyển sang vàng; item hiếm tự tắt khi đạt 95% cap.
 
-Reward cap là 150M, vật phẩm hiếm tự tắt khi đạt 95% cap, dashboard theo dõi spin success/reward delivery/ticket/abuse, kill switch đã test staging, CS FAQ đã cover mất lượt, hết quà, phát quà chậm và mất kết nối.
+Guardrail:
+- Reward cap, item cap, coupon fallback và tỷ lệ trúng đã được Business duyệt.
+- Dashboard realtime có spin success, reward sent, mailbox pending, ticket CS và abuse flag.
+- Ngưỡng pause: mailbox error >2% trong 10 phút, reward pending >5.000, hoặc abuse flag tăng 2 lần baseline.
+- Kill switch và rollback reward đã test staging; Tech Lead có quyền pause.
+- CS FAQ đã cover hết coupon, mất lượt, phát quà chậm, mất kết nối và tài khoản không hợp lệ.
 
-War room mở trước launch 30 phút. Post-mortem T+48h phải ghi lại lesson cho tháng sau."""
+Kế hoạch sau launch:
+- Post-mortem T+48h tổng kết login, revenue, ticket, abuse case và update template Lucky Spin."""
     storm_shop = """Tên launch: Shop Đá Quý Bão Tố Đã Chạy.
+Phân loại: Sự kiện game / Shop ingame
+Trạng thái: Đã chạy
+Owner chính: Commercial Owner
+Team liên quan: PM, Economy, Payment, CS, Data/BI
 
-Trạng thái: Đã chạy.
+Mục tiêu:
+- Tăng doanh thu bundle gem trong 72 giờ.
+- Đẩy nhóm payer cũ quay lại mua gói nhỏ.
 
-Storm Gem Shop bán bundle gem và hiệu ứng skin sấm sét cho nhóm payer quay lại trong 72 giờ. Doanh thu vượt mục tiêu 11%, nhưng payment failure tăng ở giờ cao điểm, một bundle nhìn như có thể mua lặp nhiều lần, và CS phải xử lý refund thủ công.
+Cơ chế:
+- Bán 3 bundle gem kèm hiệu ứng skin sấm sét.
+- Mỗi tài khoản mua tối đa 2 lần/bundle.
+- Offer chỉ hiện cho người chơi đã nạp trong 90 ngày.
 
-Chưa có bài học chính thức được thêm sau launch, nên checklist lần sau chưa thể tái sử dụng phát hiện này."""
-    dragon_login = """Tên launch: Chuỗi Đăng Nhập Rồng Đang Chạy.
+Kết quả sau launch:
+- Doanh thu vượt target 11%, conversion tốt hơn baseline.
+- Payment failure tăng trong giờ cao điểm và CS phải xử lý refund thủ công.
+- Một bundle có copy gây hiểu nhầm như mua không giới hạn.
+- Kill switch offer hoạt động, nhưng rule refund chưa đủ rõ cho CS ca tối.
 
-Trạng thái: Đang chạy.
+Bài học đã lưu:
+- Shop event phải có payment owner, refund macro, reconcile report, limit mua hiển thị rõ và ngưỡng tắt offer theo payment fail.
+- Copy bundle cần review bởi Economy + CS trước khi mở bán."""
+    dragon_login = """Tên launch: Chuỗi Đăng Nhập Rồng Đã Chạy.
+Phân loại: Sự kiện game / Login streak
+Trạng thái: Đã chạy
+Owner chính: Retention PM
+Team liên quan: LiveOps, Backend, CS, Data/BI, Marketing
 
-Chuỗi đăng nhập 7 ngày dành cho người chơi quay lại sau 14 ngày. Rule reset là 05:00, mốc thưởng ở ngày 1/3/5/7, ngày 7 có skin rồng giới hạn. Dashboard retention và claim success đã mở.
+Mục tiêu:
+- Kéo người chơi inactive 14 ngày quay lại.
+- Tăng tỷ lệ login D3/D7.
 
-Rủi ro hiện tại: nhắc ngày 5 chưa chia theo múi giờ, duplicate-claim check vẫn chỉ là soft flag, và macro CS cho case mất streak mới có tiếng Việt."""
+Cơ chế:
+- Check-in 7 ngày, reset lúc 05:00.
+- Ngày 1/3/5 nhận vật phẩm tiêu hao; ngày 7 nhận skin rồng giới hạn.
+- Người chơi mất streak có thể nhận bù 1 lần nếu lỗi server được xác nhận.
+
+Kết quả sau launch:
+- Login D3 đạt target, D7 thấp hơn target 4%.
+- Ticket tăng ở nhóm người chơi khác múi giờ vì push ngày 5 gửi theo giờ server.
+- Duplicate claim bị phát hiện nhưng chỉ ở mức nhỏ, không ảnh hưởng economy.
+- CS xử lý được nhờ macro tiếng Việt, nhưng thiếu bản tiếng Anh trong 24 giờ đầu.
+- Reward milestone ngày 7 chưa có cap thay thế nếu skin rồng hết sớm.
+- Dashboard retention chưa tách rõ claim success theo timezone trong 12 giờ đầu.
+- Push/message nhắc ngày 5 chưa có bản tiếng Anh cho cohort global.
+
+Bài học đã lưu:
+- Login streak phải ghi rõ reset timezone, rule mất streak, duplicate-claim check và macro CS song ngữ.
+- Dashboard cần tách claim success theo timezone và cohort inactive."""
     guild_boss = """Tên launch: Đua Boss Bang Hội Đang Chạy.
+Phân loại: Sự kiện game / Co-op guild
+Trạng thái: Đang chạy
+Owner chính: Game PM
+Team liên quan: Gameplay, Backend, CS, Data/BI, LiveOps
 
-Trạng thái: Đang chạy.
+Mục tiêu:
+- Tăng số guild active cuối tuần.
+- Tăng số trận party battle trong khung 20:00-22:00.
+- Thử cơ chế milestone sát thương cho guild trước mùa giải mới.
 
-Event co-op cuối tuần, các guild đánh boss từ 20:00 đến 22:00. KPI là số guild active và số trận party battle. Phần thưởng dựa trên milestone sát thương cá nhân và tổng sát thương của guild.
+Cơ chế:
+- Guild đánh boss theo khung giờ cố định.
+- Phần thưởng dựa trên milestone cá nhân và tổng sát thương guild.
+- Leaderboard cập nhật mỗi 2 phút; reward gửi sau khi kết thúc ngày.
 
-LiveOps và Tech owner đã được phân công, nhưng leaderboard trên staging trễ 3-5 phút, rule tie-break chưa rõ, và rollback reward vẫn cần Economy xác nhận."""
-    phoenix_red = """Tên launch: Flash Sale Skin Phoenix Rủi Ro.
+Đã sẵn sàng:
+- LiveOps và Tech owner đã phân công.
+- Dashboard theo dõi boss kill, battle count, reward queue và CCU.
 
-Trạng thái: Sắp chạy.
+Điểm còn cần theo dõi:
+- Leaderboard staging vẫn có lúc trễ 3-5 phút.
+- Rule tie-break khi hai guild bằng điểm chưa đủ rõ trong FAQ.
+- Rollback reward cần Economy xác nhận trước khi chạy ngày cuối."""
+    phoenix_red = """Tên launch: Festival Skin Phoenix Sắp Chạy.
+Phân loại: Sự kiện game / Shop ingame
+Trạng thái: Sắp chạy
+Owner chính: Commercial PM + Economy Owner
+Team liên quan: Product Marketing, Payment, CS, Data/BI, Backend
 
-Flash sale skin Phoenix trong 2 giờ, đi kèm social campaign. Brief đã có mục tiêu doanh thu và danh sách vật phẩm, nhưng chưa có payment owner, runbook refund, cap vật phẩm hiếm, kế hoạch queue khi CCU tăng, CS FAQ hoặc ngưỡng pause.
+Mục tiêu:
+- Mở bán sớm bộ skin Phoenix cho nhóm payer cũ.
+- Tăng wishlist và doanh thu bundle trong cuối tuần.
 
-Rủi ro lớn: nếu payment lỗi hoặc giá hiển thị sai, CS chưa có macro và chưa ai có quyền rõ ràng để tắt offer."""
+Cơ chế:
+- 2 bundle skin Phoenix, mỗi tài khoản mua tối đa 1 lần/bundle.
+- Có preview 24 giờ trước khi mở bán.
+- Giá, vật phẩm, eligibility và thời gian bán đã được khóa trong config.
+
+Guardrail:
+- Payment owner trực giờ mở bán; refund macro đã duyệt.
+- Economy cap theo số lượng skin hiếm và doanh thu tối đa đã được chốt.
+- Dashboard realtime có order success, payment fail, refund request, inventory remaining và CCU.
+- Kill switch offer đã test staging; pause nếu payment fail >3% trong 10 phút hoặc inventory lệch >1%.
+- CS FAQ đã cover mua lỗi, nhận item chậm, refund và hết hàng.
+
+Kế hoạch sau launch:
+- Post-mortem T+48h tổng kết revenue, payment fail, refund, ticket CS và tác động economy."""
     comeback_yellow = """Tên launch: Chuỗi Đăng Nhập Comeback Sắp Chạy.
+Phân loại: Sự kiện game / Login streak
+Trạng thái: Sắp chạy
+Owner chính: Retention PM
+Team liên quan: LiveOps, Backend, CS, Data/BI, Marketing
 
-Trạng thái: Sắp chạy.
+Mục tiêu:
+- Kéo người chơi inactive 30 ngày quay lại.
+- Tăng login D1/D5 và đo tỷ lệ nhận đủ milestone.
 
-Sprint đăng nhập 5 ngày cho người chơi inactive 30 ngày. Cohort, KPI login D1/D5, reward cap và dashboard claim success đã sẵn sàng.
+Cơ chế:
+- Sprint đăng nhập 5 ngày.
+- Reset lúc 05:00 theo giờ server.
+- Reward cap và cohort inactive đã chốt.
+- Dashboard claim success và retention cohort đã sẵn sàng.
 
-Còn thiếu: copy cho case mất streak, duplicate-claim check cho tài khoản phụ, lịch trực CS cuối tuần và rule pause khi claim error vượt 1%."""
-    skin_green = """Tên launch: Xem Trước Kho Skin Sẵn Sàng.
+Còn thiếu:
+- Copy cho case mất streak chưa duyệt cuối.
+- Duplicate-claim check cho tài khoản phụ mới ở mức cảnh báo.
+- Lịch trực CS cuối tuần chưa đủ người ca tối.
+- Rule pause khi claim error vượt 1% đã đề xuất nhưng chưa ký duyệt."""
+    skin_green = """Tên launch: Xem Trước Kho Skin Đang Chạy.
+Phân loại: Sự kiện game / Preview shop
+Trạng thái: Đang chạy
+Owner chính: Product Marketing
+Team liên quan: Marketing, Data/BI, CS, Frontend, LiveOps
 
-Trạng thái: Sắp chạy.
+Mục tiêu:
+- Cho nhóm payer cũ xem trước kho skin mùa mới.
+- Đo click, wishlist và khảo sát ý định mua trước khi mở bán.
+- Doanh thu giai đoạn preview được đo bằng conversion proxy từ wishlist sang intent mua.
 
-Preview kho skin mới cho nhóm payer cũ, cho phép xem trước và đăng ký nhắc mua. Giai đoạn preview không thu tiền; chỉ đo click, wishlist và khảo sát ý định mua.
+Cơ chế:
+- Preview không thu tiền và không grant reward.
+- Người chơi có thể wishlist skin và đăng ký nhắc mua.
+- Segment là payer 90 ngày và người chơi level 20+.
+- Offer, giá và limit mua: preview package miễn phí, nút mua được ẩn, tồn kho không bị trừ.
+- Bundle preview có eligibility rõ: payer 90 ngày, level 20+, limit 1 wishlist/skin/ngày.
+- Payment và refund: không phát sinh purchase/payment/refund trong giai đoạn preview; Payment owner xác nhận không cần reconcile.
+- Economy guardrail: không grant vật phẩm, không coupon, không item hiếm; cap vận hành chỉ là số lượt wishlist để tránh spam.
+- Cap economy đã chốt: preview không ảnh hưởng inventory, stock, pricing hoặc item hiếm.
 
-KPI, segment, copy, dashboard click/wishlist, rollback banner, CS FAQ cho nhầm ngày mở bán và duty owner đều đã sẵn sàng. Rủi ro economy thấp vì chưa grant reward và chưa phát sinh thanh toán."""
+Đã sẵn sàng:
+- KPI click, wishlist, survey response và conversion proxy đã chốt.
+- Banner, inbox và fanpage copy đã duyệt.
+- Dashboard realtime có impression, click, wishlist, survey submit và lỗi banner.
+- Rollback banner có thể tắt trong 5 phút; duty owner đã phân công.
+- CS FAQ đã cover nhầm ngày mở bán, chưa thấy nút mua và lỗi wishlist.
+- Message bán hàng ghi rõ đây là preview, payment/refund được disable by design và giá mua thật sẽ công bố ở đợt mở bán.
+
+Kế hoạch sau launch:
+- Tổng kết wishlist theo segment và cập nhật brief cho đợt mở bán thật."""
 
     samples = [
-        {"id": "golden-spin-retro-lessons", "name": "Vòng Quay Golden Spin Đã Chạy", "type": "lucky_spin_event", "status": "completed", "owner": "LiveOps Lead", "targetDate": sample_launch_datetime(-10, 20), "endDate": sample_launch_datetime(-8, 23, 59), "brief": golden_retro, "template": template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("golden-spin-retro-lessons", golden_retro, "Yellow", 8, "Golden Spin đã có bài học tái sử dụng", "Launch đạt KPI nhưng còn rủi ro reset, CS và abuse."), "postLaunchResult": "Login and revenue targets passed, but lost-spin tickets and alt-account abuse appeared.", "lessonsLearned": [{"id": "lesson-golden-spin-reset", "createdAt": created, "text": "Golden Spin must include reset 05:00, reward cap, eligibility, anti-abuse dashboard and CS FAQ before opening."}], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
-        {"id": "golden-spin-live-risk", "name": "Vòng Quay Golden Spin Đang Chạy", "type": "lucky_spin_event", "status": "running", "owner": "PM LiveOps", "targetDate": sample_launch_datetime(-1, 20), "endDate": sample_launch_datetime(2, 23, 59), "brief": golden_live, "template": template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("golden-spin-live-risk", golden_live, "Yellow", 8, "Golden Spin đang chạy cần siết guardrail", "Đủ điều kiện chạy nhưng CS, abuse và ngưỡng pause cần theo dõi."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
+        {"id": "golden-spin-retro-lessons", "name": "Vòng Quay Golden Spin Cuối Tuần Đã Chạy", "type": "lucky_spin_event", "status": "completed", "owner": "PM LiveOps", "targetDate": sample_launch_datetime(-12, 20), "endDate": sample_launch_datetime(-10, 23, 59), "brief": golden_retro, "template": template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("golden-spin-retro-lessons", golden_retro, "Yellow", 6, "Golden Spin đã chạy và có bài học rõ", "Launch đạt mục tiêu chính nhưng coupon fallback, mailbox threshold và rollback reward còn yếu."), "postLaunchResult": "Login and revenue grew, but coupon exhaustion, mailbox delay and unclear rollback forced a 40-minute pause.", "lessonsLearned": [{"id": "lesson-golden-spin-coupon-pause", "createdAt": created, "text": "Lucky Spin must define coupon fallback, item cap, mailbox error threshold, CS FAQ and reward rollback before opening."}, {"id": "lesson-golden-spin-abuse-dashboard", "createdAt": created, "text": "Track mailbox pending, reward delivery, ticket spike and account-farming signals in the first 15 minutes."}], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
+        {"id": "golden-spin-live-risk", "name": "Vòng Quay Golden Spin Đang Chạy", "type": "lucky_spin_event", "status": "running", "owner": "PM LiveOps", "targetDate": sample_launch_datetime(-1, 20), "endDate": sample_launch_datetime(2, 23, 59), "brief": golden_live, "template": template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("golden-spin-live-risk", golden_live, "Yellow", 8, "Golden Spin đang chạy cần chốt pause", "Bài học cũ đã áp dụng một phần, nhưng abuse rule, CS macro và quyền pause còn mở."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
         {"id": "golden-spin-weekend-ready", "name": "Vòng Quay Golden Spin Sắp Chạy", "type": "lucky_spin_event", "status": "upcoming", "owner": "PM LiveOps + Tech", "targetDate": sample_launch_datetime(3, 20), "endDate": sample_launch_datetime(5, 23, 59), "brief": golden_ready, "template": template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("golden-spin-weekend-ready", golden_ready, "Green", 12, "Golden Spin sắp chạy đã sẵn sàng", "Bài học cũ đã áp dụng; guardrail, CS, dashboard và rollback đã sẵn sàng."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
-        {"id": "storm-shop-retro", "name": "Shop Đá Quý Bão Tố Đã Chạy", "type": "game_event_h5", "status": "completed", "owner": "Commercial Owner", "targetDate": sample_launch_datetime(-14, 9), "endDate": sample_launch_datetime(-12, 23, 59), "brief": storm_shop, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("storm-shop-retro", storm_shop, "Yellow", 7, "Shop đã chạy nhưng chưa có bài học", "Đã phát sinh lỗi thanh toán/hoàn tiền nhưng chưa ghi bài học."), "postLaunchResult": "Revenue beat target but payment/refund cases overloaded CS.", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
-        {"id": "dragon-login-live", "name": "Chuỗi Đăng Nhập Rồng Đang Chạy", "type": "game_event_h5", "status": "running", "owner": "Retention PM", "targetDate": sample_launch_datetime(-2, 5), "endDate": sample_launch_datetime(4, 23, 59), "brief": dragon_login, "template": login_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("dragon-login-live", dragon_login, "Yellow", 9, "Chuỗi đăng nhập đang chạy còn vài lỗ hổng ops", "Cần nhắc múi giờ, chống claim trùng và macro CS tiếng Anh."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
+        {"id": "storm-shop-retro", "name": "Shop Đá Quý Bão Tố Đã Chạy", "type": "game_event_h5", "status": "completed", "owner": "Commercial Owner", "targetDate": sample_launch_datetime(-16, 9), "endDate": sample_launch_datetime(-14, 23, 59), "brief": storm_shop, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("storm-shop-retro", storm_shop, "Red", 5, "Shop đã chạy nhưng lỗi payment/refund quá lớn", "Doanh thu đạt nhưng payment failure, refund macro và dashboard kill switch không đủ an toàn."), "postLaunchResult": "Revenue beat target, but payment failure and refund handling overloaded CS during peak hours.", "lessonsLearned": [{"id": "lesson-storm-shop-payment-refund", "createdAt": created, "text": "Commercial shop launches need payment owner, refund macro, purchase limit copy, reconcile report and payment-fail pause threshold."}], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
+        {"id": "dragon-login-live", "name": "Chuỗi Đăng Nhập Rồng Đã Chạy", "type": "game_event_h5", "status": "completed", "owner": "Retention PM", "targetDate": sample_launch_datetime(-8, 5), "endDate": sample_launch_datetime(-2, 23, 59), "brief": dragon_login, "template": login_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("dragon-login-live", dragon_login, "Yellow", 8, "Chuỗi đăng nhập đạt một phần KPI", "Reset timezone, duplicate claim và CS song ngữ cần rõ hơn cho login streak tiếp theo."), "postLaunchResult": "D3 retention passed target, D7 missed by 4%; timezone confusion and English CS macro gaps created avoidable tickets.", "lessonsLearned": [{"id": "lesson-dragon-login-timezone", "createdAt": created, "text": "Login streak launches need reset timezone, lost-streak rule, duplicate-claim check and bilingual CS macros before opening."}], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
         {"id": "guild-boss-live", "name": "Đua Boss Bang Hội Đang Chạy", "type": "game_event_h5", "status": "running", "owner": "Game PM", "targetDate": sample_launch_datetime(-1, 20), "endDate": sample_launch_datetime(1, 22), "brief": guild_boss, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("guild-boss-live", guild_boss, "Yellow", 7, "Đua Boss Bang Hội cần kiểm tra leaderboard", "Leaderboard trễ và rule hòa điểm có thể gây khiếu nại."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
-        {"id": "phoenix-shop-upcoming-red", "name": "Flash Sale Skin Phoenix Rủi Ro", "type": "game_event_h5", "status": "upcoming", "owner": "Commercial PM", "targetDate": sample_launch_datetime(1, 19), "endDate": sample_launch_datetime(1, 21), "brief": phoenix_red, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("phoenix-shop-upcoming-red", phoenix_red, "Red", 3, "Flash sale chưa nên mở", "Thiếu owner thanh toán, refund, cap, queue, CS FAQ và ngưỡng pause."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
+        {"id": "phoenix-shop-upcoming-red", "name": "Festival Skin Phoenix Sắp Chạy", "type": "game_event_h5", "status": "upcoming", "owner": "Commercial PM + Economy Owner", "targetDate": sample_launch_datetime(3, 19), "endDate": sample_launch_datetime(5, 23, 59), "brief": phoenix_red, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("phoenix-shop-upcoming-red", phoenix_red, "Green", 12, "Festival Skin Phoenix đã sẵn sàng", "Offer, payment/refund, economy cap, dashboard, CS FAQ và kill switch đã được chốt."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
         {"id": "login-comeback-upcoming-yellow", "name": "Chuỗi Đăng Nhập Comeback Sắp Chạy", "type": "game_event_h5", "status": "upcoming", "owner": "Retention PM", "targetDate": sample_launch_datetime(2, 5), "endDate": sample_launch_datetime(6, 23, 59), "brief": comeback_yellow, "template": login_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("login-comeback-upcoming-yellow", comeback_yellow, "Yellow", 8, "Comeback sprint gần sẵn sàng nhưng chưa xong", "KPI, cohort và cap đã sẵn sàng, nhưng thiếu copy mất streak, anti-abuse và roster CS."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
-        {"id": "skin-vault-upcoming-green", "name": "Xem Trước Kho Skin Sẵn Sàng", "type": "game_event_h5", "status": "upcoming", "owner": "Product Marketing", "targetDate": sample_launch_datetime(4, 10), "endDate": sample_launch_datetime(6, 22), "brief": skin_green, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("skin-vault-upcoming-green", skin_green, "Green", 12, "Xem trước kho skin đã sẵn sàng", "Preview không thu tiền; KPI, segment, copy, dashboard và rollback đã sẵn sàng."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
+        {"id": "skin-vault-upcoming-green", "name": "Xem Trước Kho Skin Đang Chạy", "type": "game_event_h5", "status": "running", "owner": "Product Marketing", "targetDate": sample_launch_datetime(-1, 10), "endDate": sample_launch_datetime(1, 22), "brief": skin_green, "template": shop_template, "templateVersions": [], "lessonSuggestions": [], "analyses": analysis("skin-vault-upcoming-green", skin_green, "Green", 12, "Xem trước kho skin đang chạy ổn định", "Preview không thu tiền; KPI, segment, copy, dashboard, rollback và CS FAQ đã sẵn sàng."), "postLaunchResult": "", "lessonsLearned": [], "checklistProgress": {}, "redTeamBriefSupplements": {}, "createdAt": created, "updatedAt": created, "isSample": True},
     ]
-    return samples
+    return [localize_sample_launch_outputs(launch) for launch in samples]
 
 def seed_launches_if_empty() -> None:
     LAUNCHES_DIR.mkdir(parents=True, exist_ok=True)
@@ -1334,6 +1559,7 @@ def seed_launches_if_empty() -> None:
             or existing.get("name") != launch.get("name")
             or existing.get("owner") != launch.get("owner")
             or existing.get("template") != launch.get("template")
+            or existing.get("sampleDataVersion") != launch.get("sampleDataVersion")
         ):
             write_json(path, launch)
 
@@ -1358,7 +1584,13 @@ def sync_cloud_sample_launch(launch: dict[str, Any]) -> dict[str, Any] | None:
     sync_result = try_cloud_storage("sync_sample_launch", cloud_save_launch, sample)
     if sync_result is _CLOUD_STORAGE_ERROR:
         return None
-    return sync_result if isinstance(sync_result, dict) else sample
+    saved = sync_result if isinstance(sync_result, dict) else sample
+    for analysis in launch.get("analyses") or []:
+        if isinstance(analysis, dict):
+            appended = try_cloud_storage("sync_sample_launch_analysis", cloud_append_analysis, saved, analysis)
+            if appended is not _CLOUD_STORAGE_ERROR and isinstance(appended, dict):
+                saved = appended
+    return saved
 
 def list_launches() -> list[dict[str, Any]]:
     cloud_result = try_cloud_storage("list_launches", cloud_list_launches)
@@ -1389,6 +1621,7 @@ def list_launches() -> list[dict[str, Any]]:
                     or clean.get("name") != default_sample.get("name")
                     or clean.get("owner") != default_sample.get("owner")
                     or clean.get("template") != default_sample.get("template")
+                    or clean.get("sampleDataVersion") != default_sample.get("sampleDataVersion")
                 ):
                     seed_result = sync_cloud_sample_launch(default_sample)
                     if seed_result is not None:
@@ -3221,7 +3454,55 @@ def handle_chatbot_payload(provider: str, payload: dict[str, Any]) -> dict[str, 
         response["result"] = result
     return response
 
-def fallback_result(reason: str) -> dict[str, Any]:
+def fallback_result(reason: str, language: str = "vi") -> dict[str, Any]:
+    if str(language or "").lower().startswith("en"):
+        return {
+            "source": "fallback",
+            "warning": reason,
+            "trace": [],
+            "decision": {
+                "color": "Yellow",
+                "score": 8,
+                "maxScore": 12,
+                "title": "Not ready to launch yet",
+                "reason": "Using local fallback because the API is not ready or returned an error.",
+            },
+            "riskBreakdown": [
+                {"label": "Goal and scope", "score": 1, "maxScore": 2, "missing": "Goal, audience, or scope is still unclear."},
+                {"label": "Owner and deadline", "score": 1, "maxScore": 2, "missing": "Owners and deadlines are not clear enough across teams."},
+                {"label": "Tech readiness", "score": 2, "maxScore": 2, "missing": "Clear enough for the demo brief."},
+                {"label": "User impact", "score": 2, "maxScore": 2, "missing": "Clear enough for the demo brief."},
+                {"label": "Business and reward", "score": 1, "maxScore": 2, "missing": "Reward, rate, or budget guardrails are not clear enough."},
+                {"label": "Learning and post-mortem", "score": 1, "maxScore": 2, "missing": "No clear plan to learn from the launch afterward."},
+            ],
+            "topRisks": [
+                "Goal, audience, or scope is still unclear.",
+                "Owners and deadlines are not clear enough across teams.",
+                "Reward, rate, or budget guardrails are not clear enough.",
+            ],
+            "redTeam": [
+                {"persona": "Angry user", "worry": "Players may complain quickly if spins fail or rewards do not arrive.", "evidence": "The brief does not define FAQ handling for missing rewards.", "fix": "Prepare CS FAQ, in-game copy, and compensation rules for system errors."},
+                {"persona": "Exploit hunter", "worry": "Players may farm spins or exploit top-up conditions.", "evidence": "The brief does not clearly separate new and existing users or state hard limits.", "fix": "Lock eligibility, daily limits, and anomaly logging before launch."},
+                {"persona": "CS lead", "worry": "CS may respond slowly without macros and escalation paths.", "evidence": "No standard answer set is visible for likely tickets.", "fix": "Write CS macros, ticket routing, and response timelines."},
+                {"persona": "Tech on-call", "worry": "Production issues will be hard to recover from without rollback or feature flags.", "evidence": "Rollback plan and alerting are not clear.", "fix": "Add feature flag, rollback trigger, and minimum monitoring."},
+                {"persona": "Business owner", "worry": "A successful campaign is hard to approve again if ROI is not measurable.", "evidence": "The brief does not lock post-launch KPIs or budget guardrails.", "fix": "Lock KPIs, budget, and success criteria before launch."},
+            ],
+            "checklist": [
+                {"task": "Lock scope, audience, and success KPI", "owner": "PM LiveOps", "deadline": "T-2 days", "status": "Todo", "priority": "High"},
+                {"task": "Write CS FAQ and response macros", "owner": "CS Lead", "deadline": "T-1 day", "status": "Todo", "priority": "High"},
+                {"task": "Prepare rollback plan and feature flag", "owner": "Tech Lead", "deadline": "T-1 day", "status": "Todo", "priority": "High"},
+                {"task": "Lock budget and reward guardrails", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+                {"task": "Create post-launch monitoring dashboard", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+                {"task": "Review legal and compliance copy", "owner": "Legal/Compliance", "deadline": "T-1 day", "status": "Todo", "priority": "Low"},
+                {"task": "Brief the operations team", "owner": "Ops", "deadline": "T-1 day", "status": "Todo", "priority": "Low"},
+                {"task": "Run post-launch recap and capture lessons", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+            ],
+            "postmortem": [
+                {"title": "Post-launch questions", "items": ["Did the launch meet the original goal?", "Which predicted risks happened?", "Which guardrail needs to be added?"]},
+                {"title": "Metrics to fill", "items": ["DAU / login rate", "CS ticket count and ticket type", "ROI / conversion"]},
+                {"title": "Action items", "items": ["Pick the strongest lesson", "Move the lesson into the next template", "Update the base checklist"]},
+            ],
+        }
     return {
         "source": "fallback",
         "warning": reason,
@@ -3234,15 +3515,15 @@ def fallback_result(reason: str) -> dict[str, Any]:
             "reason": "Đang dùng fallback local vì API chưa sẵn sàng hoặc trả lỗi.",
         },
         "riskBreakdown": [
-            {"label": "Mục tiêu và scope", "score": 1, "maxScore": 2, "missing": "Mục tiêu, đối tượng hoặc scope còn mơ hồ."},
+            {"label": "Mục tiêu và phạm vi", "score": 1, "maxScore": 2, "missing": "Mục tiêu, đối tượng hoặc phạm vi còn mơ hồ."},
             {"label": "Owner và deadline", "score": 1, "maxScore": 2, "missing": "Chưa thấy owner/deadline rõ cho các nhóm."},
-            {"label": "Tech readiness", "score": 2, "maxScore": 2, "missing": "Ổn cho demo brief."},
-            {"label": "User impact", "score": 2, "maxScore": 2, "missing": "Ổn cho demo brief."},
-            {"label": "Business và reward", "score": 1, "maxScore": 2, "missing": "Reward, tỷ lệ hoặc ngân sách chưa đủ guardrail."},
-            {"label": "Learning và post-mortem", "score": 1, "maxScore": 2, "missing": "Chưa có kế hoạch học lại sau launch."},
+            {"label": "Sẵn sàng kỹ thuật", "score": 2, "maxScore": 2, "missing": "Ổn cho demo brief."},
+            {"label": "Tác động người dùng", "score": 2, "maxScore": 2, "missing": "Ổn cho demo brief."},
+            {"label": "Kinh doanh và phần thưởng", "score": 1, "maxScore": 2, "missing": "Phần thưởng, tỷ lệ hoặc ngân sách chưa đủ guardrail."},
+            {"label": "Bài học và hậu kiểm", "score": 1, "maxScore": 2, "missing": "Chưa có kế hoạch học lại sau launch."},
         ],
         "topRisks": [
-            "Mục tiêu, đối tượng hoặc scope còn mơ hồ.",
+            "Mục tiêu, đối tượng hoặc phạm vi còn mơ hồ.",
             "Chưa thấy owner/deadline rõ cho các nhóm.",
             "Reward, tỷ lệ hoặc ngân sách chưa đủ guardrail.",
         ],
@@ -3279,7 +3560,7 @@ def fallback_result(reason: str) -> dict[str, Any]:
             },
         ],
         "checklist": [
-            {"task": "Chốt scope, đối tượng, KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Chốt phạm vi, đối tượng và KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
             {"task": "Viết CS FAQ và macro trả lời", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
             {"task": "Chuẩn bị rollback plan và feature flag", "owner": "Tech Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
             {"task": "Chốt ngân sách, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
@@ -3305,15 +3586,15 @@ def build_default_template() -> dict[str, Any]:
         "name": "Default LaunchOps Template",
         "type": "generic",
         "riskGroups": [
-            {"label": "Mục tiêu và scope", "maxScore": 2},
+            {"label": "Mục tiêu và phạm vi", "maxScore": 2},
             {"label": "Owner và deadline", "maxScore": 2},
-            {"label": "Tech readiness", "maxScore": 2},
-            {"label": "User impact", "maxScore": 2},
-            {"label": "Business và reward", "maxScore": 2},
-            {"label": "Learning và post-mortem", "maxScore": 2},
+            {"label": "Sẵn sàng kỹ thuật", "maxScore": 2},
+            {"label": "Tác động người dùng", "maxScore": 2},
+            {"label": "Kinh doanh và phần thưởng", "maxScore": 2},
+            {"label": "Bài học và hậu kiểm", "maxScore": 2},
         ],
         "redTeamPersonas": ["Angry user", "Exploit hunter", "CS lead", "Tech on-call", "Business owner"],
-        "checklistExamples": ["Chốt scope", "Viết FAQ", "Chuẩn bị rollback", "Theo dõi KPI"],
+        "checklistExamples": ["Chốt phạm vi", "Viết FAQ", "Chuẩn bị rollback", "Theo dõi KPI"],
         "postmortemBlocks": ["Câu hỏi sau launch", "Metrics cần điền", "Action items"],
         "maxScore": 12,
     }
@@ -3416,7 +3697,7 @@ def readiness_agent(brief: str, launch_context: dict[str, Any] | None = None, fo
         meta = result.pop("_llmMeta", None) or {}
         source = meta.get("source", "llm")
     else:
-        result = fallback_result("Readiness agent rule-based.")
+        result = fallback_result("Readiness agent rule-based.", detect_brief_language(brief))
         result["trace"] = _base_trace("readiness", "rule-based readiness")
         result["source"] = "rule"
         source = "rule"
@@ -3547,6 +3828,52 @@ def _red_team_profile(persona: str, index: int) -> dict[str, Any]:
 
 def build_deterministic_red_team(result: dict[str, Any], personas: list[Any], brief: str = "") -> list[dict[str, str]]:
     risks = _red_team_risks(result)
+    if detect_brief_language(brief) == "en":
+        english_cards = [
+            {
+                "persona": "Angry user",
+                "worry": "Players may react quickly if rules, benefits, or compensation are unclear.",
+                "evidence": "Risk group {label} is still open: {missing}",
+                "fix": "Lock player-facing copy, CS FAQ, complaint owner, and compensation path before launch.",
+            },
+            {
+                "persona": "Exploit hunter",
+                "worry": "Abusive users may farm rewards, bypass eligibility, or push cost beyond control.",
+                "evidence": "Risk group {label} is not locked tightly enough: {missing}",
+                "fix": "Lock eligibility, daily limits, reward caps, anti-abuse rules, and anomaly logging.",
+            },
+            {
+                "persona": "CS lead",
+                "worry": "CS may receive repeated tickets without macros, SLA, or escalation paths.",
+                "evidence": "Risk group {label} lacks operational ownership: {missing}",
+                "fix": "Prepare response macros, ticket routing, SLA, and escalation owner for hot cases.",
+            },
+            {
+                "persona": "Tech on-call",
+                "worry": "The on-call team may not recover quickly without monitoring, feature flags, or rollback criteria.",
+                "evidence": "Risk group {label} lacks enough technical evidence: {missing}",
+                "fix": "Lock dashboard, alerting, feature flag, runbook, and rollback threshold before launch time.",
+            },
+            {
+                "persona": "Business owner",
+                "worry": "Business cannot make a clean go/no-go call if KPI, budget, or learning criteria are unclear.",
+                "evidence": "Risk group {label} affects business decision quality: {missing}",
+                "fix": "Lock KPI, budget guardrail, stop threshold, and T+48h recap format.",
+            },
+        ]
+        cards: list[dict[str, str]] = []
+        for index, raw_persona in enumerate(personas[:5]):
+            persona = str(raw_persona or english_cards[index % len(english_cards)]["persona"]).strip()
+            profile = english_cards[index % len(english_cards)]
+            risk = _pick_red_team_risk(risks, ["risk", "owner", "cs", "reward", "rollback", "dashboard"], index)
+            cards.append({
+                "persona": persona,
+                "worry": profile["worry"],
+                "evidence": profile["evidence"].format(label=risk.get("label") or "Launch brief", missing=risk.get("missing") or "The brief is missing evidence."),
+                "fix": profile["fix"],
+            })
+        return cards
+
     cards: list[dict[str, str]] = []
     for index, raw_persona in enumerate(personas[:5]):
         persona = str(raw_persona or f"Reviewer {index + 1}").strip() or f"Reviewer {index + 1}"
@@ -3580,16 +3907,28 @@ def checklist_agent(result: dict[str, Any], launch_context: dict[str, Any] | Non
         else:
             fallback_reason = meta.get("fallbackReason") or "llm_unavailable"
         write_backend_log(f"checklist fallback: {fallback_reason}")
-    result["checklist"] = [
-        {"task": "Chốt scope, đối tượng, KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
-        {"task": "Viết CS FAQ và macro trả lời", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
-        {"task": "Chuẩn bị rollback plan và feature flag", "owner": "Tech Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
-        {"task": "Kiểm tra ngân sách, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
-        {"task": "Theo dõi KPI sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
-        {"task": "Review copy nội bộ", "owner": "Ops", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
-        {"task": "Chuẩn bị escalation path", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
-        {"task": "Post-launch recap", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
-    ]
+    if detect_brief_language(brief) == "en":
+        result["checklist"] = [
+            {"task": "Lock scope, audience, and success KPI", "owner": "PM LiveOps", "deadline": "T-2 days", "status": "Todo", "priority": "High"},
+            {"task": "Write CS FAQ and response macros", "owner": "CS Lead", "deadline": "T-1 day", "status": "Todo", "priority": "High"},
+            {"task": "Prepare rollback plan and feature flag", "owner": "Tech Lead", "deadline": "T-1 day", "status": "Todo", "priority": "High"},
+            {"task": "Check budget and reward guardrails", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+            {"task": "Monitor post-launch KPI", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+            {"task": "Review internal copy", "owner": "Ops", "deadline": "T-1 day", "status": "Todo", "priority": "Low"},
+            {"task": "Prepare escalation path", "owner": "CS Lead", "deadline": "T-1 day", "status": "Todo", "priority": "Low"},
+            {"task": "Run post-launch recap", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+        ]
+    else:
+        result["checklist"] = [
+            {"task": "Chốt phạm vi, đối tượng và KPI thành công", "owner": "PM LiveOps", "deadline": "T-2 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Viết CS FAQ và macro trả lời", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Chuẩn bị rollback plan và feature flag", "owner": "Tech Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "High"},
+            {"task": "Kiểm tra ngân sách, reward guardrail", "owner": "Business Owner", "deadline": "Launch day", "status": "Todo", "priority": "Medium"},
+            {"task": "Theo dõi KPI sau launch", "owner": "Data/BI", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+            {"task": "Review copy nội bộ", "owner": "Ops", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
+            {"task": "Chuẩn bị escalation path", "owner": "CS Lead", "deadline": "T-1 ngày", "status": "Todo", "priority": "Low"},
+            {"task": "Post-launch recap", "owner": "PM LiveOps", "deadline": "T+48h", "status": "Todo", "priority": "Medium"},
+        ]
     if fallback_reason:
         result.setdefault("trace", []).append(_agent_trace("checklist", "checklist", "fallback", {**(meta or {}), "fallbackReason": fallback_reason, "schemaAccepted": False}, tasks=len(result["checklist"])))
     else:
@@ -3614,11 +3953,19 @@ def postmortem_agent(result: dict[str, Any], launch_context: dict[str, Any] | No
         else:
             fallback_reason = meta.get("fallbackReason") or "llm_unavailable"
         write_backend_log(f"postmortem fallback: {fallback_reason}")
-    result["postmortem"] = [
-        {"title": "Câu hỏi sau launch", "items": ["Mục tiêu ban đầu có đạt không?", "Rủi ro nào đã được bắt đúng trước launch?", "Điểm nào cần thêm guardrail?"]},
-        {"title": "Metrics cần điền", "items": ["DAU / login rate", "Số ticket CS và loại ticket", "ROI / conversion"]},
-        {"title": "Action items", "items": ["Chốt lesson tốt nhất", "Đưa lesson vào template lần sau", "Cập nhật checklist gốc"]},
-    ]
+    result["postmortem"] = (
+        [
+            {"title": "Post-launch questions", "items": ["Did the original goal land?", "Which risk was predicted correctly before launch?", "Which area needs another guardrail?"]},
+            {"title": "Metrics to fill", "items": ["DAU / login rate", "CS ticket count and ticket type", "ROI / conversion"]},
+            {"title": "Action items", "items": ["Lock the strongest lesson", "Move the lesson into the next template", "Update the base checklist"]},
+        ]
+        if detect_brief_language(brief) == "en"
+        else [
+            {"title": "Câu hỏi sau launch", "items": ["Mục tiêu ban đầu có đạt không?", "Rủi ro nào đã được bắt đúng trước launch?", "Điểm nào cần thêm guardrail?"]},
+            {"title": "Metrics cần điền", "items": ["DAU / login rate", "Số ticket CS và loại ticket", "ROI / conversion"]},
+            {"title": "Action items", "items": ["Chốt lesson tốt nhất", "Đưa lesson vào template lần sau", "Cập nhật checklist gốc"]},
+        ]
+    )
     if fallback_reason:
         result.setdefault("trace", []).append(_agent_trace("postmortem", "postmortem", "fallback", {**(meta or {}), "fallbackReason": fallback_reason, "schemaAccepted": False}, blocks=len(result["postmortem"])))
     else:
@@ -3795,9 +4142,43 @@ def orchestrate_remote_launchops_analysis(brief: str, launch_context: dict[str, 
     }
     return result
 
+
+VI_OUTPUT_TERM_REWRITES = {
+    "Mục tiêu và scope": "Mục tiêu và phạm vi",
+    "Tech readiness": "Sẵn sàng kỹ thuật",
+    "User impact": "Tác động người dùng",
+    "Business và reward": "Kinh doanh và phần thưởng",
+    "Learning và post-mortem": "Bài học và hậu kiểm",
+    "Channel readiness": "Sẵn sàng kênh truyền thông",
+    "Audience và message": "Đối tượng và thông điệp",
+    "Budget và ROI": "Ngân sách và ROI",
+    "Payment và fulfillment": "Thanh toán và phát vật phẩm",
+    "Fraud và abuse": "Gian lận và lạm dụng",
+    "Inventory và pricing": "Tồn kho và giá bán",
+    "Chốt scope": "Chốt phạm vi",
+    "Chốt scope, đối tượng, KPI thành công": "Chốt phạm vi, đối tượng và KPI thành công",
+}
+
+
+def normalize_output_language_terms(value: Any, brief: str) -> Any:
+    if detect_brief_language(brief) == "en":
+        return value
+    if isinstance(value, str):
+        text = value
+        for source, target in VI_OUTPUT_TERM_REWRITES.items():
+            text = text.replace(source, target)
+        text = re.sub(r"\bscope\b", "phạm vi", text)
+        return text
+    if isinstance(value, list):
+        return [normalize_output_language_terms(item, brief) for item in value]
+    if isinstance(value, dict):
+        return {key: normalize_output_language_terms(item, brief) for key, item in value.items()}
+    return value
+
+
 def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | None = None, force_fast: bool = False) -> dict[str, Any]:
     if remote_agents_enabled() and not force_fast and current_agent_role() == "orchestrator":
-        return orchestrate_remote_launchops_analysis(brief, launch_context, force_fast=force_fast)
+        return normalize_output_language_terms(orchestrate_remote_launchops_analysis(brief, launch_context, force_fast=force_fast), brief)
     launch_context = launch_context or {}
     product_context = build_product_context(brief, launch_context)
     active_template = launch_context.get("template") if isinstance(launch_context.get("template"), dict) else product_context.get("typeProfile") or build_default_template()
@@ -3837,7 +4218,7 @@ def orchestrate_launchops_analysis(brief: str, launch_context: dict[str, Any] | 
         "checklist": public_llm_config("checklist"),
         "postmortem": public_llm_config("postmortem"),
     }
-    return result
+    return normalize_output_language_terms(result, brief)
 
 def invocation_request_id(payload: dict[str, Any]) -> str:
     raw = payload.get("requestId") or payload.get("request_id")
@@ -4157,9 +4538,9 @@ def build_prompt(brief: str, launch_context: dict[str, Any] | None = None, agent
     ]
     out_lang = detect_brief_language(brief)
     lang_rule = (
-        "- Toàn bộ giá trị text trong JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) PHẢI viết bằng tiếng Việt."
+        "- Toàn bộ giá trị text trong JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) PHẢI viết bằng tiếng Việt. Không trả câu tiếng Anh cho brief tiếng Việt; chỉ giữ nguyên thuật ngữ kỹ thuật/brand như KPI, CS, FAQ, rollback, dashboard, Golden Spin nếu cần."
         if out_lang == "vi"
-        else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
+        else "- All text values in the JSON (title, reason, missing, topRisks, worry, evidence, fix, task, owner, postmortem...) MUST be written in English. Do not answer in Vietnamese for an English brief. Keep JSON keys and enum values (Green/Yellow/Red, Todo, High/Medium/Low, T-2/T-1/Launch day/T+48h) exactly as specified."
     )
 
     # WS1 RAG + WS2 role-aware + WS5 distilled insight: ground each agent in recalled knowledge.
@@ -4474,6 +4855,47 @@ def line_has_negative_marker(line: str) -> bool:
 
 def deterministic_risk_breakdown(brief: str, template: dict[str, Any]) -> list[dict[str, Any]]:
     risk_groups = template.get("riskGroups") if isinstance(template.get("riskGroups"), list) else []
+    output_en = detect_brief_language(brief) == "en"
+    english_labels = {
+        "scope": "Goal and scope",
+        "owner": "Owner and deadline",
+        "execution": "Execution plan",
+        "support": "CS and communications",
+        "risk": "Risk guardrail and rollback",
+        "learning": "Learning and post-mortem",
+        "tech": "Tech readiness",
+        "user": "User impact",
+        "business": "Business and reward",
+        "product_health": "Product health",
+        "abuse": "Anti-abuse",
+        "payment": "Payment and fulfillment",
+        "inventory": "Inventory and pricing",
+        "channel": "Channel readiness",
+        "audience": "Audience and message",
+    }
+    english_missing = {
+        "ready": "Enough evidence in the brief for this group.",
+        "negative": "The brief mentions this area, but at least one item is still not closed.",
+        "partial": "Mentioned, but not detailed enough for full score.",
+        "empty": "Not enough evidence in the brief yet.",
+    }
+    vi_label_rewrites = {
+        "Mục tiêu và scope": "Mục tiêu và phạm vi",
+        "Tech readiness": "Sẵn sàng kỹ thuật",
+        "User impact": "Tác động người dùng",
+        "Business và reward": "Kinh doanh và phần thưởng",
+        "Learning và post-mortem": "Bài học và hậu kiểm",
+    }
+    vi_text_rewrites = {
+        "scope": "phạm vi",
+    }
+
+    def vi_output_text(value: str) -> str:
+        text = vi_label_rewrites.get(str(value), str(value))
+        for source, target in vi_text_rewrites.items():
+            text = re.sub(rf"\b{re.escape(source)}\b", target, text)
+        return text
+
     normalized_lines = [
         normalize_for_match(line)
         for line in str(brief or "").splitlines()
@@ -4486,7 +4908,7 @@ def deterministic_risk_breakdown(brief: str, template: dict[str, Any]) -> list[d
         if not isinstance(group, dict):
             continue
         key = group_key(group)
-        label = str(group.get("label") or "Nhóm rủi ro")
+        label = english_labels.get(key, str(group.get("label") or "Risk group")) if output_en else vi_output_text(str(group.get("label") or "Nhóm rủi ro"))
         max_score = max(1, int(group.get("maxScore") or 2))
         keywords = deterministic_keywords(group)
         positive_hits = 0
@@ -4516,13 +4938,13 @@ def deterministic_risk_breakdown(brief: str, template: dict[str, Any]) -> list[d
                 score = min(score, max(0, max_score - 1))
 
         if score >= max_score:
-            missing = "Đủ bằng chứng trong brief cho nhóm này."
+            missing = english_missing["ready"] if output_en else "Đủ bằng chứng trong brief cho nhóm này."
         elif negative_lines:
-            missing = str(group.get("missing") or "Brief có nhắc tới nhưng vẫn còn điểm chưa chốt.")
+            missing = english_missing["negative"] if output_en else vi_output_text(str(group.get("missing") or "Brief có nhắc tới nhưng vẫn còn điểm chưa chốt."))
         elif positive_hits:
-            missing = str(group.get("missing") or "Có nhắc tới, nhưng chưa đủ chi tiết để chấm trọn điểm.")
+            missing = english_missing["partial"] if output_en else vi_output_text(str(group.get("missing") or "Có nhắc tới, nhưng chưa đủ chi tiết để chấm trọn điểm."))
         else:
-            missing = str(group.get("missing") or "Chưa thấy đủ bằng chứng trong brief.")
+            missing = english_missing["empty"] if output_en else vi_output_text(str(group.get("missing") or "Chưa thấy đủ bằng chứng trong brief."))
 
         breakdown.append({
             "label": label,
@@ -4741,7 +5163,8 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     if not api_key or not base_url or not model:
         result = apply_deterministic_readiness(
             fallback_result(
-                f"Thiếu cấu hình LLM cho {step_name}: cần base URL, API key và model trong biến LAUNCHOPS_*."
+                f"Thiếu cấu hình LLM cho {step_name}: cần base URL, API key và model trong biến LAUNCHOPS_*.",
+                detect_brief_language(brief),
             ),
             brief,
             launch_context,
@@ -4753,7 +5176,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "Bạn chỉ trả về JSON hợp lệ theo schema người dùng yêu cầu."},
+            {"role": "system", "content": "Bạn chỉ trả về JSON hợp lệ theo schema người dùng yêu cầu. Ngôn ngữ của mọi giá trị text phải khớp ngôn ngữ của launch brief."},
             {"role": "user", "content": build_prompt(brief, launch_context, agent_step)},
         ],
         "temperature": 0,
@@ -4793,7 +5216,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
         latency = (time.time() - start) * 1000
         write_backend_log(f"LLM call failed for {step_name}: Timeout after {timeout + 5}s")
         result = apply_deterministic_readiness(
-            fallback_result(f"API không trả trong {timeout + 5} giây cho {step_name}. Demo dùng fallback để không treo UI."),
+            fallback_result(f"API không trả trong {timeout + 5} giây cho {step_name}. Demo dùng fallback để không treo UI.", detect_brief_language(brief)),
             brief,
             launch_context,
         )
@@ -4808,7 +5231,8 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
             write_backend_log(f"LLM call failed for {step_name}: HTTPError {status_code}")
             result = apply_deterministic_readiness(
                 fallback_result(
-                    f"API trả HTTPError {status_code} cho {step_name}. Kiểm tra base URL, model hoặc quyền API key."
+                    f"API trả HTTPError {status_code} cho {step_name}. Kiểm tra base URL, model hoặc quyền API key.",
+                    detect_brief_language(brief),
                 ),
                 brief,
                 launch_context,
@@ -4817,7 +5241,7 @@ def call_llm(brief: str, launch_context: dict[str, Any] | None = None, agent_ste
             reason = type(exc).__name__
             write_backend_log(f"LLM call failed for {step_name}: {reason}")
             result = apply_deterministic_readiness(
-                fallback_result(f"API lỗi hoặc JSON không hợp lệ cho {step_name}: {reason}."),
+                fallback_result(f"API lỗi hoặc JSON không hợp lệ cho {step_name}: {reason}.", detect_brief_language(brief)),
                 brief,
                 launch_context,
             )

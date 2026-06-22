@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 21/06/2026 - bản demo live đã được làm gọn nội dung mẫu và polish giao diện để phục vụ trải nghiệm đánh giá ổn định hơn.
+> Cập nhật 22/06/2026 - dữ liệu mẫu đã được làm lại thành 9 launch đầy đủ hơn, chia 3 đã chạy / 3 đang chạy / 3 sắp chạy; output phân tích, checklist và bài học bám theo ngôn ngữ của brief.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 
@@ -159,12 +159,12 @@ Mọi agent gọi OpenAI-compatible `/v1/chat/completions`. Muốn **tách model
 
 Để có remote multi-agent, RAG và Cloud DB như production, bạn tự provision tài nguyên của mình rồi điền `.env` riêng (xem [Env](#env)): VNG MaaS key, Cloud DB/PostgreSQL, AgentBase Memory/knowledge store(s), và 4 child runtime. MCP Gateway là đường tích hợp tùy chọn; self-host channel skill có thể đi thẳng vào backend. Thiếu phần nào app tự fallback an toàn: thiếu DB → local; thiếu Memory → tắt memory; thiếu child → chạy monolith 1 runtime; thiếu key → rule local.
 
-## Demo flow (Golden Spin)
+## Demo flow (sample launches)
 
-1. **Brief đang chạy còn rủi ro** — `Vòng Quay Golden Spin Đang Chạy` → readiness Yellow, hiện Red Team 5 persona + checklist cần theo dõi.
-2. **Học từ retro** — `Vòng Quay Golden Spin Đã Chạy` chứa bài học đã lưu; lesson này được recall để ground lần phân tích sau.
-3. **Brief sẵn sàng** — `Vòng Quay Golden Spin Sắp Chạy` đã áp lessons → Green 12/12; khi full điểm thì không còn rủi ro mở/Red Team, rủi ro mới chỉ ghi ở Kết quả sau launch để thành lesson tiếp theo.
-4. **Bằng chứng multi-agent** — mở tab trace để thấy `orchestration.mode=remote_agents`, 4 child `remote_runtime` và mỗi agent recall từ store riêng.
+1. **Đã chạy, có bài học** — nhóm completed có 1 Red (`Shop Đá Quý Bão Tố Đã Chạy`) và 2 Yellow, mỗi launch đều có post-result + lesson để LCC recall cho lần sau.
+2. **Đang chạy** — nhóm running có `Xem Trước Kho Skin Đang Chạy` Green và 2 launch Yellow cần theo dõi (`Vòng Quay Golden Spin Đang Chạy`, `Đua Boss Bang Hội Đang Chạy`).
+3. **Sắp chạy** — nhóm upcoming có 2 Green (`Vòng Quay Golden Spin Sắp Chạy`, `Festival Skin Phoenix Sắp Chạy`) và 1 Yellow (`Chuỗi Đăng Nhập Comeback Sắp Chạy`).
+4. **Bằng chứng multi-agent** — mở tab trace để thấy readiness theo rubric, Red Team/checklist/post-mortem do agent phân tích, và lesson từ launch đã chạy được dùng làm ngữ cảnh.
 
 Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
 
@@ -176,7 +176,7 @@ Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
 - **Lưu trữ:** launch người dùng khi xóa được đưa vào tab Archive/Lưu trữ trong Cấu Hình để Admin xem, khôi phục hoặc xóa vĩnh viễn; bản public review chỉ cho xem khi đang khóa.
 - **Mẫu gốc:** launch mẫu, phân loại mẫu và template mẫu là dữ liệu demo bất biến với người dùng thường; người dùng có thể tạo/sửa/xóa dữ liệu custom riêng mà không làm hỏng mẫu.
 - **Log:** xem client event + server trace từng launch ở Pro mode (read-only trong bản review công khai).
-- **VI/EN:** UI song ngữ; output LLM theo ngôn ngữ của brief.
+- **VI/EN:** UI song ngữ; output phân tích, việc cần làm và bài học theo ngôn ngữ của brief (brief tiếng Việt trả tiếng Việt, brief tiếng Anh trả tiếng Anh).
 
 ## MCP và tool
 

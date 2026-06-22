@@ -268,9 +268,10 @@ button:disabled:hover {
 
 .topbar-marquee {
   position: relative;
-  flex: 1 1 auto;
-  min-width: 180px;
-  max-width: 680px;
+  flex: 0 1 clamp(280px, 26vw, 480px);
+  width: clamp(280px, 26vw, 480px);
+  min-width: 0;
+  max-width: 480px;
   overflow: hidden;
   padding: 7px 0;
   border: 1px solid rgba(255, 177, 119, 0.22);
@@ -325,9 +326,11 @@ button:disabled:hover {
 .topbar-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 9px;
+  min-width: max-content;
 }
 
 .topbar-actions > button {
@@ -362,7 +365,8 @@ button:disabled:hover {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  max-width: 230px;
+  flex: 0 1 214px;
+  max-width: 214px;
   padding: 6px 11px;
   border: 1px solid var(--deep-line);
   border-radius: 999px;
@@ -371,6 +375,9 @@ button:disabled:hover {
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sync-status::before {
@@ -4794,6 +4801,7 @@ body.is-analyzing #traceConsoleBody::after {
   .topbar-marquee {
     order: 3;
     flex-basis: 100%;
+    width: 100%;
     max-width: none;
   }
 
