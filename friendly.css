@@ -471,8 +471,8 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
   display:grid;
   grid-template-rows:auto minmax(360px,1fr) auto auto;
   gap:8px;
-  overflow:hidden;
-  padding-right:0;
+  overflow:auto;
+  padding-right:4px;
 }
 
 .friendly-viz-scene[data-step="4"]{
@@ -530,10 +530,10 @@ body.ui-mode-friendly .launch-card.friendly-session-edit::after{
 .friendly-viz-miss-list{
   display:grid;
   gap:6px;
-  max-height:104px;
-  overflow-y:auto;
-  padding-right:2px;
-  scrollbar-gutter:stable;
+  max-height:none;
+  overflow:visible;
+  padding-right:0;
+  scrollbar-gutter:auto;
 }
 
 .friendly-viz-brief .friendly-viz-miss.is-empty{

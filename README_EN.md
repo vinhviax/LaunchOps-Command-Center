@@ -172,6 +172,7 @@ Click **Load Sample Brief** or **Demo mode** to load it quickly.
 
 - **Friendly mode:** step-by-step guided experience for newcomers.
 - **Pro mode:** full dashboard — readiness, Red Team, checklist, post-mortem, RAG insight, trace, and the controlled self-learning panel.
+- **Onboarding:** first dashboard entry has mode-aware Pro/Friendly tutorials; the Config button has its own tutorial for classifications, templates, risk groups, personas, checklists, and lessons.
 - **Launch list:** shared Pro/Friendly filters by name, classification, template, status, and running date range so reviewers can find launches in a specific window.
 - **Archive:** deleted user launches move to the Archive tab inside Config, where Admins can review, restore, or purge them; the public review build keeps it view-only while locked.
 - **Seed data:** sample launches, sample classifications, and sample templates are immutable for normal users; users can still create, edit, and delete their own custom data without damaging the demo set.

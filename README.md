@@ -172,6 +172,7 @@ Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
 
 - **Friendly mode:** trải nghiệm hướng dẫn từng bước cho người mới.
 - **Pro mode:** dashboard đầy đủ — readiness, Red Team, checklist, post-mortem, RAG insight, trace, và panel controlled self-learning.
+- **Onboarding:** lần đầu vào dashboard có tutorial riêng cho Pro/Friendly; nút Cấu Hình có tutorial riêng để giải thích phân loại, template, nhóm rủi ro, persona, checklist và bài học.
 - **Danh sách launch:** lọc chung cho Pro/Friendly theo tên, phân loại, template, trạng thái và khoảng ngày chạy để tìm nhanh launch trong một giai đoạn.
 - **Lưu trữ:** launch người dùng khi xóa được đưa vào tab Archive/Lưu trữ trong Cấu Hình để Admin xem, khôi phục hoặc xóa vĩnh viễn; bản public review chỉ cho xem khi đang khóa.
 - **Mẫu gốc:** launch mẫu, phân loại mẫu và template mẫu là dữ liệu demo bất biến với người dùng thường; người dùng có thể tạo/sửa/xóa dữ liệu custom riêng mà không làm hỏng mẫu.

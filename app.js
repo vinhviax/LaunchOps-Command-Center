@@ -772,6 +772,7 @@ const OWNER_LABELS = {
   "LiveOps Lead": "Lead LiveOps"
 };
 const TYPE_LABELS = {
+  "game_event_h5": "Sự kiện game",
   "lucky_spin_event": "Sự kiện game",
   "Game event": "Sự kiện game",
   "Campaign marketing": "Chiến dịch marketing",
@@ -782,6 +783,7 @@ const TYPE_LABELS = {
 
 // Nhãn phân loại tiếng Anh — dùng khi UI là EN (kể cả type có tên VI mặc định).
 const TYPE_LABELS_EN = {
+  "game_event_h5": "Game event",
   "lucky_spin_event": "Game event",
   "Game event": "Game event",
   "Campaign marketing": "Marketing campaign",
@@ -791,6 +793,8 @@ const TYPE_LABELS_EN = {
 };
 
 const TEMPLATE_NAME_LABELS = {
+  "Sự kiện Lucky Spin": "Template sự kiện Lucky Spin",
+  "Default LaunchOps Template": "Template launch chung",
   "Lucky Spin Event Playbook": "Template sự kiện Lucky Spin",
   "Game Event Launch": "Template sự kiện game",
   "In-Game Shop Commercial Playbook": "Template shop ingame thương mại",
@@ -799,6 +803,8 @@ const TEMPLATE_NAME_LABELS = {
   "Generic Launch": "Template launch chung"
 };
 const TEMPLATE_NAME_LABELS_EN = {
+  "Sự kiện Lucky Spin": "Lucky Spin event template",
+  "Default LaunchOps Template": "Shared launch template",
   "Lucky Spin Event Playbook": "Lucky Spin event template",
   "Game Event Launch": "Game event template",
   "In-Game Shop Commercial Playbook": "In-game shop commercial template",
@@ -1470,7 +1476,7 @@ const fallbackLaunches = [
   { id: "golden-spin-weekend-ready", name: "Vòng Quay Golden Spin Sắp Chạy", type: LUCKY_SPIN_TYPE, status: "upcoming", owner: "PM LiveOps + Tech", targetDate: sampleLaunchDate(3, 20), endDate: sampleLaunchDate(5, 23, 59), brief: goldenReadyBrief, template: LUCKY_SPIN_EVENT_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("golden-spin-weekend-ready", goldenReadyBrief, "Green", 12, "Golden Spin sắp chạy đã sẵn sàng", "Bài học cũ đã áp dụng; guardrail, CS, dashboard và rollback đã sẵn sàng."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
   { id: "storm-shop-retro", name: "Shop Đá Quý Bão Tố Đã Chạy", type: "Game event", status: "completed", owner: "Commercial Owner", targetDate: sampleLaunchDate(-16, 9), endDate: sampleLaunchDate(-14, 23, 59), brief: stormShopBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("storm-shop-retro", stormShopBrief, "Red", 5, "Shop đã chạy nhưng lỗi payment/refund quá lớn", "Doanh thu đạt nhưng payment failure, refund macro và dashboard kill switch không đủ an toàn."), postLaunchResult: "Revenue beat target, but payment failure and refund handling overloaded CS during peak hours.", lessonsLearned: [{ id: "lesson-storm-shop-payment-refund", createdAt: DEMO_CREATED_AT, text: "Commercial shop launches need payment owner, refund macro, purchase limit copy, reconcile report and payment-fail pause threshold." }], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
   { id: "dragon-login-live", name: "Chuỗi Đăng Nhập Rồng Đã Chạy", type: "Game event", status: "completed", owner: "Retention PM", targetDate: sampleLaunchDate(-8, 5), endDate: sampleLaunchDate(-2, 23, 59), brief: dragonLoginBrief, template: LOGIN_STREAK_RETENTION_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("dragon-login-live", dragonLoginBrief, "Yellow", 8, "Chuỗi đăng nhập đạt một phần KPI", "Reset timezone, duplicate claim và CS song ngữ cần rõ hơn cho login streak tiếp theo."), postLaunchResult: "D3 retention passed target, D7 missed by 4%; timezone confusion and English CS macro gaps created avoidable tickets.", lessonsLearned: [{ id: "lesson-dragon-login-timezone", createdAt: DEMO_CREATED_AT, text: "Login streak launches need reset timezone, lost-streak rule, duplicate-claim check and bilingual CS macros before opening." }], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
-  { id: "guild-boss-live", name: "Đua Boss Bang Hội Đang Chạy", type: "Game event", status: "running", owner: "Game PM", targetDate: sampleLaunchDate(-1, 20), endDate: sampleLaunchDate(1, 22), brief: guildBossBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("guild-boss-live", guildBossBrief, "Yellow", 7, "Đua Boss Bang Hội cần kiểm tra leaderboard", "Leaderboard trễ và rule hòa điểm có thể gây khiếu nại."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
+  { id: "guild-boss-live", name: "Đua Boss Bang Hội Đang Chạy", type: "Game event", status: "running", owner: "Game PM", targetDate: sampleLaunchDate(-1, 20), endDate: sampleLaunchDate(1, 22), brief: guildBossBrief, template: GAME_EVENT_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("guild-boss-live", guildBossBrief, "Yellow", 7, "Đua Boss Bang Hội cần kiểm tra leaderboard", "Leaderboard trễ và rule hòa điểm có thể gây khiếu nại."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
   { id: "phoenix-shop-upcoming-red", name: "Festival Skin Phoenix Sắp Chạy", type: "Game event", status: "upcoming", owner: "Commercial PM + Economy Owner", targetDate: sampleLaunchDate(3, 19), endDate: sampleLaunchDate(5, 23, 59), brief: phoenixRedBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("phoenix-shop-upcoming-red", phoenixRedBrief, "Green", 12, "Festival Skin Phoenix đã sẵn sàng", "Offer, payment/refund, economy cap, dashboard, CS FAQ và kill switch đã được chốt."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
   { id: "login-comeback-upcoming-yellow", name: "Chuỗi Đăng Nhập Comeback Sắp Chạy", type: "Game event", status: "upcoming", owner: "Retention PM", targetDate: sampleLaunchDate(2, 5), endDate: sampleLaunchDate(6, 23, 59), brief: comebackYellowBrief, template: LOGIN_STREAK_RETENTION_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("login-comeback-upcoming-yellow", comebackYellowBrief, "Yellow", 8, "Comeback sprint gần sẵn sàng nhưng chưa xong", "KPI, cohort và cap đã sẵn sàng, nhưng thiếu copy mất streak, anti-abuse và roster CS."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true },
   { id: "skin-vault-upcoming-green", name: "Xem Trước Kho Skin Đang Chạy", type: "Game event", status: "running", owner: "Product Marketing", targetDate: sampleLaunchDate(-1, 10), endDate: sampleLaunchDate(1, 22), brief: skinGreenBrief, template: IN_GAME_SHOP_COMMERCIAL_TEMPLATE, templateVersions: [], lessonSuggestions: [], analyses: sampleAnalysis("skin-vault-upcoming-green", skinGreenBrief, "Green", 12, "Xem trước kho skin đang chạy ổn định", "Preview không thu tiền; KPI, segment, copy, dashboard, rollback và CS FAQ đã sẵn sàng."), postLaunchResult: "", lessonsLearned: [], checklistProgress: {}, redTeamBriefSupplements: {}, createdAt: DEMO_CREATED_AT, updatedAt: DEMO_CREATED_AT, isSample: true }
@@ -1687,6 +1693,16 @@ const closeIntroModalButton = document.getElementById("closeIntroModal");
 const enterDemoFromIntroButton = document.getElementById("enterDemoFromIntro");
 const productSelect = document.getElementById("productSelect");
 const changeProductButton = document.getElementById("changeProduct");
+const onboardingTutorial = document.getElementById("onboardingTutorial");
+const onboardingSpotlight = document.getElementById("onboardingSpotlight");
+const onboardingCard = document.getElementById("onboardingCard");
+const onboardingKicker = document.getElementById("onboardingKicker");
+const onboardingTitle = document.getElementById("onboardingTitle");
+const onboardingBody = document.getElementById("onboardingBody");
+const onboardingProgress = document.getElementById("onboardingProgress");
+const onboardingSkip = document.getElementById("onboardingSkip");
+const onboardingPrev = document.getElementById("onboardingPrev");
+const onboardingNext = document.getElementById("onboardingNext");
 const ragInsightsBody = document.getElementById("ragInsightsBody");
 const traceConsoleBody = document.getElementById("traceConsoleBody");
 const traceCopyButton = document.getElementById("traceCopyBtn");
@@ -1701,6 +1717,16 @@ let backendAvailable = Boolean(API_BASE);
 let draftMode = false;
 let templateOperatorId = "vinhvnn";
 let launchSearchQuery = "";
+const ONBOARDING_STORAGE_KEY = "launchops_onboarding_seen_v1";
+const CONFIG_ONBOARDING_STORAGE_KEY = "launchops_config_onboarding_seen_v1";
+let onboardingStepIndex = 0;
+let onboardingSteps = [];
+let onboardingResizeHandler = null;
+let onboardingModeAtOpen = "pro";
+let onboardingKindAtOpen = "main";
+let onboardingShownThisPage = false;
+let configOnboardingShownThisPage = false;
+let productSelectOpenedFromChange = false;
 let launchStatusFilter = "all";
 let launchDateFromFilter = "";
 let launchDateToFilter = "";
@@ -3674,16 +3700,29 @@ function summarizeClientLaunch(launch) {
   };
 }
 
+function sampleLaunchById(id) {
+  return fallbackLaunches.find((item) => item.id === id) || null;
+}
+
+function displayTemplateNameForLaunch(clean) {
+  const sample = sampleLaunchById(clean?.id);
+  if (sample?.template) return templateDisplayName(sample.template);
+  if (clean?.template) return templateDisplayName(clean.template);
+  if (clean?.templateName) return templateDisplayName(clean.templateName);
+  return templateDisplayName(defaultTemplateForType(clean?.type || "Game event"));
+}
+
 function normalizeLaunchSummaryEntry(launch) {
   const clean = sanitizeLaunchData(launch);
   if (!clean || typeof clean !== "object") return null;
   if (Array.isArray(clean.analyses)) return summarizeClientLaunch(clean);
+  const sample = sampleLaunchById(clean.id);
   const status = normalizeStatus(clean.status);
   return {
     id: clean.id,
     name: clean.name || "Launch chưa đặt tên",
-    type: clean.type || "Game event",
-    templateName: clean.templateName || templateDisplayName(clean.template || defaultTemplateForType(clean.type || "Game event")),
+    type: sample?.type || clean.type || "Game event",
+    templateName: displayTemplateNameForLaunch(clean),
     status,
     owner: clean.owner || "",
     targetDate: clean.targetDate || "",
@@ -6036,7 +6075,8 @@ function activateConfigPanel(target = "catalog") {
 function activateTab(target) {
   const currentActiveView = document.querySelector(".view.active")?.id || "briefView";
   const isConfigScreen = target === "templateConfig";
-  if (isConfigScreen || (target && target !== currentActiveView)) previousLaunchView = currentActiveView;
+  const wasConfigScreen = appShell?.classList.contains("config-mode") || currentActiveView === "templateConfig";
+  if (isConfigScreen && !wasConfigScreen) previousLaunchView = currentActiveView;
   appShell?.classList.toggle("config-mode", isConfigScreen);
   document.querySelectorAll(".tab").forEach((item) => {
     const isActive = !isConfigScreen && item.dataset.view === target;
@@ -7604,6 +7644,381 @@ function closeProductSelect() {
   productSelect.setAttribute("aria-hidden", "true");
 }
 
+function onboardingForcedByUrl() {
+  try {
+    const value = new URLSearchParams(window.location.search).get("tutorial");
+    return value === "1" || value === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
+function onboardingWasSeen() {
+  try {
+    return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+function configOnboardingWasSeen() {
+  try {
+    return localStorage.getItem(CONFIG_ONBOARDING_STORAGE_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+function rememberOnboardingSeen() {
+  if (onboardingForcedByUrl()) return;
+  try {
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+  } catch (error) {}
+}
+
+function rememberConfigOnboardingSeen() {
+  if (onboardingForcedByUrl()) return;
+  try {
+    localStorage.setItem(CONFIG_ONBOARDING_STORAGE_KEY, "1");
+  } catch (error) {}
+}
+
+function currentOnboardingMode() {
+  if (document.body.classList.contains("ui-mode-friendly")) return "friendly";
+  try {
+    return localStorage.getItem("launchops_ui_mode") === "friendly" ? "friendly" : "pro";
+  } catch (error) {
+    return "pro";
+  }
+}
+
+function onboardingStepDefinitions(mode) {
+  if (mode === "friendly") {
+    return [
+      {
+        target: "#friendlyChatInput",
+        mode: "friendly",
+        tab: "briefView",
+        title: tr("Bắt đầu bằng Mission Control", "Start with Mission Control"),
+        body: tr("Ở Friendly, bạn có thể gõ từng ý hoặc dán brief trực tiếp vào ô chat này. Agent sẽ gắn nội dung vào launch đang mở.", "In Friendly mode, type step by step or paste the brief into this chat box. The agent attaches it to the open launch.")
+      },
+      {
+        target: "#friendlyChatQuickActions",
+        fallbackTarget: "#friendlyChatInput",
+        mode: "friendly",
+        tab: "briefView",
+        title: tr("Chọn thao tác nhanh", "Use quick actions"),
+        body: tr("Dùng các chip nhanh để tạo launch mới, nạp brief mẫu hoặc chuyển sang bước phân tích mà không phải tìm nút trong form Pro.", "Use quick chips to create a launch, load a sample brief, or move toward analysis without hunting through the Pro form.")
+      },
+      {
+        target: "#friendlyAnalyzeBrief",
+        fallbackTarget: "#friendlyChatQuickActions",
+        mode: "friendly",
+        tab: "briefView",
+        title: tr("Chạy phân tích", "Run analysis"),
+        body: tr("Khi brief đã đủ nội dung, bấm Chạy phân tích. Friendly vẫn dùng cùng pipeline readiness, phản biện và checklist như Pro.", "When the brief is ready, run analysis. Friendly uses the same readiness, challenge, and checklist pipeline as Pro.")
+      },
+      {
+        target: "#friendlyVizDots",
+        mode: "friendly",
+        tab: "briefView",
+        title: tr("Đi qua 5 bước visualize", "Walk through the 5-step view"),
+        body: tr("Sau khi có kết quả, các bước này giúp reviewer đọc nhanh: brief, điểm, phản biện, việc cần làm và bài học.", "After analysis, these steps help reviewers scan the brief, score, challenges, actions, and lessons.")
+      },
+      {
+        target: "#friendlyVizReplay",
+        fallbackTarget: "#friendlyVizDots",
+        mode: "friendly",
+        tab: "briefView",
+        title: tr("Quay về bước 1 để chat với Bot", "Return to step 1 to chat with the Bot"),
+        body: tr("Khi cần bắt đầu tương tác, bấm nút Về bước 1 để quay lại khung Mission Control rồi gõ yêu cầu hoặc dán brief cho Bot xử lý.", "When you want to start interacting, click Back to step 1 to return to Mission Control, then type a request or paste a brief for the Bot.")
+      },
+      {
+        target: "#openTemplateConfig",
+        fallbackTarget: ".topbar-actions",
+        mode: "friendly",
+        tab: "briefView",
+        title: tr("Nút Cấu Hình là nơi chỉnh luật LCC", "Config controls LCC rules"),
+        body: tr("Sau tutorial này, bấm Cấu Hình để xem phân loại, template, nhóm rủi ro, persona phản biện, checklist và bài học. Khi bạn bấm nút đó, LCC sẽ mở một tutorial riêng cho màn Cấu Hình.", "After this tutorial, click Config to review launch types, templates, risk groups, review personas, checklist rules, and lessons. When you click it, LCC opens a dedicated Config tutorial.")
+      }
+    ];
+  }
+  return [
+    {
+      target: "#newLaunch",
+      mode: "pro",
+      tab: "briefView",
+      title: tr("Tạo launch mới", "Create a new launch"),
+      body: tr("Bấm nút này để tạo bản nháp riêng thay vì sửa launch mẫu. Đây là điểm bắt đầu sạch cho reviewer.", "Click this to create your own draft instead of editing a sample launch. This is the clean starting point for reviewers.")
+    },
+    {
+      target: ".form-grid",
+      mode: "pro",
+      tab: "briefView",
+      title: tr("Điền metadata chính", "Fill the key metadata"),
+      body: tr("Nhập tên launch, phân loại, template, trạng thái, owner và thời gian chạy để Agent hiểu bối cảnh trước khi đọc brief.", "Add name, type, template, status, owner, and timing so the agent understands context before reading the brief.")
+    },
+    {
+      target: "#briefInput",
+      mode: "pro",
+      tab: "briefView",
+      title: tr("Dán brief launch", "Paste the launch brief"),
+      body: tr("Dán brief thật vào đây. Brief càng rõ mục tiêu, cơ chế, reward, vận hành, rollback và đo lường thì điểm càng đáng tin.", "Paste the real brief here. Clear goals, mechanics, rewards, ops, rollback, and metrics make the score more reliable.")
+    },
+    {
+      target: "#analyzeBrief",
+      mode: "pro",
+      tab: "briefView",
+      title: tr("Chạy phân tích", "Run analysis"),
+      body: tr("Nút này gửi brief cho backend/AI để tạo readiness, phản biện Red Team, checklist và lịch sử phân tích.", "This sends the brief to the backend/AI to generate readiness, Red Team review, checklist, and analysis history.")
+    },
+    {
+      target: ".tab[data-view='redTeam']",
+      mode: "pro",
+      tab: "redTeam",
+      title: tr("Đọc phần Phân tích", "Read the analysis"),
+      body: tr("Tab Phân tích cho biết kết luận, điểm rủi ro và các góc phản biện để thấy launch còn thiếu gì.", "The Analysis tab shows the verdict, risk scoring, and challenge angles so you can see what is missing.")
+    },
+    {
+      target: ".tab[data-view='checklist']",
+      mode: "pro",
+      tab: "checklist",
+      title: tr("Chốt việc cần làm", "Lock the action list"),
+      body: tr("Tab Việc cần làm biến rủi ro thành task có owner, deadline và mức rủi ro để team xử lý trước launch.", "The Checklist tab turns risks into tasks with owner, deadline, and risk level for the team to resolve before launch.")
+    },
+    {
+      target: ".tab[data-view='lessons']",
+      mode: "pro",
+      tab: "lessons",
+      title: tr("Lưu bài học", "Save lessons"),
+      body: tr("Sau launch, ghi kết quả và bài học tại đây để LCC dùng lại khi phân tích các launch sau.", "After launch, record outcomes and lessons here so LCC can reuse them for future analysis.")
+    },
+    {
+      target: "#openAssistant",
+      mode: "pro",
+      tab: "briefView",
+      title: tr("Bot Assistant luôn ở góc dưới", "Bot Assistant stays at the bottom"),
+      body: tr("Nút Trợ lý ở góc dưới dùng để hỏi nhanh, nhờ tạo launch mới, sửa launch hiện tại hoặc mở lại các phần quan trọng trong Pro mode.", "The Assistant button at the bottom is for quick help, creating a new launch, editing the current launch, or reopening important Pro sections.")
+    },
+    {
+      target: "#openTemplateConfig",
+      fallbackTarget: ".topbar-actions",
+      mode: "pro",
+      tab: "briefView",
+      title: tr("Nút Cấu Hình là nơi chỉnh luật LCC", "Config controls LCC rules"),
+      body: tr("Bấm Cấu Hình để xem cách LCC định nghĩa phân loại, template, nhóm rủi ro, persona phản biện, checklist và bài học. Khi bạn bấm nút đó, tutorial Cấu Hình sẽ tự chạy.", "Click Config to see how LCC defines launch types, templates, risk groups, review personas, checklist rules, and lessons. When you click it, the Config tutorial starts automatically.")
+    }
+  ];
+}
+
+function configOnboardingStepDefinitions() {
+  return [
+    {
+      target: ".config-tabs",
+      fallbackTarget: "#templateConfig",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("catalog"),
+      title: tr("Cấu Hình là bộ luật phân tích", "Config is the analysis rulebook"),
+      body: tr("Màn này cho biết LCC chấm launch dựa trên phân loại, template, nhóm rủi ro, persona phản biện, checklist và bài học nào.", "This screen shows the rulebook LCC uses for launch types, templates, risk groups, review personas, checklists, and lessons.")
+    },
+    {
+      target: "#templateNameEditor",
+      fallbackTarget: ".config-tab[data-config-tab='catalog']",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("catalog"),
+      title: tr("Phân loại và template", "Launch types and templates"),
+      body: tr("Tab Phân loại dùng để xem template nào đang phục vụ từng kiểu launch. Đây là nơi hiểu vì sao mỗi brief được chấm theo bộ tiêu chí khác nhau.", "The Catalog tab shows which templates serve each launch type, so you can see why each brief is scored against a different criteria set.")
+    },
+    {
+      target: "#riskGroupEditor",
+      fallbackTarget: ".config-tab[data-config-tab='risk']",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("risk"),
+      title: tr("Nhóm rủi ro quyết định điểm", "Risk groups drive the score"),
+      body: tr("Mỗi nhóm rủi ro có trọng số và tiêu chí. Agent đọc brief, tìm bằng chứng trong từng nhóm, rồi tổng hợp thành Xanh, Vàng hoặc Đỏ.", "Each risk group has a weight and criteria. The agent reads the brief, finds evidence in each group, then rolls it up into Green, Yellow, or Red.")
+    },
+    {
+      target: "#personaEditor",
+      fallbackTarget: ".config-tab[data-config-tab='persona']",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("persona"),
+      title: tr("Persona phản biện", "Review personas"),
+      body: tr("Các persona là góc nhìn Red Team như người chơi, CS, kỹ thuật và kinh doanh. Chúng giúp brief bị soi từ nhiều hướng trước khi launch.", "Personas are Red Team viewpoints such as player, CS, technical, and business. They challenge the brief from multiple angles before launch.")
+    },
+    {
+      target: "#checklistEditor",
+      fallbackTarget: ".config-tab[data-config-tab='checklist']",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("checklist"),
+      title: tr("Checklist biến rủi ro thành việc", "Checklist turns risk into work"),
+      body: tr("Checklist mẫu quyết định Agent gợi ý task nào, owner nào và deadline nào cần chốt trước khi chạy launch.", "Checklist examples guide which tasks, owners, and deadlines the agent recommends before launch.")
+    },
+    {
+      target: "#lessonEditor",
+      fallbackTarget: ".config-tab[data-config-tab='lesson']",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("lesson"),
+      title: tr("Bài học giúp lần sau tốt hơn", "Lessons improve the next launch"),
+      body: tr("Khối Bài học/Post-mortem định nghĩa câu hỏi sau launch, để kết quả và kinh nghiệm quay lại hỗ trợ các launch sau.", "Lesson/Post-mortem blocks define post-launch questions so outcomes and learnings feed future launches.")
+    },
+    {
+      target: ".config-tab[data-config-tab='admin']",
+      fallbackTarget: ".config-tabs",
+      tab: "templateConfig",
+      beforeShow: () => activateConfigPanel("admin"),
+      title: tr("Phần quản trị nâng cao", "Advanced admin area"),
+      body: tr("Các tab cuối dùng cho người thao tác và launch lưu trữ. Flow demo nhanh không bắt buộc dùng phần này, nhưng nó giúp kiểm soát dữ liệu mẫu và quyền chỉnh sửa.", "The final tabs cover operators and archived launches. The quick demo flow does not require them, but they help control sample data and edit access.")
+    }
+  ];
+}
+
+function visibleOnboardingTarget(step) {
+  const selectors = [step.target, step.fallbackTarget].filter(Boolean);
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (!element) continue;
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    if (rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none") return element;
+  }
+  return null;
+}
+
+function prepareOnboardingStep(step) {
+  if (step.mode && window.LaunchOpsApplyMode) window.LaunchOpsApplyMode(step.mode);
+  if (step.tab) activateTab(step.tab);
+  if (typeof step.beforeShow === "function") step.beforeShow();
+}
+
+function positionOnboarding(step) {
+  const target = visibleOnboardingTarget(step) || appShell || document.body;
+  const rect = target.getBoundingClientRect();
+  const pad = 10;
+  const x = Math.max(pad, rect.left - pad);
+  const y = Math.max(pad, rect.top - pad);
+  const w = Math.min(window.innerWidth - pad * 2, rect.width + pad * 2);
+  const h = Math.min(window.innerHeight - pad * 2, rect.height + pad * 2);
+  onboardingTutorial?.style.setProperty("--onboarding-x", `${x}px`);
+  onboardingTutorial?.style.setProperty("--onboarding-y", `${y}px`);
+  onboardingTutorial?.style.setProperty("--onboarding-w", `${w}px`);
+  onboardingTutorial?.style.setProperty("--onboarding-h", `${h}px`);
+
+  if (!onboardingCard) return;
+  const cardWidth = Math.min(380, window.innerWidth - 32);
+  const cardHeight = onboardingCard.offsetHeight || 220;
+  let cardX = rect.right + 18;
+  if (cardX + cardWidth > window.innerWidth - 16) cardX = rect.left - cardWidth - 18;
+  if (cardX < 16) cardX = Math.min(16, window.innerWidth - cardWidth - 16);
+  let cardY = Math.min(Math.max(16, rect.top), window.innerHeight - cardHeight - 16);
+  if (cardY < 16) cardY = 16;
+  onboardingTutorial?.style.setProperty("--onboarding-card-x", `${cardX}px`);
+  onboardingTutorial?.style.setProperty("--onboarding-card-y", `${cardY}px`);
+}
+
+function renderOnboardingStep() {
+  if (!onboardingTutorial || !onboardingSteps.length) return;
+  const step = onboardingSteps[onboardingStepIndex] || onboardingSteps[0];
+  prepareOnboardingStep(step);
+  if (onboardingKicker) onboardingKicker.textContent = tr(
+    `Tutorial ${onboardingStepIndex + 1}/${onboardingSteps.length}`,
+    `Tutorial ${onboardingStepIndex + 1}/${onboardingSteps.length}`
+  );
+  if (onboardingTitle) onboardingTitle.textContent = step.title;
+  if (onboardingBody) onboardingBody.textContent = step.body;
+  if (onboardingProgress) {
+    onboardingProgress.innerHTML = onboardingSteps
+      .map((_, index) => `<i class="${index <= onboardingStepIndex ? "active" : ""}"></i>`)
+      .join("");
+  }
+  if (onboardingPrev) onboardingPrev.disabled = onboardingStepIndex === 0;
+  if (onboardingSkip) onboardingSkip.textContent = tr("Bỏ qua", "Skip");
+  if (onboardingPrev) onboardingPrev.textContent = tr("Quay lại", "Back");
+  if (onboardingNext) onboardingNext.textContent = onboardingStepIndex === onboardingSteps.length - 1
+    ? tr("Xong", "Done")
+    : tr("Tiếp", "Next");
+  window.setTimeout(() => {
+    visibleOnboardingTarget(step)?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+    window.setTimeout(() => positionOnboarding(step), 180);
+  }, 50);
+}
+
+function openOnboardingTutorial() {
+  if (!onboardingTutorial) return;
+  onboardingShownThisPage = true;
+  onboardingKindAtOpen = "main";
+  onboardingModeAtOpen = currentOnboardingMode();
+  onboardingSteps = onboardingStepDefinitions(onboardingModeAtOpen);
+  onboardingStepIndex = 0;
+  onboardingTutorial.classList.add("active");
+  onboardingTutorial.setAttribute("aria-hidden", "false");
+  document.body.classList.add("onboarding-active");
+  renderOnboardingStep();
+  onboardingResizeHandler = () => positionOnboarding(onboardingSteps[onboardingStepIndex] || onboardingSteps[0]);
+  window.addEventListener("resize", onboardingResizeHandler);
+  window.addEventListener("scroll", onboardingResizeHandler, true);
+  onboardingNext?.focus({ preventScroll: true });
+}
+
+function openConfigOnboardingTutorial() {
+  if (!onboardingTutorial) return;
+  configOnboardingShownThisPage = true;
+  onboardingKindAtOpen = "config";
+  onboardingModeAtOpen = "config";
+  onboardingSteps = configOnboardingStepDefinitions();
+  onboardingStepIndex = 0;
+  onboardingTutorial.classList.add("active");
+  onboardingTutorial.setAttribute("aria-hidden", "false");
+  document.body.classList.add("onboarding-active");
+  renderOnboardingStep();
+  onboardingResizeHandler = () => positionOnboarding(onboardingSteps[onboardingStepIndex] || onboardingSteps[0]);
+  window.addEventListener("resize", onboardingResizeHandler);
+  window.addEventListener("scroll", onboardingResizeHandler, true);
+  onboardingNext?.focus({ preventScroll: true });
+}
+
+function closeOnboardingTutorial({ remember = true, completed = false } = {}) {
+  if (!onboardingTutorial) return;
+  onboardingTutorial.classList.remove("active");
+  onboardingTutorial.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("onboarding-active");
+  if (completed && onboardingKindAtOpen === "main" && onboardingModeAtOpen === "pro") activateTab("briefView");
+  if (remember) {
+    if (onboardingKindAtOpen === "config") rememberConfigOnboardingSeen();
+    else rememberOnboardingSeen();
+  }
+  if (onboardingResizeHandler) {
+    window.removeEventListener("resize", onboardingResizeHandler);
+    window.removeEventListener("scroll", onboardingResizeHandler, true);
+    onboardingResizeHandler = null;
+  }
+}
+
+function maybeStartOnboardingTutorial() {
+  if (!onboardingTutorial) return;
+  if (onboardingForcedByUrl() && onboardingShownThisPage) return;
+  if (!onboardingForcedByUrl() && onboardingWasSeen()) return;
+  window.setTimeout(() => {
+    if (onboardingTutorial?.classList.contains("active")) return;
+    if (appShell?.classList.contains("config-mode")) return;
+    if (onboardingForcedByUrl() && onboardingShownThisPage) return;
+    if (!onboardingForcedByUrl() && onboardingWasSeen()) return;
+    openOnboardingTutorial();
+  }, 260);
+}
+
+function maybeStartConfigOnboardingTutorial() {
+  if (!onboardingTutorial) return;
+  if (onboardingForcedByUrl() && configOnboardingShownThisPage) return;
+  if (!onboardingForcedByUrl() && configOnboardingWasSeen()) return;
+  window.setTimeout(() => {
+    if (onboardingTutorial?.classList.contains("active")) return;
+    if (!appShell?.classList.contains("config-mode")) return;
+    if (onboardingForcedByUrl() && configOnboardingShownThisPage) return;
+    if (!onboardingForcedByUrl() && configOnboardingWasSeen()) return;
+    openConfigOnboardingTutorial();
+  }, 220);
+}
+
 function currentSelectedUiMode() {
   const selected = document.querySelector(".product-mode-option.active[data-mode]");
   if (selected?.dataset?.mode) return selected.dataset.mode;
@@ -7636,9 +8051,12 @@ function syncProductModePicker() {
 
 function selectProduct(id) {
   if (id !== "demo") return; // Product XYZ is locked in this demo
+  const shouldStartTutorial = !productSelectOpenedFromChange;
+  productSelectOpenedFromChange = false;
   try { localStorage.setItem("launchops_product", id); } catch (error) {}
   applyProductSelectedUiMode(currentSelectedUiMode());
   closeProductSelect();
+  if (shouldStartTutorial) maybeStartOnboardingTutorial();
 }
 
 function showLockedProductMessage() {
@@ -7752,11 +8170,13 @@ document.getElementById("copyRunLog")?.addEventListener("click", async (event) =
 
 if (openTemplateConfigButton) {
   openTemplateConfigButton.addEventListener("click", () => {
-    if (appShell?.classList.contains("config-mode")) {
+    const wasConfigMode = appShell?.classList.contains("config-mode");
+    if (wasConfigMode) {
       activateTab(previousLaunchView || "briefView");
     } else {
       selectedConfigTemplateId = baseTemplateIdForLaunch(currentLaunch);
       activateTab("templateConfig");
+      maybeStartConfigOnboardingTutorial();
     }
   });
 }
@@ -7792,6 +8212,20 @@ copyCommStarterPromptButton?.addEventListener("click", async () => {
     ? tr("Đã copy prompt khởi đầu cho Bot.", "Copied the starter prompt for the Bot.")
     : tr("Chưa copy được prompt. Hãy chọn và copy thủ công.", "Could not copy the prompt. Select and copy it manually."));
 });
+onboardingSkip?.addEventListener("click", () => closeOnboardingTutorial());
+onboardingPrev?.addEventListener("click", () => {
+  if (onboardingStepIndex <= 0) return;
+  onboardingStepIndex -= 1;
+  renderOnboardingStep();
+});
+onboardingNext?.addEventListener("click", () => {
+  if (onboardingStepIndex >= onboardingSteps.length - 1) {
+    closeOnboardingTutorial({ completed: true });
+    return;
+  }
+  onboardingStepIndex += 1;
+  renderOnboardingStep();
+});
 closeIntroModalButton?.addEventListener("click", closeIntroModal);
 enterDemoFromIntroButton?.addEventListener("click", closeIntroModal);
 
@@ -7810,7 +8244,13 @@ productSelect?.addEventListener("click", (event) => {
   }
   selectProduct(card.dataset.product);
 });
-changeProductButton?.addEventListener("click", openProductSelect);
+changeProductButton?.addEventListener("click", () => {
+  productSelectOpenedFromChange = true;
+  if (appShell?.classList.contains("config-mode")) {
+    activateTab(previousLaunchView || "briefView");
+  }
+  openProductSelect();
+});
 
 introModal?.addEventListener("click", (event) => {
   if (event.target === introModal) {
@@ -7826,6 +8266,7 @@ communicationAppsModal?.addEventListener("click", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (onboardingTutorial?.classList.contains("active")) closeOnboardingTutorial();
     closeDocsModal();
     closeCommunicationAppsModal();
     closeIntroModal();
