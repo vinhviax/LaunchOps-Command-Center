@@ -7,8 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="styles.css?v=fix-20260622m">
-  <link rel="stylesheet" href="friendly.css?v=fix-20260622m">
+  <link rel="stylesheet" href="styles.css?v=fix-20260630n">
+  <link rel="stylesheet" href="friendly.css?v=fix-20260630n">
+  <link rel="stylesheet" href="theme-c.css?v=fix-20260630n">
 </head>
 <body class="ui-mode-pro">
   <section id="introModal" class="intro-modal" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introSummary">
@@ -31,7 +32,7 @@
         </p>
 
         <div class="intro-grid">
-          <div class="intro-section">
+          <div class="intro-section intro-section--goals">
             <h3>Mục tiêu hướng tới</h3>
             <ul class="intro-list">
               <li><strong>Không còn launch mù quáng:</strong> team nhìn nhanh launch đã đủ an toàn chưa qua Green / Yellow / Red.</li>
@@ -39,6 +40,11 @@
               <li><strong>Biến brief thành hành động:</strong> từ một mô tả launch, hệ thống tạo checklist có owner, deadline và trạng thái.</li>
               <li><strong>Tích lũy bài học vận hành:</strong> lưu lịch sử phân tích, kết quả sau launch và lessons learned để các lần launch sau tốt hơn.</li>
             </ul>
+
+            <div class="intro-actions">
+              <button id="startGuidedDemo" class="intro-demo-cta" type="button">Vào Demo Visualize Charater</button>
+              <button id="enterDemoFromIntro" class="primary" type="button">Vào LCC</button>
+            </div>
           </div>
 
           <div class="intro-section">
@@ -78,10 +84,6 @@
             LaunchOps Command Center giúp biến một launch brief còn mơ hồ thành quy trình vận hành rõ ràng: có điểm số, có rủi ro, có checklist, có owner và có bài học sau launch.
           </p>
         </div>
-
-        <div class="intro-actions">
-          <button id="enterDemoFromIntro" class="primary" type="button">Vào demo</button>
-        </div>
       </div>
     </div>
   </section>
@@ -107,8 +109,8 @@
       </div>
       <div class="product-grid">
         <button type="button" class="product-card" data-product="demo">
-          <span class="product-badge" id="productDemoBadge">Demo</span>
-          <h3 id="productDemoTitle">Demo</h3>
+          <span class="product-badge" id="productDemoBadge">Đang Chạy</span>
+          <h3 id="productDemoTitle">Sản Phẩm Demo</h3>
           <p id="productDemoDesc">Bản demo dùng chung — đầy đủ phân loại mẫu (game event, marketing, feature release...).</p>
           <span class="product-cta" id="productDemoCta">Vào →</span>
         </button>
@@ -1337,9 +1339,10 @@ Hãy giới thiệu đầy đủ nhưng gọn về LCC (LaunchOps Command Center
     </article>
   </section>
 
-  <script src="config.js?v=fix-20260622m"></script>
-  <script src="app.js?v=fix-20260622m"></script>
-  <script src="friendly-ui.js?v=fix-20260622m"></script>
-  <script src="i18n-clean.js?v=fix-20260622m"></script>
+  <script src="config.js?v=fix-20260630n"></script>
+  <script src="app.js?v=fix-20260630n"></script>
+  <script src="friendly-ui.js?v=fix-20260630n"></script>
+  <script src="i18n-clean.js?v=fix-20260630n"></script>
+  <script src="guided-demo.js?v=fix-20260630n"></script>
 </body>
 </html>

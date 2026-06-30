@@ -45,9 +45,10 @@ MAX_BODY_BYTES = 256 * 1024
 APP_ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = APP_ROOT.parent
 LAUNCHES_DIR = APP_ROOT / "memory" / "launches"
+DEMO_ROOT = APP_ROOT / "demo"
 LAUNCH_STATUSES = {"upcoming", "running", "completed"}
 CAVEMAN_ENABLED = os.getenv("LAUNCHOPS_CAVEMAN_STYLE", "").strip().lower() in {"1", "true", "yes", "on"}
-UI_CACHE_VERSION = "fix-20260622m"
+UI_CACHE_VERSION = "fix-20260630n"
 HIDDEN_CATALOG_LAUNCH_TYPES = {"lucky_spin_event"}
 ANALYZE_TOOL_NAME = "analyze_launch_brief"
 LCC_TOOL_ALIAS = "lcc"
@@ -2932,6 +2933,111 @@ def request_base_url(handler: BaseHTTPRequestHandler) -> str:
     return f"{proto}://{host}".rstrip("/")
 
 
+def fetch_saigon_weather_summary() -> str:
+    """Best-effort weather context for demo chatter. No persistence, short timeout."""
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        "?latitude=10.8231&longitude=106.6297&current=temperature_2m,precipitation,weather_code"
+        "&timezone=Asia%2FBangkok"
+    )
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "LaunchOpsDemo/1.0"})
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        current = data.get("current") if isinstance(data, dict) else {}
+        temp = current.get("temperature_2m") if isinstance(current, dict) else None
+        rain = current.get("precipitation") if isinstance(current, dict) else None
+        if isinstance(temp, (int, float)):
+            rain_note = "có mưa nhẹ" if isinstance(rain, (int, float)) and rain > 0 else "chưa thấy mưa trong dữ liệu nhanh"
+            return f"Thời tiết Sài Gòn khoảng {round(float(temp))} độ C, {rain_note}."
+    except Exception:
+        pass
+    return "Không lấy được thời tiết Sài Gòn lúc này, chỉ nói chung và không bịa số."
+
+
+def demo_chatter_response(payload: dict[str, Any]) -> dict[str, Any]:
+    """Generate short non-persistent office chatter for /demo."""
+    agents_payload = payload.get("agents") if isinstance(payload.get("agents"), list) else []
+    known_names = {
+        "mission_control": "Henzy",
+        "launch_readiness": "Layla",
+        "red_team": "Nick",
+        "checklist": "Rocky",
+        "postmortem": "John",
+        "assistant": "Amanda",
+    }
+    agents: list[dict[str, str]] = []
+    for item in agents_payload[:2]:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("key") or "").strip()
+        if key in known_names:
+            agents.append({"key": key, "name": known_names[key]})
+    if not agents:
+        agents = [{"key": "assistant", "name": "Amanda"}, {"key": "mission_control", "name": "Henzy"}]
+    speaker_name = agents[0]["name"]
+    listener_name = agents[-1]["name"]
+
+    weather = fetch_saigon_weather_summary()
+    fallback_lines = [
+        {"character": agents[0]["key"], "text": f"{listener_name}, nhớ khóa owner trước khi nói launch ổn nhé."},
+        {"character": agents[-1]["key"], "text": f"Ừ {speaker_name}, AI có nhanh mấy thì checklist vẫn phải rõ deadline."},
+        {"character": agents[0]["key"], "text": f"{listener_name}, {weather}"},
+        {"character": agents[-1]["key"], "text": f"{speaker_name}, giá vàng biến động thì campaign thưởng càng cần guardrail ngân sách."},
+        {"character": agents[0]["key"], "text": f"{listener_name}, tin nóng cứ để sau, brief thiếu rollback là mình xử trước."},
+        {"character": agents[-1]["key"], "text": f"{speaker_name}, giá xăng nhảy nhẹ thôi cũng nên nhớ biên an toàn chi phí vận hành."},
+        {"character": agents[0]["key"], "text": f"{listener_name}, thời tiết Sài Gòn thất thường, peak traffic tối nay phải có người trực."},
+        {"character": agents[-1]["key"], "text": f"{speaker_name}, AI hỗ trợ lọc tín hiệu, còn Go/No-Go vẫn cần bằng chứng rõ."},
+    ]
+
+    use_llm = truthy_env("LAUNCHOPS_DEMO_CHATTER_LLM_ENABLED") and truthy_env("LAUNCHOPS_LLM_ENABLED")
+    if use_llm:
+        prompt = (
+            "Bạn viết hội thoại ngắn cho văn phòng pixel LaunchOps. "
+            "Trả JSON duy nhất dạng {\"lines\":[{\"character\":\"key\",\"text\":\"câu\"}]}. "
+            "Tối đa 4 câu, mỗi câu dưới 95 ký tự, tiếng Việt tự nhiên, vui nhẹ, không lưu memory. "
+            "Có thể nói chuyện công việc, AI thế giới, thời tiết Sài Gòn, giá vàng, nhưng không bịa số cụ thể "
+            "và không đưa lời khuyên đầu tư. Hãy để các agent gọi tên nhau tự nhiên. "
+            f"Agent hợp lệ: {agents}. Context thời tiết: {weather}"
+        )
+        data, meta = call_llm_raw(prompt, "demo_chatter")
+        lines = data.get("lines") if isinstance(data, dict) else None
+        clean_lines: list[dict[str, str]] = []
+        if isinstance(lines, list):
+            valid_keys = {item["key"] for item in agents}
+            for line in lines[:4]:
+                if not isinstance(line, dict):
+                    continue
+                character = str(line.get("character") or agents[0]["key"]).strip()
+                text = str(line.get("text") or "").strip()
+                if character not in valid_keys:
+                    character = agents[0]["key"]
+                if text:
+                    clean_lines.append({"character": character, "text": text[:140]})
+        if clean_lines:
+            return {
+                "ok": True,
+                "source": "llm",
+                "memoryStored": False,
+                "requestLimitPerTenMinutes": 30,
+                "requestLimitPerHour": 180,
+                "meta": {"model": meta.get("model"), "agentStep": meta.get("agentStep")},
+                "lines": clean_lines,
+            }
+
+    max_lines = max(1, min(int(payload.get("maxLines") or 4), 4))
+    start_index = int(time.time()) % len(fallback_lines)
+    selected_lines = (fallback_lines[start_index:] + fallback_lines[:start_index])[:max_lines]
+    return {
+        "ok": True,
+        "source": "fallback",
+        "memoryStored": False,
+        "requestLimitPerTenMinutes": 30,
+        "requestLimitPerHour": 180,
+        "lines": selected_lines,
+    }
+
+
 def is_webhook_authorized(handler: BaseHTTPRequestHandler) -> bool:
     expected = os.getenv("LAUNCHOPS_WEBHOOK_TOKEN", "").strip()
     if not expected:
@@ -5680,6 +5786,46 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
             json_response(self, 200, {"ok": True, "launch": launch})
             return
 
+        # Demo Đơn Giản: trang riêng + asset trong demo/ (whitelist, chống traversal)
+        if path == "/demo" or path == "/demo/":
+            demo_index = (APP_ROOT / "demo.html").resolve()
+            if demo_index.is_file():
+                data = demo_index.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            json_response(self, 404, {"ok": False, "error": "Demo not found"})
+            return
+
+        if path.startswith("/demo/"):
+            rel_demo = path[len("/demo/"):]
+            ctype = STATIC_CONTENT_TYPES.get(Path(rel_demo).suffix.lower())
+            if ctype and ".." not in rel_demo:
+                base_root = DEMO_ROOT
+                resolved_root = base_root.resolve()
+                file_path = (base_root / rel_demo).resolve()
+                try:
+                    inside = file_path.is_relative_to(resolved_root)
+                except AttributeError:
+                    inside = str(file_path).startswith(str(resolved_root) + os.sep)
+                if file_path.is_file() and inside:
+                    data = file_path.read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+            json_response(self, 404, {"ok": False, "error": "Not found"})
+            return
+
         # Serve bundled Web UI (static frontend) from APP_ROOT — top-level files only,
         # whitelisted extensions, no path traversal. API routes above take precedence.
         rel = "index.html" if path in ("", "/") else path.lstrip("/")
@@ -5704,6 +5850,24 @@ class LaunchOpsHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         parts = [part for part in path.split("/") if part]
 
+        if path == "/api/demo/chatter":
+            payload = self.read_json_payload()
+            if payload is None:
+                return
+            try:
+                json_response(self, 200, demo_chatter_response(payload))
+            except Exception as exc:
+                write_backend_log(f"Demo chatter crashed: {type(exc).__name__}")
+                json_response(self, 200, {
+                    "ok": True,
+                    "source": "fallback",
+                    "memoryStored": False,
+                    "requestLimitPerHour": 100,
+                    "lines": [
+                        {"character": "assistant", "text": "Mạng hơi chậm, mình quay lại checklist cho chắc nhé."}
+                    ],
+                })
+            return
 
         if path == "/mcp" or path == "/":
             payload = self.read_json_payload()

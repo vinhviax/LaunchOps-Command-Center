@@ -947,10 +947,23 @@ button:disabled:hover {
   line-height: 1.55;
 }
 
+.intro-section--goals {
+  display: flex;
+  flex-direction: column;
+}
+
+.intro-section--goals .intro-actions {
+  margin-top: auto;
+  padding-top: 18px;
+  justify-content: flex-start;
+}
+
 .intro-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
   margin-top: 16px;
+  flex-wrap: wrap;
 }
 
 .intro-actions button {

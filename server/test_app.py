@@ -231,6 +231,57 @@ class CloudSampleSeedTests(unittest.TestCase):
         self.assertEqual({launch["id"] for launch in launches}, {sample["id"] for sample in samples})
 
 
+class DemoScriptFlowTests(unittest.TestCase):
+    def test_demo_script_contains_two_story_modes_and_two_runs(self):
+        demo_js = (SERVER_DIR.parent / "demo" / "demo.js").read_text(encoding="utf-8")
+        self.assertIn("storyModes", demo_js)
+        self.assertIn("sample:", demo_js)
+        self.assertIn("real:", demo_js)
+        self.assertIn("run1", demo_js)
+        self.assertIn("run2", demo_js)
+
+    def test_demo_script_contains_memory_and_ai_enrich_payloads(self):
+        demo_js = (SERVER_DIR.parent / "demo" / "demo.js").read_text(encoding="utf-8")
+        self.assertIn("aiSuggestedBriefAdditions", demo_js)
+        self.assertIn("humanOutcomeInput", demo_js)
+        self.assertIn("derivedLessons", demo_js)
+        self.assertIn("memoryLesson", demo_js)
+
+    def test_demo_public_assets_do_not_use_war_room_mode(self):
+        public_root = SERVER_DIR.parent
+        combined = "\n".join(
+            [
+                (public_root / "demo" / "demo.js").read_text(encoding="utf-8"),
+                (public_root / "demo" / "demo.css").read_text(encoding="utf-8"),
+                (public_root / "demo.html").read_text(encoding="utf-8"),
+            ]
+        ).lower()
+        self.assertNotIn("war-room", combined)
+        self.assertNotIn("war room", combined)
+
+    def test_demo_office_has_named_agents_four_rooms_and_chatter_limit(self):
+        public_root = SERVER_DIR.parent
+        demo_html = (public_root / "demo.html").read_text(encoding="utf-8")
+        demo_js = (public_root / "demo" / "demo.js").read_text(encoding="utf-8")
+        self.assertIn('width="768"', demo_html)
+        self.assertIn('height="480"', demo_html)
+        for text in (
+            "Mission Control Agent (Henzy)",
+            "Launch Readiness Agent (Layla)",
+            "Red Team Agent (Nick)",
+            "Checklist Agent (Rocky)",
+            "Post-mortem & Lessons Agent (John)",
+            "LaunchOps Assistant / Channel Agent (Amanda)",
+            "Control Room",
+            "Workspace Room",
+            "Pantry",
+            "Phòng họp tiếp khách",
+            "MAX_CHATTER_REQUESTS_PER_WINDOW = 30",
+            "CHATTER_WINDOW_MS = 10 * 60 * 1000",
+        ):
+            self.assertIn(text, demo_js)
+
+
 class ExtractJsonTests(unittest.TestCase):
     def test_clean_json(self):
         self.assertEqual(app.extract_json('{"ok": true, "score": 9}'), {"ok": True, "score": 9})
@@ -2000,6 +2051,83 @@ class LessonReuseTests(unittest.TestCase):
             app.orchestrate_launchops_analysis("Golden Spin weekend brief", {}, force_fast=False)
         self.assertIsNotNone(captured["lessons"])
         self.assertEqual(captured["lessons"][0]["lesson"], "reset 05:00 gây ticket CS")
+
+
+class DemoRouteTests(unittest.TestCase):
+    """Test route /demo va /demo/* trong do_GET cua LaunchOpsHandler."""
+
+    @classmethod
+    def setUpClass(cls):
+        import threading
+        import http.client as http_client
+        cls.http_client = http_client
+        cls.server = app.ThreadingHTTPServer(("127.0.0.1", 0), app.LaunchOpsHandler)
+        cls.port = cls.server.server_address[1]
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+
+    def get(self, path):
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("GET", path)
+        resp = conn.getresponse()
+        resp.read()
+        conn.close()
+        return resp
+
+    def post_json(self, path, payload):
+        body = json.dumps(payload).encode("utf-8")
+        conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.request("POST", path, body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = resp.read()
+        conn.close()
+        return resp, json.loads(data.decode("utf-8"))
+
+    def test_get_demo_returns_200_html(self):
+        resp = self.get("/demo")
+        self.assertEqual(resp.status, 200)
+        self.assertIn("text/html", resp.getheader("Content-Type", ""))
+
+    def test_get_demo_traversal_blocked(self):
+        # /demo/../server/app.py phai bi tu choi (400 hoac 404), khong duoc tra 200
+        resp = self.get("/demo/../server/app.py")
+        self.assertNotEqual(resp.status, 200)
+
+    def test_get_demo_encoded_traversal_blocked(self):
+        # Dang da ma hoa de that su cham logic chong traversal (HTTP client khong
+        # tu normalize %2e%2e), khong duoc tra 200 va khong lo noi dung app.py.
+        for raw_path in ("/demo/%2e%2e/server/app.py", "/demo/..%2fserver%2fapp.py"):
+            with self.subTest(path=raw_path):
+                conn = self.http_client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+                conn.putrequest("GET", raw_path, skip_host=False, skip_accept_encoding=True)
+                conn.endheaders()
+                resp = conn.getresponse()
+                body = resp.read()
+                conn.close()
+                self.assertNotEqual(resp.status, 200)
+                self.assertNotIn(b"LaunchOpsHandler", body)
+
+    @patch("app.fetch_saigon_weather_summary", return_value="Thoi tiet Sai Gon dang on.")
+    def test_demo_chatter_returns_short_non_persistent_lines(self, _weather):
+        resp, data = self.post_json("/api/demo/chatter", {
+            "phase": 0,
+            "agents": [
+                {"key": "mission_control", "name": "Henzy"},
+                {"key": "launch_readiness", "name": "Layla"},
+            ],
+            "maxLines": 3,
+        })
+        self.assertEqual(resp.status, 200)
+        self.assertTrue(data["ok"])
+        self.assertFalse(data["memoryStored"])
+        self.assertEqual(data["requestLimitPerTenMinutes"], 30)
+        self.assertEqual(data["requestLimitPerHour"], 180)
+        self.assertGreaterEqual(len(data["lines"]), 1)
+        self.assertLessEqual(len(data["lines"]), 3)
 
 
 if __name__ == "__main__":

@@ -25,7 +25,8 @@ const CLEAN_I18N_DICT = {
     introAgent6Body: "Bot Chat hỗ trợ giải thích, tạo launch, điều hướng trong Web UI và có thể mở rộng sang Zalo, Discord, Telegram hoặc các communication apps có hỗ trợ OpenClaw / Autonomous Agentic Framework.",
     introValueTitle: "Tác dụng thực tế",
     introValueBody: "LaunchOps Command Center giúp biến một launch brief còn mơ hồ thành quy trình vận hành rõ ràng: có điểm số, có rủi ro, có checklist, có owner và có bài học sau launch.",
-    introBtn: "Vào demo",
+    introBtn: "Vào LCC",
+    guidedDemoBtn: "Vào Demo Visualize Charater",
     closeIntro: "Đóng",
     eyebrow: "V-Team · VinhVNN · GS9",
     title: "LaunchOps Command Center",
@@ -187,7 +188,8 @@ const CLEAN_I18N_DICT = {
     introAgent6Body: "Bot Chat that explains, creates launches, navigates the Web UI, and can extend to Zalo, Discord, Telegram, or communication apps that support OpenClaw / autonomous agentic frameworks.",
     introValueTitle: "Real-world Value",
     introValueBody: "LaunchOps Command Center turns a vague launch brief into a clear operational pipeline: with a score, identified risks, owner-based checklist, and lessons learned.",
-    introBtn: "Enter Demo",
+    introBtn: "Enter LCC",
+    guidedDemoBtn: "Visualize Character Demo",
     closeIntro: "Close",
     eyebrow: "V-Team · VinhVNN · GS9",
     title: "LaunchOps Command Center",
@@ -683,6 +685,8 @@ function applyCleanTranslations(lang) {
 
     const enterBtn = document.getElementById("enterDemoFromIntro");
     if (enterBtn) enterBtn.textContent = dict.introBtn;
+    const guidedBtn = document.getElementById("startGuidedDemo");
+    if (guidedBtn && dict.guidedDemoBtn) guidedBtn.textContent = dict.guidedDemoBtn;
   }
 
   // Help buttons tooltip & labels

@@ -1,0 +1,81 @@
+/* theme-c.css - Chi phuc vu MAN DEMO RIENG (standalone) + nut "Bat dau demo" tren intro.
+   KHONG restyle web cu. Tat ca scope trong .lcc-demo / .intro-demo-cta. */
+
+/* ----- Nut "Bat dau demo co huong dan" them vao intro cu ----- */
+.intro-demo-cta{
+  font-family:inherit;border:none;cursor:pointer;
+  background:var(--accent);color:#fff;font-weight:600;font-size:15px;
+  border-radius:var(--radius-md,13px);padding:12px 20px;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.intro-demo-cta:hover{background:var(--accent-strong);}
+.intro-demo-cta::before{content:"\25B6";font-size:11px;}
+.intro-actions #enterDemoFromIntro{
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);
+}
+
+/* ----- Reusable mascot (placeholder - Human se thay hinh sau) ----- */
+.lcc-mascot-wrap{display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--accent-soft);flex:0 0 auto;}
+.lcc-mascot{display:block;width:100%;height:auto;}
+.lcc-mascot .lcc-m-mouth{display:none;}
+.lcc-mascot .lcc-m-happy{display:inline;}
+[data-mascot="idle"] .lcc-m-mouth,[data-mascot="thinking"] .lcc-m-mouth{display:none;}
+[data-mascot="idle"] .lcc-m-flat,[data-mascot="thinking"] .lcc-m-flat{display:inline;}
+[data-mascot="green"] .lcc-m-mouth{display:none;}[data-mascot="green"] .lcc-m-happy{display:inline;}
+[data-mascot="yellow"] .lcc-m-mouth{display:none;}[data-mascot="yellow"] .lcc-m-warn{display:inline;}
+[data-mascot="red"] .lcc-m-mouth{display:none;}[data-mascot="red"] .lcc-m-alert{display:inline;}
+
+/* ----- Buttons ----- */
+.lcc-btn{font-family:inherit;border:none;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .12s,transform .12s;}
+.lcc-btn:active{transform:scale(.98);}
+.lcc-btn--primary{background:var(--accent);color:#fff;}
+.lcc-btn--primary:hover{background:var(--accent-strong);}
+.lcc-btn--ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line);}
+.lcc-btn--ghost:hover{border-color:var(--line-strong);}
+.lcc-btn:disabled{opacity:.5;cursor:default;}
+.lcc-ico{width:18px;height:18px;flex:0 0 auto;}
+
+/* ----- Standalone demo overlay ----- */
+.lcc-demo{position:fixed;inset:0;z-index:120;display:none;background:rgba(22,18,16,.5);padding:24px;overflow:auto;}
+.lcc-demo.is-on{display:flex;align-items:flex-start;justify-content:center;}
+.lcc-demo-screen{background:var(--bg,#faf9f7);border:1px solid var(--line);border-radius:18px;width:100%;max-width:940px;margin:auto;overflow:hidden;box-shadow:0 30px 70px -30px rgba(26,23,20,.5);font-family:var(--font-main);color:var(--ink);}
+.lcc-demo-bar{display:flex;align-items:center;gap:11px;padding:13px 20px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.lcc-demo-tag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--accent-strong);background:var(--accent-soft);padding:5px 11px;border-radius:20px;}
+.lcc-demo-sub{font-size:12.5px;color:var(--muted);}
+.lcc-demo-dots{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.lcc-demo-dot{width:9px;height:9px;border-radius:50%;background:#e3ddd3;transition:width .2s,background .2s;}
+.lcc-demo-dot.on{background:var(--accent);width:22px;border-radius:6px;}
+.lcc-demo-exit{margin-left:8px;border:none;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.lcc-demo-body{display:grid;grid-template-columns:0.82fr 1.18fr;gap:18px;padding:22px;}
+.lcc-demo-guide{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;}
+.lcc-demo-stage{min-height:240px;}
+.lcc-demo-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 17px;}
+.lcc-demo-card + .lcc-demo-card{margin-top:10px;}
+.lcc-demo-kick{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:7px;}
+.lcc-demo-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--line);background:var(--surface);}
+.lcc-demo-hint{font-size:12px;color:var(--muted-2);text-align:center;}
+.lcc-demo-gaugewrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.lcc-badge{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13px;padding:6px 13px;border-radius:20px;}
+.lcc-badge--yellow{background:var(--yellow-soft);color:var(--yellow);}
+.lcc-badge--green{background:var(--green-soft);color:var(--green);}
+.lcc-badge--red{background:var(--red-soft);color:var(--red);}
+.lcc-chip-warn{display:flex;align-items:center;gap:8px;background:var(--yellow-soft);border:1px solid rgba(154,103,0,.25);border-radius:11px;padding:9px 12px;font-size:13px;color:#6b4e00;}
+.lcc-chip-warn + .lcc-chip-warn{margin-top:7px;}
+.lcc-persona{display:flex;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface);}
+.lcc-persona + .lcc-persona{margin-top:9px;}
+.lcc-persona-ic{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);color:var(--accent-strong);display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-weight:700;}
+.lcc-task{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+.lcc-task:last-child{border-bottom:none;}
+.lcc-task-box{width:18px;height:18px;border-radius:5px;border:2px solid var(--accent);flex:0 0 auto;margin-top:2px;}
+.lcc-task-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.lcc-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto;}
+.lcc-dot--green{background:var(--green);}
+.lcc-dot--yellow{background:#e0a400;}
+.lcc-dot--red{background:var(--red);}
+.lcc-demo-bubble{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.55;text-align:left;}
+.lcc-spin{width:30px;height:30px;border:3px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:lccSpin .8s linear infinite;}
+@keyframes lccSpin{to{transform:rotate(360deg);}}
+@keyframes lccFadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.lcc-demo.is-on .lcc-demo-screen{animation:lccFadeIn .24s var(--ease,ease);}
+@media (max-width:760px){.lcc-demo-body{grid-template-columns:1fr;}}
+@media (prefers-reduced-motion:reduce){.lcc-demo.is-on .lcc-demo-screen,.lcc-spin{animation:none;}}

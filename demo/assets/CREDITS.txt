@@ -1,0 +1,12 @@
+Asset nguồn cho màn Demo Đơn Giản (văn phòng pixel) — LaunchOps Command Center / ClawAThon VNG
+
+1) Art pixel gốc: "MetroCity" của JIK-A-4
+   - https://jik-a-4.itch.io/metro
+   - Giấy phép: Creative Commons Zero v1.0 (CC0) — public domain, dùng tự do, không bắt buộc ghi công.
+     (Ghi công ở đây là tự nguyện, để tỏ lòng cảm ơn tác giả.)
+
+2) Tổ chức/biến thể sprite tham khảo từ dự án nguồn mở "pixel-agents" (giấy phép MIT).
+   - https://github.com/pixel-agents-hq/pixel-agents
+
+Bộ asset trong thư mục này (characters, floors, walls, furniture) bắt nguồn từ các nguồn CC0/MIT ở trên
+và được dùng lại hợp lệ cho mục đích trưng bày sản phẩm.
