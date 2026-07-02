@@ -66,6 +66,8 @@ class LegacyEncodingRepairTests(unittest.TestCase):
             "phoenix-shop-upcoming-red",
             "login-comeback-upcoming-yellow",
             "skin-vault-upcoming-green",
+            "ip-crossover-upcoming-yellow",
+            "arena-cup-upcoming-green",
         })
         self.assertTrue({"lucky_spin_event", "game_event_h5"}.issuperset({item["type"] for item in samples}))
         self.assertFalse(any(item["id"].startswith("golden-spin-demo-") for item in samples))
@@ -88,6 +90,8 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertEqual(samples["login-comeback-upcoming-yellow"]["status"], "upcoming")
         self.assertEqual(samples["dragon-login-live"]["status"], "completed")
         self.assertEqual(samples["skin-vault-upcoming-green"]["status"], "running")
+        self.assertEqual(samples["ip-crossover-upcoming-yellow"]["status"], "upcoming")
+        self.assertEqual(samples["arena-cup-upcoming-green"]["status"], "upcoming")
 
 
     def test_default_demo_samples_have_expected_scores_and_lessons(self):
@@ -114,7 +118,7 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         self.assertEqual({status: len(items) for status, items in groups.items()}, {
             "completed": 3,
             "running": 3,
-            "upcoming": 3,
+            "upcoming": 5,
         })
 
         colors_by_status = {
@@ -123,7 +127,7 @@ class LegacyEncodingRepairTests(unittest.TestCase):
         }
         self.assertEqual(colors_by_status["completed"], ["Red", "Yellow", "Yellow"])
         self.assertEqual(colors_by_status["running"], ["Green", "Yellow", "Yellow"])
-        self.assertEqual(colors_by_status["upcoming"], ["Green", "Green", "Yellow"])
+        self.assertEqual(colors_by_status["upcoming"], ["Green", "Green", "Green", "Yellow", "Yellow"])
 
         for launch in groups["completed"]:
             with self.subTest(launch=launch["id"]):
@@ -247,6 +251,33 @@ class DemoScriptFlowTests(unittest.TestCase):
         self.assertIn("derivedLessons", demo_js)
         self.assertIn("memoryLesson", demo_js)
 
+    def test_demo_sample_brief_explains_yellow_to_green_story(self):
+        public_root = SERVER_DIR.parent
+        demo_js = (public_root / "demo" / "demo.js").read_text(encoding="utf-8")
+        demo_html = (public_root / "demo.html").read_text(encoding="utf-8")
+        demo_css = (public_root / "demo" / "demo.css").read_text(encoding="utf-8")
+        for text in (
+            "Golden Spin: Vòng Quay Rồng Vàng cuối tuần",
+            "- Tên event:",
+            "- Thời gian:",
+            "- Nội dung:",
+            "- Mục tiêu:",
+            "- Kênh chạy:",
+            "- Vì sao lượt 1 vẫn Vàng:",
+            "Lượt 1 giữ màu Vàng vì brief còn thiếu",
+            "đã diễn tập phương án sự cố lúc 15:00",
+            "Lượt 2 chuyển Xanh vì",
+            "score: 7",
+            "score: 11",
+            "readinessColor: 'warning'",
+            "readinessColor: 'success'",
+        ):
+            self.assertIn(text, demo_js)
+        self.assertIn(".join('\\n')", demo_js)
+        self.assertIn('rows="8"', demo_html)
+        self.assertIn("grid-column: 1 / -1;", demo_css)
+        self.assertIn("min-height: 150px;", demo_css)
+
     def test_demo_public_assets_do_not_use_war_room_mode(self):
         public_root = SERVER_DIR.parent
         combined = "\n".join(
@@ -280,6 +311,28 @@ class DemoScriptFlowTests(unittest.TestCase):
             "CHATTER_WINDOW_MS = 10 * 60 * 1000",
         ):
             self.assertIn(text, demo_js)
+
+    def test_demo_pantry_fixtures_block_paths_and_cafe_points_follow_counter(self):
+        public_root = SERVER_DIR.parent
+        demo_js = (public_root / "demo" / "demo.js").read_text(encoding="utf-8")
+        self.assertIn("PANTRY_FIXTURE_BLOCKS", demo_js)
+        for fixture in (
+            "{ x: 35, y: 16, w: 1, h: 2 }",
+            "{ x: 38, y: 16, w: 1, h: 2 }",
+            "{ x: 41, y: 17, w: 4, h: 1 }",
+        ):
+            self.assertIn(fixture, demo_js)
+        for old_point in (
+            "{ x: 37, y: 19, facing: 'up'",
+            "{ x: 39, y: 19, facing: 'up'",
+        ):
+            self.assertNotIn(old_point, demo_js)
+        for new_point in (
+            "{ x: 41, y: 19, facing: 'up'",
+            "{ x: 42, y: 19, facing: 'up'",
+            "{ x: 43, y: 19, facing: 'up'",
+        ):
+            self.assertIn(new_point, demo_js)
 
 
 class ExtractJsonTests(unittest.TestCase):

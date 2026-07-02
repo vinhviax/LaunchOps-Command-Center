@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Updated 2026-06-22 - the sample set now has 9 fuller launches split across 3 completed / 3 running / 3 upcoming scenarios; analysis, checklist, and lesson output follows the brief language.
+> Updated 2026-07-02 - the sample set now has 11 launches split across 3 completed / 3 running / 5 upcoming scenarios; the standalone `/demo` page includes a visual Yellow -> Green sample brief that explains why lessons from run 1 make run 2 safer.
 
 LaunchOps Command Center is a **multi-agent command center for launch risk**. You paste a launch brief; the system scores readiness as Green/Yellow/Red against a risk rubric, runs a 5-persona Red Team, generates an owner/deadline/priority checklist, drafts post-mortem questions, and stores lessons for the next launch.
 
@@ -161,10 +161,11 @@ For remote multi-agent, RAG, and Cloud DB like production, provision your own re
 
 ## Demo flow (sample launches)
 
-1. **Completed with lessons** — the completed group has 1 Red (`Shop Đá Quý Bão Tố Đã Chạy`) and 2 Yellow launches; each has post-result + lessons for later recall.
-2. **Running now** — the running group has `Xem Trước Kho Skin Đang Chạy` as Green and 2 Yellow launches to monitor (`Vòng Quay Golden Spin Đang Chạy`, `Đua Boss Bang Hội Đang Chạy`).
-3. **Upcoming** — the upcoming group has 2 Green launches (`Vòng Quay Golden Spin Sắp Chạy`, `Festival Skin Phoenix Sắp Chạy`) and 1 Yellow (`Chuỗi Đăng Nhập Comeback Sắp Chạy`).
-4. **Multi-agent proof** — open the trace tab to see rubric-based readiness, agent-generated Red Team/checklist/post-mortem output, and completed-launch lessons reused as context.
+1. **Completed with lessons** — the completed group has 1 Red and 2 Yellow launches; each has post-result + lessons for later recall.
+2. **Running now** — the running group has 1 Green and 2 Yellow launches so reviewers can see live launches still need risk monitoring.
+3. **Upcoming** — the upcoming group has 3 Green and 2 Yellow launches, including two new types: IP/crossover and esports tournament.
+4. **Visual `/demo`** — the separate demo page tells the Golden Spin story with a pixel office: run 1 stays Yellow because launch controls are missing, then run 2 becomes Green after checklist items and lessons are filled in.
+5. **Multi-agent proof** — open the trace tab to see rubric-based readiness, agent-generated Red Team/checklist/post-mortem output, and completed-launch lessons reused as context.
 
 Click **Load Sample Brief** or **Demo mode** to load it quickly.
 
@@ -246,7 +247,7 @@ styles.css · friendly.css
 config.js               # same-origin API config
 server/app.py           # Web server + API + MCP + 6-agent pipeline
 server/db.py            # local/cloud storage layer
-server/test_app.py      # stdlib unit tests (182 tests)
+server/test_app.py      # stdlib unit tests (195 tests)
 server/requirements.txt · server/schema.sql
 server/seed_knowledge.py · server/seed_demo_data.py · server/migrate_to_cloud_db.py
 data/ · prompts/ · Dockerfile · .env.example · README.md
@@ -255,7 +256,7 @@ data/ · prompts/ · Dockerfile · .env.example · README.md
 ## Test
 
 ```bash
-python -m unittest server.test_app    # 182 tests, stdlib, no .env needed
+python -m unittest server.test_app    # 195 tests, stdlib, no .env needed
 node --check app.js friendly-ui.js i18n-clean.js
 ```
 

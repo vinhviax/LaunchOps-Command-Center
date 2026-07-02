@@ -1,6 +1,6 @@
 # LaunchOps Command Center
 
-> Cập nhật 22/06/2026 - dữ liệu mẫu đã được làm lại thành 9 launch đầy đủ hơn, chia 3 đã chạy / 3 đang chạy / 3 sắp chạy; output phân tích, checklist và bài học bám theo ngôn ngữ của brief.
+> Cập nhật 02/07/2026 - dữ liệu mẫu đã được làm mới thành 11 launch, chia 3 đã chạy / 3 đang chạy / 5 sắp chạy; trang `/demo` có flow visual riêng với brief mẫu Vàng -> Xanh để giải thích vì sao bài học lượt 1 làm lượt 2 an toàn hơn.
 
 LaunchOps Command Center là một **multi-agent command center kiểm soát rủi ro launch**. Bạn dán một launch brief; hệ thống chấm mức sẵn sàng Green/Yellow/Red theo rubric rủi ro, chạy Red Team 5 góc nhìn, sinh checklist có owner/deadline/priority, soạn câu hỏi post-mortem, và lưu bài học cho lần launch sau.
 
@@ -161,10 +161,11 @@ Mọi agent gọi OpenAI-compatible `/v1/chat/completions`. Muốn **tách model
 
 ## Demo flow (sample launches)
 
-1. **Đã chạy, có bài học** — nhóm completed có 1 Red (`Shop Đá Quý Bão Tố Đã Chạy`) và 2 Yellow, mỗi launch đều có post-result + lesson để LCC recall cho lần sau.
-2. **Đang chạy** — nhóm running có `Xem Trước Kho Skin Đang Chạy` Green và 2 launch Yellow cần theo dõi (`Vòng Quay Golden Spin Đang Chạy`, `Đua Boss Bang Hội Đang Chạy`).
-3. **Sắp chạy** — nhóm upcoming có 2 Green (`Vòng Quay Golden Spin Sắp Chạy`, `Festival Skin Phoenix Sắp Chạy`) và 1 Yellow (`Chuỗi Đăng Nhập Comeback Sắp Chạy`).
-4. **Bằng chứng multi-agent** — mở tab trace để thấy readiness theo rubric, Red Team/checklist/post-mortem do agent phân tích, và lesson từ launch đã chạy được dùng làm ngữ cảnh.
+1. **Đã chạy, có bài học** — nhóm completed có 1 Red và 2 Yellow, mỗi launch đều có post-result + lesson để LCC recall cho lần sau.
+2. **Đang chạy** — nhóm running có 1 Green và 2 Yellow để người xem thấy launch live vẫn cần theo dõi rủi ro.
+3. **Sắp chạy** — nhóm upcoming có 3 Green và 2 Yellow, gồm thêm 2 loại mới: hợp tác IP/crossover và giải đấu esports.
+4. **Visual `/demo`** — trang demo riêng kể câu chuyện Golden Spin bằng văn phòng pixel: brief mẫu lượt 1 Vàng vì thiếu chốt vận hành, sau khi checklist/bài học được bổ sung thì lượt 2 Xanh.
+5. **Bằng chứng multi-agent** — mở tab trace để thấy readiness theo rubric, Red Team/checklist/post-mortem do agent phân tích, và lesson từ launch đã chạy được dùng làm ngữ cảnh.
 
 Bấm **Nạp Brief Mẫu** hoặc **Demo mode** để nạp nhanh.
 
@@ -246,7 +247,7 @@ styles.css · friendly.css
 config.js               # same-origin API config
 server/app.py           # Web server + API + MCP + pipeline 6 agent
 server/db.py            # tầng storage local/cloud
-server/test_app.py      # unit test stdlib (182 test)
+server/test_app.py      # unit test stdlib (195 test)
 server/requirements.txt · server/schema.sql
 server/seed_knowledge.py · server/seed_demo_data.py · server/migrate_to_cloud_db.py
 data/ · prompts/ · Dockerfile · .env.example · README_EN.md
@@ -255,7 +256,7 @@ data/ · prompts/ · Dockerfile · .env.example · README_EN.md
 ## Test
 
 ```bash
-python -m unittest server.test_app    # 182 test, stdlib, không cần .env
+python -m unittest server.test_app    # 195 test, stdlib, không cần .env
 node --check app.js friendly-ui.js i18n-clean.js
 ```
 

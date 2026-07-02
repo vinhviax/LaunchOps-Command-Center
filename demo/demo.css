@@ -301,6 +301,7 @@ body {
 }
 
 .demo-brief-hint {
+  grid-column: 1 / -1;
   margin-top: 6px;
   font-size: 11px;
 }
@@ -312,13 +313,15 @@ body {
 }
 
 .demo-brief-textarea {
+  grid-column: 1 / -1;
   width: 100%;
-  min-height: 42px;
+  min-height: 150px;
   resize: vertical;
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px 12px;
   font: inherit;
+  line-height: 1.45;
   color: var(--ink);
   background: rgba(255, 255, 255, 0.92);
 }
@@ -803,6 +806,102 @@ body {
 
 .demo-rerun-head strong {
   font-size: 13px;
+}
+
+/* Khối "xác nhận của team" trong thẻ Lượt 2 — tách label/nội dung thành 2 dòng rõ ràng. */
+.demo-rerun-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: rgba(250, 249, 247, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.demo-rerun-outcome strong {
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.demo-rerun-outcome span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--neutral);
+}
+
+.demo-rerun-outcome.is-empty span {
+  color: var(--neutral-soft);
+}
+
+.demo-rerun-memory,
+.demo-memory-line {
+  padding: 8px 10px;
+  background: var(--primary-soft);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--primary-deep);
+}
+
+/* So sánh Lượt 1 -> Lượt 2 dưới đồng hồ readiness. */
+.demo-gauge-compare {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo-compare-chip {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  color: var(--neutral);
+}
+
+.demo-compare-chip.is-done {
+  background: var(--surface-warm);
+  color: var(--ink);
+}
+
+.demo-compare-chip.is-active {
+  background: var(--primary-soft);
+  border-color: rgba(240, 90, 34, 0.35);
+  color: var(--primary-deep);
+}
+
+.demo-compare-chip.is-pending {
+  color: var(--neutral-soft);
+  border-style: dashed;
+}
+
+.demo-compare-arrow {
+  font-size: 14px;
+  color: var(--neutral-soft);
+}
+
+/* Rủi ro lượt 1 đã khóa — hiển thị mờ kèm dấu check kể phần việc đã xử lý. */
+.demo-risk-card.is-resolved {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  opacity: 0.72;
+  padding: 7px 12px;
+}
+
+.demo-risk-card.is-resolved strong {
+  font-weight: 600;
+}
+
+.demo-risk-card.is-resolved strong::before {
+  content: "\2713 ";
+  color: var(--success);
+  font-weight: 800;
 }
 
 .demo-gauge-box {

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="/demo/demo.css?v=fix-20260630n">
+  <link rel="stylesheet" href="/demo/demo.css?v=fix-20260702f">
 </head>
 <body>
   <main id="demoApp" class="demo-app">
@@ -35,22 +35,21 @@
           <div class="demo-panel-head">
             <div>
               <div class="demo-card-title">Chọn brief để kể demo</div>
-              <p class="demo-muted">Giữ canvas là trung tâm, chỉ đổi câu chuyện đầu vào cho lượt 1 và lượt 2.</p>
+              <p class="demo-muted">Chọn brief mẫu để xem trọn câu chuyện, hoặc dán brief thật để AI phân tích.</p>
             </div>
-            <span class="demo-inline-badge">2 lượt phân tích</span>
           </div>
           <div class="demo-brief-modes" role="group" aria-label="Chọn loại brief">
             <button class="demo-brief-mode is-active" id="demoBriefSample" type="button" data-brief-mode="sample" aria-pressed="true">Brief mẫu</button>
             <button class="demo-brief-mode" id="demoBriefRealOption" type="button" data-brief-mode="real" aria-pressed="false">Brief thật</button>
           </div>
-          <textarea id="demoBriefReal" class="demo-brief-textarea is-readonly" rows="3" readonly placeholder="Dán brief thật vào đây để phân tích bằng AI..."></textarea>
+          <textarea id="demoBriefReal" class="demo-brief-textarea is-readonly" rows="8" readonly placeholder="Dán brief thật vào đây để phân tích bằng AI..."></textarea>
           <p class="demo-brief-hint demo-muted" id="demoBriefHint">Đang xem brief mẫu (chỉ đọc). Bấm "Brief thật" để tự nhập.</p>
         </section>
         <div class="demo-stage-shell">
           <div class="demo-stage-meta">
             <div class="demo-stage-copy">
               <strong>LaunchOps Command Center</strong>
-              <span>6 agent phối hợp trên canvas, Nick sẽ gọi persona vào phòng tiếp khách để phản biện.</span>
+              <span>6 agent phối hợp trong văn phòng, Nick sẽ mời hội đồng phản biện vào phòng họp tiếp khách.</span>
             </div>
             <div id="demoAgentHover" class="demo-agent-hover" aria-live="polite">Trỏ vào agent để xem vai trò và trạng thái ngắn.</div>
           </div>
@@ -69,27 +68,26 @@
         <section class="demo-card demo-reasoning-card" data-result-phase="0" aria-label="Reasoning tóm tắt của agent LLM">
           <div class="demo-panel-head">
             <div>
-              <div class="demo-card-title">Reasoning LLM</div>
-              <p class="demo-muted">Chỉ hiển thị suy nghĩ mức cao, an toàn cho demo booth.</p>
+              <div class="demo-card-title">Suy luận của AI</div>
+              <p class="demo-muted">Tóm tắt các bước agent suy nghĩ khi phân tích brief.</p>
             </div>
-            <span class="demo-inline-badge">Run 1 / Run 2</span>
           </div>
           <div id="demoReasoning" class="demo-reasoning-list">
             <div class="demo-llm-note">
               <strong>Đợi kích hoạt</strong>
-              <span>Khi bấm Phân Tích AI với brief thật, panel này sẽ hiện các bước đọc brief, soi thiếu sót, phản biện và chốt quyết định.</span>
+              <span>Khi bấm Phân Tích AI, panel này hiện các bước agent đọc brief, dò thiếu sót, soi rủi ro và chốt quyết định.</span>
             </div>
           </div>
         </section>
       </aside>
     </section>
     <footer class="demo-controls">
-      <span class="demo-note">Đây là màn demo riêng — không liên quan Web UI cũ</span>
+      <span class="demo-note">Demo trực quan: đội agent LaunchOps phân tích độ sẵn sàng của launch</span>
       <div class="demo-actions">
         <button id="demoStart" class="demo-btn demo-btn-primary" type="button">&#9654; Phân Tích AI</button>
       </div>
     </footer>
   </main>
-  <script src="/demo/demo.js?v=fix-20260630n"></script>
+  <script src="/demo/demo.js?v=fix-20260702f"></script>
 </body>
 </html>

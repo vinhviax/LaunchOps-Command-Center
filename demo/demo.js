@@ -516,13 +516,13 @@
     const ROOMS = {
       reception: { x: 16, y: 1,  w: 16, h: 10, label: 'Phòng họp tiếp khách', labelY: 1 },
       mission:   { x: 3,  y: 16, w: 11, h: 12, label: 'Control Room', labelY: 27 },
-      workspace: { x: 16, y: 16, w: 16, h: 12, label: 'Workspace Room', labelY: 27 },
+      workspace: { x: 16, y: 16, w: 16, h: 12, label: 'Workspace Room', labelX: 25, labelY: 16 },
       pantry:    { x: 34, y: 16, w: 11, h: 12, label: 'Pantry', labelY: 27 }
     };
 
     // Vùng sàn đi được (mask). Ô ngoài mask = tường/void.
     const FLOOR_RECTS = [
-      { x: 17, y: 3,  w: 14, h: 7 },   // sàn phòng họp (mở rộng: cols17..30, rows3..9)
+      { x: 16, y: 3,  w: 16, h: 7 },   // sàn phòng họp (mở rộng: cols16..31, rows3..9)
       { x: 23, y: 9,  w: 2,  h: 6 },   // hành lang dọc nối xuống (rows 9..14)
       { x: 3,  y: 13, w: 42, h: 2 },   // hành lang xương sống ngang (rows 13..14)
       { x: 45, y: 13, w: 3,  h: 2 },   // CỬA RA VÀO chính + sảnh ngoài (cols45..47) cho persona đi vào/ra
@@ -537,6 +537,12 @@
     ];
     // Trong Pantry lounge: hàng < SPLIT là khu bếp (kem), >= SPLIT là lounge (xanh nhạt).
     const PANTRY_LOUNGE_SPLIT = 20;
+    // Procedural pantry fixtures are drawn without sprites, so they need matching path blocks.
+    const PANTRY_FIXTURE_BLOCKS = [
+      { x: 35, y: 16, w: 1, h: 2 },
+      { x: 38, y: 16, w: 1, h: 2 },
+      { x: 41, y: 17, w: 4, h: 1 }
+    ];
     // Ô cửa (để vẽ ngưỡng/khung cửa cho dễ thấy).
     const DOORS = [
       { x: 23, y: 9 }, { x: 24, y: 9 },   // reception mở xuống hành lang dọc
@@ -566,33 +572,44 @@
       { key: 'assistant',        deskTile: { x: 18, y: 24 }, seat: { x: 19, y: 26 }, facing: 'up' }
     ];
 
-    // Phòng họp tiếp khách: Nick gọi 5 persona vào quanh bàn họp.
+    // Phòng họp tiếp khách: Nick chủ trì đầu bàn, hội đồng 10 persona ngồi 5-5 hai bên bàn dài.
     const MEETING = {
       x: 16, y: 1, w: 16, h: 10,
       // Bàn họp dài (4 coffee table ghép) ở giữa, rows 5-6.
       tableTiles: [ { x: 20, y: 5 }, { x: 22, y: 5 }, { x: 24, y: 5 }, { x: 26, y: 5 } ],
-      // Nick ngồi 1 mình phía trên, nhìn XUỐNG (kiểu phỏng vấn).
-      redSeat: { x: 23, y: 4 },
-      // 5 persona ngồi 1 hàng phía dưới bàn, nhìn LÊN Nick.
+      // Nick ngồi ĐẦU BÀN bên trái, nhìn sang PHẢI (chủ trì hội nghị).
+      redSeat: { x: 18, y: 5 },
+      // 10 ghế persona: seats[0..4] hàng DƯỚI nhìn lên, seats[5..9] hàng TRÊN nhìn xuống.
       seats: [
         { x: 19, y: 7 },
         { x: 21, y: 7 },
         { x: 23, y: 7 },
         { x: 25, y: 7 },
-        { x: 27, y: 7 }
+        { x: 27, y: 7 },
+        { x: 19, y: 4 },
+        { x: 21, y: 4 },
+        { x: 23, y: 4 },
+        { x: 25, y: 4 },
+        { x: 27, y: 4 }
       ]
     };
 
     const DECOR = [
-      // Phòng họp — 6 ghế phỏng vấn (noBlock): Nick 1 ghế trên (row4), 5 persona 1 hàng dưới (row7).
+      // Phòng họp — 11 ghế hội nghị (noBlock): Nick đầu bàn trái (18,5) nhìn phải,
+      // 5 ghế hàng TRÊN (row4) quay xuống + 5 ghế hàng DƯỚI (row7) quay lên.
+      { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_SIDE',  x: 18, y: 5, noBlock: true },
+      { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_FRONT', x: 19, y: 4, noBlock: true },
+      { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_FRONT', x: 21, y: 4, noBlock: true },
       { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_FRONT', x: 23, y: 4, noBlock: true },
+      { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_FRONT', x: 25, y: 4, noBlock: true },
+      { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_FRONT', x: 27, y: 4, noBlock: true },
       { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_BACK',  x: 19, y: 7, noBlock: true },
       { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_BACK',  x: 21, y: 7, noBlock: true },
       { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_BACK',  x: 23, y: 7, noBlock: true },
       { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_BACK',  x: 25, y: 7, noBlock: true },
       { group: 'CUSHIONED_CHAIR', id: 'CUSHIONED_CHAIR_BACK',  x: 27, y: 7, noBlock: true },
-      { group: 'PLANT',           id: 'PLANT',           x: 17, y: 8, noBlock: true },
-      { group: 'PLANT',           id: 'PLANT',           x: 30, y: 8, noBlock: true },
+      { group: 'PLANT',           id: 'PLANT',           x: 16, y: 8, noBlock: true },
+      { group: 'PLANT',           id: 'PLANT',           x: 31, y: 8, noBlock: true },
       // Control Room (Henzy) — cây góc, thùng rác; decor treo tường vẽ procedural để không lơ lửng.
       { group: 'LARGE_PLANT',    id: 'LARGE_PLANT',    x: 12, y: 25 },
       { group: 'BIN',            id: 'BIN',            x: 3,  y: 26 },
@@ -649,9 +666,9 @@
         { x: 42, y: 26, facing: 'right', state: 'idle', holdMin: 1200, holdMax: 2200 }
       ],
       cafe: [
-        { x: 37, y: 19, facing: 'up', state: 'idle', holdMin: 1200, holdMax: 2000 },
-        { x: 39, y: 19, facing: 'up', state: 'idle', holdMin: 1400, holdMax: 2200 },
-        { x: 41, y: 19, facing: 'up', state: 'read', holdMin: 1600, holdMax: 2600 }
+        { x: 41, y: 19, facing: 'up', state: 'idle', holdMin: 1200, holdMax: 2000 },
+        { x: 42, y: 19, facing: 'up', state: 'idle', holdMin: 1400, holdMax: 2200 },
+        { x: 43, y: 19, facing: 'up', state: 'read', holdMin: 1600, holdMax: 2600 }
       ],
       whiteboard: [
         { x: 16, y: 18, facing: 'up', state: 'read', holdMin: 1800, holdMax: 2800 },
@@ -735,6 +752,10 @@
         if (!m) { return; }
         pushDrawable(m, item.x, item.y, item.flipX);
         if (!item.noBlock) { markBlocked(item.x, item.y, m.footprintW, m.footprintH); }
+      });
+
+      PANTRY_FIXTURE_BLOCKS.forEach(function (block) {
+        markBlocked(block.x, block.y, block.w, block.h);
       });
 
       drawables.sort(function (a, b) { return a.bottom - b.bottom; });
@@ -1137,7 +1158,8 @@
 
     function drawRoomLabel(ctx, room) {
       const labelY = (typeof room.labelY === 'number') ? room.labelY : (room.y + 1);
-      const px = room.x * TILE + 6;
+      const labelX = (typeof room.labelX === 'number') ? room.labelX : room.x;
+      const px = labelX * TILE + 6;
       const py = labelY * TILE + 4;
       ctx.save();
       ctx.font = '700 7px "Be Vietnam Pro", sans-serif';
@@ -1193,7 +1215,7 @@
       ctx.strokeStyle = 'rgba(240, 120, 70, 0.45)';
       ctx.lineWidth = 1;
       ctx.setLineDash([5, 4]);
-      ctx.strokeRect(18 * TILE + 0.5, 3 * TILE + 0.5, 12 * TILE - 1, 6 * TILE - 1);
+      ctx.strokeRect(17 * TILE + 0.5, 3 * TILE + 0.5, 14 * TILE - 1, 6 * TILE - 1);
       ctx.setLineDash([]);
       ctx.restore();
     }
@@ -1208,8 +1230,8 @@
     }
     function drawRugs(ctx) {
       ctx.save();
-      // Thảm phòng họp (dưới bàn họp)
-      rug(ctx, 19 * TILE, 3 * TILE, 10 * TILE, 5 * TILE, 'rgba(240, 160, 90, 0.16)', 'rgba(194, 67, 26, 0.22)');
+      // Thảm phòng họp (dưới bàn họp + 2 hàng ghế hội nghị)
+      rug(ctx, 18 * TILE, 3 * TILE, 12 * TILE, 6 * TILE, 'rgba(240, 160, 90, 0.16)', 'rgba(194, 67, 26, 0.22)');
       // Thảm lounge (dưới sofa)
       rug(ctx, 35 * TILE, 22 * TILE, 8 * TILE, 5 * TILE, 'rgba(110, 150, 175, 0.20)', 'rgba(63, 90, 110, 0.32)');
       // Thảm Mission Control
@@ -1563,7 +1585,7 @@
   const AGENT_META = {
     mission_control:  { sheetKey: 'char_0', name: 'Mission Control Agent (Henzy)', shortName: 'Henzy', role: 'Điều phối flow launch', statusMap: { idle: 'Đang giữ nhịp demo', walk: 'Đang đi kiểm tra phòng', read: 'Đang đọc brief', type: 'Đang giao việc', alert: 'Đang gom tín hiệu rủi ro', cheer: 'Đang chốt vòng tốt' } },
     launch_readiness: { sheetKey: 'char_1', name: 'Launch Readiness Agent (Layla)', shortName: 'Layla', role: 'Chấm readiness Green / Yellow / Red', statusMap: { idle: 'Đang chờ brief', walk: 'Đang đổi vị trí theo dõi', read: 'Đang rà điều kiện launch', type: 'Đang chấm điểm', alert: 'Đang thấy thiếu sót', cheer: 'Đang xác nhận launch khỏe hơn' } },
-    red_team:         { sheetKey: 'char_2', name: 'Red Team Agent (Nick)', shortName: 'Nick', role: 'Dẫn 5 persona phản biện', statusMap: { idle: 'Đang chờ gọi phản biện', walk: 'Đang vào phòng tiếp khách', read: 'Đang đọc risk card', type: 'Đang tổng hợp ý kiến', alert: 'Đang phản biện căng', cheer: 'Đang chốt rủi ro đã rõ' } },
+    red_team:         { sheetKey: 'char_2', name: 'Red Team Agent (Nick)', shortName: 'Nick', role: 'Dẫn hội đồng phản biện', statusMap: { idle: 'Đang chờ gọi phản biện', walk: 'Đang vào phòng tiếp khách', read: 'Đang đọc risk card', type: 'Đang tổng hợp ý kiến', alert: 'Đang phản biện căng', cheer: 'Đang chốt rủi ro đã rõ' } },
     checklist:        { sheetKey: 'char_3', name: 'Checklist Agent (Rocky)', shortName: 'Rocky', role: 'Biến rủi ro thành việc phải làm', statusMap: { idle: 'Đang chờ rủi ro', walk: 'Đang đổi vị trí làm việc', read: 'Đang rà action cũ', type: 'Đang tạo checklist', alert: 'Đang đánh dấu việc gấp', cheer: 'Đang xác nhận checklist rõ hơn' } },
     postmortem:       { sheetKey: 'char_4', name: 'Post-mortem & Lessons Agent (John)', shortName: 'John', role: 'Rút bài học và lưu memory', statusMap: { idle: 'Đang chờ outcome', walk: 'Đang sang khu lessons', read: 'Đang đọc outcome', type: 'Đang ghi lesson', alert: 'Đang soi điểm lặp lại', cheer: 'Đang chốt memory tốt hơn' } },
     assistant:        { sheetKey: 'char_5', name: 'LaunchOps Assistant / Channel Agent (Amanda)', shortName: 'Amanda', role: 'MC dẫn chuyện và hỗ trợ chat', statusMap: { idle: 'Đang chờ tương tác', walk: 'Đang hỗ trợ quanh văn phòng', read: 'Đang đọc brief phụ', type: 'Đang giải thích cho khách xem', alert: 'Đang nhắc điểm cần chú ý', cheer: 'Đang mời xem lượt 2' } }
@@ -1573,12 +1595,19 @@
   const PersonaCharacters = Object.create(null);
   const PERSONA_LINKS = [];
 
+  // 10 persona hội đồng phản biện: 5 người đầu (hàng dưới) phát biểu chính và lộ risk card;
+  // 5 người sau (hàng trên) ngồi nghe, gật gù cho phòng họp đông đủ. riskIndex khớp 1-1 với run1.risks.
   const DEMO_PERSONAS = [
-      { key: 'persona_angry_user', name: 'Angry user', sheetKey: 'char_0', facing: 'up', spawn: { x: 47, y: 13 }, seat: Room.MEETING.seats[0], bubble: 'Nếu quà giới hạn hết quá sớm, người chơi sẽ phản ứng rất mạnh.', riskIndex: 0 },
-      { key: 'persona_exploit_hunter', name: 'Exploit hunter', sheetKey: 'char_1', facing: 'up', spawn: { x: 47, y: 14 }, seat: Room.MEETING.seats[1], bubble: 'Nếu logic quay hoặc hoàn thưởng lỗi, sẽ có người tìm cách farm ngay.', riskIndex: 3 },
-      { key: 'persona_cs_lead', name: 'CS lead', sheetKey: 'char_3', facing: 'up', spawn: { x: 46, y: 13 }, seat: Room.MEETING.seats[2], bubble: 'Thiếu FAQ thì CS sẽ trả lời chậm và làm bùng khiếu nại.', riskIndex: 2 },
-      { key: 'persona_tech_oncall', name: 'Tech on-call', sheetKey: 'char_2', facing: 'up', spawn: { x: 46, y: 14 }, seat: Room.MEETING.seats[3], bubble: 'Không có ngưỡng cảnh báo tải thì on-call sẽ bị động khi giờ vàng tăng đột biến.', riskIndex: 3 },
-      { key: 'persona_business_owner', name: 'Business owner', sheetKey: 'char_4', facing: 'up', spawn: { x: 45, y: 14 }, seat: Room.MEETING.seats[4], bubble: 'Nếu KPI chỉ nói tăng doanh thu mà không chặn chi phí, chiến dịch có thể lỗ.', riskIndex: 4 }
+      { key: 'persona_angry_user', name: 'Angry user', sheetKey: 'char_0', facing: 'up', spawn: { x: 47, y: 13 }, seat: Room.MEETING.seats[0], bubble: 'Nếu quà giới hạn hết quá sớm mà không ai xử lý, người chơi sẽ phản ứng rất mạnh.', riskIndex: 0 },
+      { key: 'persona_exploit_hunter', name: 'Exploit hunter', sheetKey: 'char_1', facing: 'up', spawn: { x: 47, y: 14 }, seat: Room.MEETING.seats[1], bubble: 'Nếu logic quay hoặc hoàn thưởng lỗi, sẽ có người tìm cách trục lợi ngay và chi phí thưởng vượt trần.', riskIndex: 4 },
+      { key: 'persona_cs_lead', name: 'CS lead', sheetKey: 'char_3', facing: 'up', spawn: { x: 46, y: 13 }, seat: Room.MEETING.seats[2], bubble: 'Thiếu kịch bản trả lời thì CSKH sẽ trả lời chậm và khiếu nại bùng lên.', riskIndex: 2 },
+      { key: 'persona_tech_oncall', name: 'Tech on-call', sheetKey: 'char_2', facing: 'up', spawn: { x: 46, y: 14 }, seat: Room.MEETING.seats[3], bubble: 'Không có cảnh báo quá tải thì kỹ thuật sẽ bị động khi giờ cao điểm tăng đột biến.', riskIndex: 3 },
+      { key: 'persona_business_owner', name: 'Business owner', sheetKey: 'char_4', facing: 'up', spawn: { x: 45, y: 14 }, seat: Room.MEETING.seats[4], bubble: 'Mục tiêu chỉ nói tăng doanh thu mà không có con số cụ thể thì rất khó quyết Go hay No-Go.', riskIndex: 1 },
+      { key: 'persona_data_analyst', name: 'Data analyst', sheetKey: 'char_5', facing: 'down', spawn: { x: 45, y: 13 }, seat: Room.MEETING.seats[5] },
+      { key: 'persona_marketing_lead', name: 'Marketing lead', sheetKey: 'char_4', facing: 'down', spawn: { x: 47, y: 13 }, seat: Room.MEETING.seats[6] },
+      { key: 'persona_payment_owner', name: 'Payment owner', sheetKey: 'char_2', facing: 'down', spawn: { x: 46, y: 14 }, seat: Room.MEETING.seats[7] },
+      { key: 'persona_game_designer', name: 'Game designer', sheetKey: 'char_1', facing: 'down', spawn: { x: 47, y: 14 }, seat: Room.MEETING.seats[8] },
+      { key: 'persona_legal', name: 'Pháp chế', sheetKey: 'char_3', facing: 'down', spawn: { x: 46, y: 13 }, seat: Room.MEETING.seats[9] }
     ];
 
   // Flow chậm, tuần tự: mỗi bước = agent đi tới nơi -> dừng "làm việc" -> mới nói -> bàn giao.
@@ -1590,13 +1619,13 @@
           { at: 600,   type: 'bubble', character: 'assistant', text: 'Em nhận được brief từ Human rồi. Em mang qua Henzy nhé.', textOptions: ['Em nhận được brief từ Human rồi. Em mang qua Henzy nhé.', 'Brief từ Human vừa tới. Em chuyển qua Henzy trước nhé.', 'Em đã nhận brief Human. Em qua Henzy để phân việc nha.'], ms: 2600 },
           { at: 1800,  type: 'walk',   character: 'assistant', to: { x: 10, y: 20, facing: 'left', state: 'read' } },
           { at: 5600,  type: 'bubble', character: 'assistant', text: 'Henzy, brief mới tới. Anh xem phân việc giúp em.', textOptions: ['Henzy, brief mới tới. Anh xem phân việc giúp em.', 'Henzy, brief Human đây. Anh chia nhịp giúp em nhé.', 'Henzy, em chuyển brief qua. Anh xem nên giao ai trước nhé.'], ms: 2800 },
-          { at: 7400,  type: 'bubble', character: 'mission_control', text: 'Ok. Đưa Layla chấm readiness trước. Xong bảo Layla mang kết quả lại anh xem.', textOptions: ['Ok. Đưa Layla chấm readiness trước. Xong bảo Layla mang kết quả lại anh xem.', 'Anh nhận. Chuyển Layla chấm trước, rồi bảo Layla quay lại báo anh.', 'Được. Layla soi readiness trước; có kết quả thì mang lại anh duyệt.'], ms: 3200 },
+          { at: 7400,  type: 'bubble', character: 'mission_control', text: 'Ok. Đưa Layla chấm độ sẵn sàng trước. Xong bảo Layla mang kết quả lại anh xem.', textOptions: ['Ok. Đưa Layla chấm độ sẵn sàng trước. Xong bảo Layla mang kết quả lại anh xem.', 'Anh nhận. Chuyển Layla chấm trước, rồi bảo Layla quay lại báo anh.', 'Được. Layla soi độ sẵn sàng trước; có kết quả thì mang lại anh duyệt.'], ms: 3200 },
           { at: 11200, type: 'walk',   character: 'assistant', to: { x: 18, y: 20, facing: 'left', state: 'read' } },
-          { at: 14600, type: 'bubble', character: 'assistant', text: 'Layla, brief mới đây. Henzy nhờ em chấm readiness trước.', textOptions: ['Layla, brief mới đây. Henzy nhờ em chấm readiness trước.', 'Layla, Henzy chuyển brief cho em chấm readiness trước nhé.', 'Layla, brief Human tới rồi. Em soi readiness giúp Henzy trước nha.'], ms: 3000 },
+          { at: 14600, type: 'bubble', character: 'assistant', text: 'Layla, brief mới đây. Henzy nhờ em chấm độ sẵn sàng trước.', textOptions: ['Layla, brief mới đây. Henzy nhờ em chấm độ sẵn sàng trước.', 'Layla, Henzy chuyển brief cho em chấm độ sẵn sàng trước nhé.', 'Layla, brief Human tới rồi. Em soi độ sẵn sàng giúp Henzy trước nha.'], ms: 3000 },
           { at: 16200, type: 'bubble', character: 'launch_readiness', text: 'Em nhận. Em phân tích xong sẽ mang qua Henzy.', textOptions: ['Em nhận. Em phân tích xong sẽ mang qua Henzy.', 'Rõ rồi. Em chấm xong sẽ quay lại báo Henzy.', 'Ok Amanda. Em đọc kỹ rồi mang kết quả qua Henzy.'], ms: 2600 },
           { at: 17400, type: 'walk',   character: 'assistant', to: { x: 19, y: 26, facing: 'up', state: 'type' } },
           { at: 18000, type: 'state',  character: 'launch_readiness', state: 'type' },
-          { at: 20200, type: 'bubble', character: 'launch_readiness', text: 'Em đang đối chiếu rubric. Cho em vài giây để kiểm kỹ.', textOptions: ['Em đang đối chiếu rubric. Cho em vài giây để kiểm kỹ.', 'Em đang rà rollback, FAQ CS và monitoring. Đợi em chút nhé.', 'Em kiểm kỹ trước đã, điểm readiness phải có bằng chứng.'], ms: 2800 },
+          { at: 20200, type: 'bubble', character: 'launch_readiness', text: 'Em đang đối chiếu tiêu chí chấm. Cho em vài giây để kiểm kỹ.', textOptions: ['Em đang đối chiếu tiêu chí chấm. Cho em vài giây để kiểm kỹ.', 'Em đang rà phương án xử lý sự cố, kịch bản CSKH và cảnh báo quá tải. Đợi em chút nhé.', 'Em kiểm kỹ trước đã, điểm sẵn sàng phải có bằng chứng.'], ms: 2800 },
           { at: 21200, type: 'hold',   ms: 24000 }
         ]
       },
@@ -1604,15 +1633,15 @@
         // Phase 1 — Chấm điểm: Layla phân tích, mang Henzy xem, rồi mới chuyển hồ sơ cho Nick.
         actions: [
           { at: 200,  type: 'state',  character: 'launch_readiness', state: 'type' },
-          { at: 800,  type: 'bubble', character: 'launch_readiness', text: 'Em đang đối chiếu rubric. Cho em vài giây để kiểm kỹ.', textOptions: ['Em đang đối chiếu rubric. Cho em vài giây để kiểm kỹ.', 'Em đang rà brief với checklist readiness. Chờ em chút nha.', 'Em đọc kỹ phần rollback, CS và tải hệ thống trước.'], ms: 3000 },
-          { at: 4300, type: 'bubble', character: 'mission_control', text: 'Anh chờ kết quả của Layla trước. Có điểm rõ rồi mình mới đưa sang Nick.', textOptions: ['Anh chờ kết quả của Layla trước. Có điểm rõ rồi mình mới đưa sang Nick.', 'Cứ để Layla chấm xong đã. Sau đó mình mới mời Nick vào.', 'Phải có kết quả readiness trước rồi Nick mới soi tiếp được.'], ms: 2800 },
+          { at: 800,  type: 'bubble', character: 'launch_readiness', text: 'Em đang đối chiếu tiêu chí chấm. Cho em vài giây để kiểm kỹ.', textOptions: ['Em đang đối chiếu tiêu chí chấm. Cho em vài giây để kiểm kỹ.', 'Em đang rà brief với danh mục điều kiện sẵn sàng. Chờ em chút nha.', 'Em đọc kỹ phần xử lý sự cố, CSKH và tải hệ thống trước.'], ms: 3000 },
+          { at: 4300, type: 'bubble', character: 'mission_control', text: 'Anh chờ kết quả của Layla trước. Có điểm rõ rồi mình mới đưa sang Nick.', textOptions: ['Anh chờ kết quả của Layla trước. Có điểm rõ rồi mình mới đưa sang Nick.', 'Cứ để Layla chấm xong đã. Sau đó mình mới mời Nick vào.', 'Phải có kết quả độ sẵn sàng trước rồi Nick mới soi tiếp được.'], ms: 2800 },
           { at: 5600, type: 'walk',   character: 'launch_readiness', to: { x: 10, y: 20, facing: 'left', state: 'read' } },
-          { at: 9600, type: 'bubble', character: 'launch_readiness', text: 'Henzy ơi, em chấm xong rồi. Brief đang Vàng 6/12, thiếu rollback, FAQ CS và ngưỡng cảnh báo tải.', textOptions: ['Henzy ơi, em chấm xong rồi. Brief đang Vàng 6/12, thiếu rollback, FAQ CS và ngưỡng cảnh báo tải.', 'Henzy, kết quả là Vàng 6/12. Rollback, FAQ CS và cảnh báo tải còn thiếu.', 'Em có điểm rồi: Vàng 6/12. Chưa đủ phanh ở rollback, CS và monitoring.'], ms: 3600 },
+          { at: 9600, type: 'bubble', character: 'launch_readiness', text: 'Henzy ơi, em chấm xong rồi. Brief đang Vàng 6/12, thiếu phương án xử lý sự cố, kịch bản CSKH và cảnh báo quá tải.', textOptions: ['Henzy ơi, em chấm xong rồi. Brief đang Vàng 6/12, thiếu phương án xử lý sự cố, kịch bản CSKH và cảnh báo quá tải.', 'Henzy, kết quả là Vàng 6/12. Phương án xử lý sự cố, kịch bản CSKH và cảnh báo quá tải còn thiếu.', 'Em có điểm rồi: Vàng 6/12. Chưa đủ phanh ở phần xử lý sự cố, CSKH và theo dõi quá tải.'], ms: 3600 },
           { at: 10800, type: 'gauge' },
-          { at: 13000, type: 'bubble', character: 'mission_control', text: 'Anh đồng ý mức Vàng. Chưa Go ngay. Layla, mang hồ sơ qua Nick để Red Team soi tiếp.', textOptions: ['Anh đồng ý mức Vàng. Chưa Go ngay. Layla, mang hồ sơ qua Nick để Red Team soi tiếp.', 'Ổn, giữ mức Vàng. Em chuyển qua Nick để phản biện tiếp nhé.', 'Anh duyệt kết quả này. Đưa Nick soi đa góc nhìn trước khi chốt.'], ms: 3200 },
+          { at: 13000, type: 'bubble', character: 'mission_control', text: 'Anh đồng ý mức Vàng. Chưa Go ngay. Layla, mang hồ sơ qua Nick để hội đồng phản biện soi tiếp.', textOptions: ['Anh đồng ý mức Vàng. Chưa Go ngay. Layla, mang hồ sơ qua Nick để hội đồng phản biện soi tiếp.', 'Ổn, giữ mức Vàng. Em chuyển qua Nick để phản biện tiếp nhé.', 'Anh duyệt kết quả này. Đưa Nick soi đa góc nhìn trước khi chốt.'], ms: 3200 },
           { at: 14600, type: 'walk',   character: 'launch_readiness', to: { x: 21, y: 20, facing: 'right', state: 'read' } },
-          { at: 18000, type: 'bubble', character: 'launch_readiness', text: 'Nick, Henzy đã xem rồi. Đây là hồ sơ cần Red Team phản biện.', textOptions: ['Nick, Henzy đã xem rồi. Đây là hồ sơ cần Red Team phản biện.', 'Nick, hồ sơ đã qua Henzy. Anh giúp team soi 5 góc nhìn nhé.', 'Nick, readiness đang Vàng. Henzy nhờ anh phản biện tiếp.'], ms: 3200 },
-          { at: 20000, type: 'bubble', character: 'red_team', text: 'Tôi nhận. Tôi gọi 5 persona vào phòng họp để soi rủi ro.', textOptions: ['Tôi nhận. Tôi gọi 5 persona vào phòng họp để soi rủi ro.', 'Được. Tôi mời persona vào để bóc từng góc rủi ro.', 'Tôi sẽ đưa case này lên phòng họp và hỏi từng persona.'], ms: 2800 },
+          { at: 18000, type: 'bubble', character: 'launch_readiness', text: 'Nick, Henzy đã xem rồi. Đây là hồ sơ cần hội đồng phản biện.', textOptions: ['Nick, Henzy đã xem rồi. Đây là hồ sơ cần hội đồng phản biện.', 'Nick, hồ sơ đã qua Henzy. Anh giúp team soi đa góc nhìn nhé.', 'Nick, độ sẵn sàng đang Vàng. Henzy nhờ anh phản biện tiếp.'], ms: 3200 },
+          { at: 20000, type: 'bubble', character: 'red_team', text: 'Tôi nhận. Tôi mời hội đồng phản biện vào phòng họp để soi rủi ro.', textOptions: ['Tôi nhận. Tôi mời hội đồng phản biện vào phòng họp để soi rủi ro.', 'Được. Tôi mời hội đồng vào để bóc từng góc rủi ro.', 'Tôi sẽ đưa hồ sơ này lên phòng họp và hỏi từng thành viên.'], ms: 2800 },
           { at: 21600, type: 'walk',   character: 'launch_readiness', to: { x: 18, y: 20, facing: 'up', state: 'idle' } },
           { at: 22800, type: 'hold',   ms: 26000 }
         ]
@@ -1622,11 +1651,11 @@
         // Phase 3 — Việc cần làm: Nick về workspace giao risk cards cho Rocky, Rocky giao John.
         actions: [
           { at: 200,  type: 'walk',   character: 'red_team', to: { x: 26, y: 20, facing: 'right', state: 'read' } },
-          { at: 2600, type: 'bubble', character: 'red_team', text: 'Rocky, đây là 5 risk cards. Biến giúp tôi thành checklist có owner và deadline.', ms: 2800 },
+          { at: 2600, type: 'bubble', character: 'red_team', text: 'Rocky, đây là các rủi ro vừa bóc. Biến giúp tôi thành việc cần làm có người phụ trách và hạn chót.', ms: 2800 },
           { at: 3600, type: 'state',  character: 'checklist', state: 'type' },
-          { at: 4200, type: 'bubble', character: 'checklist', text: 'Em đang gom risk thành action cụ thể. Đợi em khóa owner với deadline trước.', ms: 2800 },
+          { at: 4200, type: 'bubble', character: 'checklist', text: 'Em đang gom rủi ro thành việc cụ thể. Đợi em gán người phụ trách và hạn chót trước.', ms: 2800 },
           { at: 7400, type: 'checklist' },
-          { at: 8200, type: 'bubble', character: 'checklist', text: 'Đã khóa thành việc phải làm. John, phần outcome và bài học tôi bàn giao cho anh.', ms: 2800 },
+          { at: 8200, type: 'bubble', character: 'checklist', text: 'Đã chốt thành việc phải làm. John, phần kết quả thực tế và bài học tôi bàn giao cho anh.', ms: 2800 },
           { at: 9500, type: 'bubble', character: 'postmortem', text: 'Tôi nhận. Tôi sẽ ghi bài học để lần launch sau đỡ lặp lỗi.', ms: 2600 },
           { at: 10400, type: 'hold',  ms: 12000 }
         ]
@@ -1635,11 +1664,11 @@
         // Phase 4 — Bài học: John chốt lesson, nhờ Amanda tóm tắt cho channel.
         actions: [
           { at: 200,  type: 'state',  character: 'postmortem', state: 'read' },
-          { at: 700,  type: 'bubble', character: 'postmortem', text: 'Tôi đang đối chiếu outcome với risk vừa khóa. Đợi tôi ghi lesson sạch trước.', ms: 2800 },
+          { at: 700,  type: 'bubble', character: 'postmortem', text: 'Tôi đang đối chiếu kết quả thực tế với rủi ro vừa chốt. Đợi tôi ghi bài học gọn trước.', ms: 2800 },
           { at: 3900, type: 'lessons' },
-          { at: 4500, type: 'bubble', character: 'postmortem', text: 'Bài học chính: event quay thưởng phải có rollback rehearsal, FAQ CS và guardrail ngân sách.', ms: 3000 },
-          { at: 6200, type: 'bubble', character: 'postmortem', text: 'Amanda, tóm tắt ngắn cho channel giúp tôi: rủi ro đã khóa, owner đã rõ.', ms: 2600 },
-          { at: 7600, type: 'bubble', character: 'assistant', text: 'Đã rõ. Em gửi update ngắn cho team qua channel, rồi cả nhà quay lại nhịp làm việc nhé.', ms: 2800 },
+          { at: 4500, type: 'bubble', character: 'postmortem', text: 'Bài học chính: event quay thưởng phải diễn tập phương án xử lý sự cố, có kịch bản CSKH và mức trần ngân sách.', ms: 3000 },
+          { at: 6200, type: 'bubble', character: 'postmortem', text: 'Amanda, tóm tắt ngắn cho nhóm chung giúp tôi: rủi ro đã chốt, người phụ trách đã rõ.', ms: 2600 },
+          { at: 7600, type: 'bubble', character: 'assistant', text: 'Đã rõ. Em gửi tóm tắt ngắn cho team qua nhóm chung, rồi cả nhà quay lại nhịp làm việc nhé.', ms: 2800 },
           { at: 8800, type: 'cheer-all' },
           { at: 10000, type: 'hold',  ms: 11800 }
         ]
@@ -1649,90 +1678,99 @@
   const DEMO_STORY_MODES = {
     sample: {
       launchId: 'golden-spin-retro-lessons',
-      title: 'Vòng Quay Golden Spin cuối tuần',
+      title: 'Golden Spin: Vòng Quay Rồng Vàng cuối tuần',
       briefLabel: 'Brief mẫu',
-      shortBrief: 'Sự kiện quay thưởng cuối tuần cần tăng lượt quay và doanh thu nạp, nhưng brief còn thiếu rollback, ngưỡng tải và kịch bản CS.',
+      shortBrief: [
+        'Brief mẫu Golden Spin',
+        '- Tên event: Golden Spin: Vòng Quay Rồng Vàng cuối tuần.',
+        '- Thời gian: 20:00 Thứ Sáu đến 23:59 Chủ Nhật.',
+        '- Nội dung: người chơi đăng nhập, làm nhiệm vụ ngày và nạp gói cuối tuần để nhận lượt quay; giải gồm skin Rồng Vàng, vé boss bang hội, vàng khóa và voucher nạp.',
+        '- Mục tiêu: kéo người chơi quay lại cuối tuần, đạt 120.000 lượt quay, tăng 8% doanh thu nạp và giữ khiếu nại dưới 2%.',
+        '- Kênh chạy: in-game banner, fanpage, Discord cộng đồng và tin nhắn CSKH.',
+        '- Vì sao lượt 1 vẫn Vàng: brief còn thiếu người được quyền dừng event, kịch bản CSKH khi hết quà, mức trần ngân sách thưởng và cảnh báo quá tải lúc 20:00.'
+      ].join('\n'),
       aiSuggestedBriefAdditions: [
-        'Bổ sung rollback plan với điều kiện dừng, người phê duyệt và cách hoàn thưởng.',
-        'Ghi rõ KPI lượt quay, doanh thu mục tiêu và guardrail ngân sách thưởng.',
-        'Thêm FAQ CS, macro phản hồi và ngưỡng cảnh báo tải giờ vàng.'
+        'Bổ sung mốc vận hành: mở event 20:00 Thứ Sáu, kiểm tra cao điểm 20:00-21:00, khóa báo cáo tạm lúc 10:00 Thứ Bảy và tổng kết lúc 09:00 Thứ Hai.',
+        'Ghi rõ chốt an toàn: LiveOps được quyền tạm dừng nếu lỗi quay thưởng vượt 1%, queue quá tải trên 5 phút hoặc ngân sách thưởng chạm 85%.',
+        'Chuẩn bị kịch bản CSKH cho 3 tình huống: hết quà giới hạn, người chơi không nhận lượt quay, bảng xếp hạng cập nhật chậm.'
       ],
-      humanOutcomeInput: 'Human xác nhận sẽ rehearsal rollback, khóa KPI và bàn giao FAQ CS trước launch.',
+      humanOutcomeInput: 'Team xác nhận sau lượt 1: đã diễn tập phương án sự cố lúc 15:00, gắn LiveOps làm người được quyền tạm dừng, khóa mức trần thưởng 450 triệu, bật cảnh báo quá tải 20:00-21:00 và bàn giao kịch bản CSKH cho ca trực.',
       derivedLessons: [
-        'Rollback phải được rehearsal trước khi cho chạy traffic lớn.',
-        'KPI cần đi cùng guardrail chi phí và tín hiệu dừng rõ ràng.',
-        'CS, LiveOps và Tech phải dùng cùng một playbook trước giờ G.'
+        'Lượt 1 giữ màu Vàng vì brief còn thiếu quyền tạm dừng, kịch bản CSKH, mức trần thưởng và cảnh báo quá tải.',
+        'Muốn chuyển Xanh, team phải ghi rõ bằng chứng đã làm: ai chịu trách nhiệm, diễn tập lúc nào, cảnh báo nào đã bật và ngân sách trần là bao nhiêu.',
+        'Lượt 2 chuyển Xanh vì các rủi ro chính của lượt 1 đã được khóa thành checklist có người phụ trách, thời hạn và trạng thái đã xác nhận.'
       ],
-      memoryLesson: 'Lần sau với event quay thưởng, hệ thống sẽ nhắc rollback rehearsal, FAQ CS và guardrail ngân sách ngay từ lượt đầu.',
+      memoryLesson: 'Lần sau với event quay thưởng cuối tuần, hệ thống sẽ hỏi ngay 4 điểm trước khi chấm Xanh: ai được quyền tạm dừng, ngân sách thưởng tối đa, kịch bản CSKH và cảnh báo quá tải giờ mở event.',
       run1: {
-        score: 6,
+        score: 7,
         maxScore: 12,
         readinessLabel: 'Vàng',
         readinessColor: 'warning',
-        summary: 'Golden Spin hấp dẫn nhưng chưa đủ an toàn để chạy mạnh nếu không chốt rollback, KPI và playbook xử lý quá tải.',
+        summary: 'Golden Spin có tên event, thời gian, nội dung thưởng, mục tiêu và kênh chạy khá rõ nên không bị Đỏ. Tuy vậy lượt 1 vẫn Vàng vì các chốt vận hành sống còn còn thiếu: quyền tạm dừng, kịch bản CSKH, trần ngân sách và cảnh báo quá tải.',
         risks: [
-          { title: 'Rollback chưa rõ', owner: 'LiveOps', note: 'Chưa chốt điều kiện dừng và cách hoàn thưởng nếu hệ thống lỗi.' },
-          { title: 'KPI chưa lượng hóa', owner: 'PM', note: 'Mục tiêu doanh thu và lượt quay chưa có ngưỡng quyết định rõ.' },
-          { title: 'Thiếu playbook CS', owner: 'CS lead', note: 'Chưa có FAQ và kịch bản trả lời khi người chơi than phiền hoặc hụt quà.' },
-          { title: 'Cảnh báo tải còn thiếu', owner: 'Tech on-call', note: 'Chưa có ngưỡng cảnh báo khi peak giờ vàng hoặc drop request tăng nhanh.' },
-          { title: 'Chi phí thưởng khó kiểm', owner: 'Business owner', note: 'Thiếu guardrail để chặn vượt ngân sách nếu tỉ lệ đổi thưởng tăng đột biến.' }
+          { title: 'Chưa chốt quyền tạm dừng event', owner: 'LiveOps', note: 'Brief có nói cần xử lý sự cố nhưng chưa ghi rõ ai được quyền tạm dừng lúc 20:00 nếu lỗi quay thưởng lan rộng.' },
+          { title: 'Mức trần thưởng chưa được khóa', owner: 'PM / Kinh doanh', note: 'Mục tiêu doanh thu đã có, nhưng ngân sách thưởng tối đa và ngưỡng cảnh báo 85% chưa được ghi vào brief.' },
+          { title: 'Thiếu kịch bản CSKH khi hết quà', owner: 'CS lead', note: 'Chưa có câu trả lời thống nhất cho người chơi khi skin giới hạn hết sớm hoặc lượt quay không cộng đúng.' },
+          { title: 'Chưa bật cảnh báo quá tải giờ mở event', owner: 'Kỹ thuật trực', note: 'Khung 20:00-21:00 dễ tăng đột biến, nhưng brief chưa ghi dashboard theo dõi và người trực nhận cảnh báo.' },
+          { title: 'Chưa có mốc tổng kết bài học', owner: 'Tổng kết', note: 'Event có mục tiêu rõ nhưng chưa đặt lịch tổng kết để lưu lại bài học cho lần chạy tiếp theo.' }
         ],
         checklist: [
-          { task: 'Chốt rollback plan và người bấm dừng', owner: 'LiveOps', deadline: 'Trước launch 1 ngày', status: 'Mở' },
-          { task: 'Khóa KPI lượt quay, doanh thu và ngưỡng cảnh báo', owner: 'PM / Biz', deadline: 'Trước launch 1 ngày', status: 'Mở' },
-          { task: 'Chuẩn bị FAQ + macro phản hồi CS', owner: 'CS lead', deadline: 'Trước launch 12 giờ', status: 'Mở' },
-          { task: 'Thiết lập cảnh báo peak tải và theo dõi realtime', owner: 'Tech on-call', deadline: 'Trước launch 6 giờ', status: 'Mở' }
+          { task: 'Ghi rõ LiveOps được quyền tạm dừng khi lỗi quay thưởng vượt 1% hoặc queue quá tải trên 5 phút', owner: 'LiveOps', deadline: 'Trước 15:00 Thứ Sáu', status: 'Mở' },
+          { task: 'Khóa mức trần thưởng 450 triệu và cảnh báo khi dùng 85% ngân sách', owner: 'PM / Kinh doanh', deadline: 'Trước 16:00 Thứ Sáu', status: 'Mở' },
+          { task: 'Viết kịch bản CSKH cho hết quà, không cộng lượt quay và bảng xếp hạng cập nhật chậm', owner: 'CS lead', deadline: 'Trước 17:00 Thứ Sáu', status: 'Mở' },
+          { task: 'Bật cảnh báo quá tải 20:00-21:00 và phân công kỹ thuật trực', owner: 'Kỹ thuật trực', deadline: 'Trước 18:00 Thứ Sáu', status: 'Mở' }
         ]
       },
       run2: {
-        score: 10,
+        score: 11,
         maxScore: 12,
         readinessLabel: 'Xanh',
         readinessColor: 'success',
-        summary: 'Sau khi AI gợi ý bổ sung brief và team khóa action chính, Golden Spin đủ khỏe để chạy với guardrail rõ ràng.',
+        summary: 'Lượt 2 chuyển Xanh vì team đã dùng checklist của lượt 1 để khóa các lỗ hổng chính: có người được quyền tạm dừng, có diễn tập lúc 15:00, có trần thưởng 450 triệu, có kịch bản CSKH và có cảnh báo quá tải cho giờ mở event.',
         risks: [
-          { title: 'Cần theo dõi peak giờ vàng', owner: 'Tech on-call', note: 'Đã có cảnh báo, nhưng vẫn phải theo dõi 30 phút đầu để tránh chủ quan.' },
-          { title: 'CS phải bám FAQ mới', owner: 'CS lead', note: 'Macro đã có, nhưng cần kiểm tra việc dùng đúng trong ca đầu.' }
+          { title: 'Theo dõi sát 30 phút đầu', owner: 'Kỹ thuật trực', note: 'Cảnh báo đã bật, nhưng vẫn cần người trực nhìn dashboard trong khung 20:00-20:30.' },
+          { title: 'CSKH phải dùng đúng kịch bản mới', owner: 'CS lead', note: 'Bộ câu trả lời đã bàn giao; ca trực cần dùng chung một nội dung để tránh trả lời lệch.' }
         ],
         checklist: [
-          { task: 'Rehearsal rollback lần cuối và xác nhận log đầy đủ', owner: 'LiveOps / Tech', deadline: 'Trước launch 4 giờ', status: 'Đang chạy' },
-          { task: 'Kiểm tra dashboard KPI và cảnh báo giờ vàng', owner: 'PM / Tech on-call', deadline: 'Trước launch 2 giờ', status: 'Đang chạy' },
-          { task: 'CS dry-run với FAQ mới', owner: 'CS lead', deadline: 'Trước launch 2 giờ', status: 'Đang chạy' }
+          { task: 'Đã diễn tập phương án sự cố lúc 15:00 và ghi người duyệt tạm dừng', owner: 'LiveOps / Kỹ thuật', deadline: 'Đã xong 15:30 Thứ Sáu', status: 'Đã khóa' },
+          { task: 'Đã bật cảnh báo ngân sách 85% và giới hạn thưởng 450 triệu', owner: 'PM / Kinh doanh', deadline: 'Đã xong 16:20 Thứ Sáu', status: 'Đã khóa' },
+          { task: 'Đã bàn giao kịch bản CSKH cho 3 tình huống chính', owner: 'CS lead', deadline: 'Đã xong 17:10 Thứ Sáu', status: 'Đã khóa' },
+          { task: 'Kỹ thuật trực theo dõi dashboard 20:00-21:00 và tổng kết bài học 09:00 Thứ Hai', owner: 'Kỹ thuật trực / Tổng kết', deadline: 'Đã phân công', status: 'Đã khóa' }
         ]
       }
     },
     real: {
       launchId: 'golden-spin-retro-lessons',
-      title: 'Brief thật từ booth',
+      title: 'Brief thật của bạn',
       briefLabel: 'Brief thật',
-      shortBrief: 'Case thực tế do khách ghé booth nhập vào. Hệ thống vẫn kể flow 2 lượt nhưng giữ đánh giá bảo thủ hơn.',
+      shortBrief: 'Tình huống thực tế do bạn nhập vào. Hệ thống phân tích thật và giữ đánh giá thận trọng.',
       aiSuggestedBriefAdditions: [
-        'AI đề nghị ghi rõ mục tiêu launch, đối tượng người chơi và ngưỡng rollback tối thiểu.',
-        'AI đề nghị thêm owner cho KPI, CS và on-call trước khi xin màu xanh.',
-        'AI đề nghị bổ sung outcome mong muốn để memory rút bài học đúng ngữ cảnh.'
+        'AI đề nghị ghi rõ mục tiêu, đối tượng người chơi và mức tối thiểu của phương án xử lý sự cố.',
+        'AI đề nghị chỉ rõ người phụ trách cho mục tiêu, đội CSKH và kỹ thuật trực trước khi nâng lên mức Xanh.',
+        'AI đề nghị bổ sung kết quả mong muốn để bộ nhớ hệ thống rút bài học đúng ngữ cảnh.'
       ],
-      humanOutcomeInput: 'Human nhập outcome ngắn sau lượt 1: đã bổ sung owner, KPI, rollback và vài guardrail nhưng vẫn còn điểm chưa chắc.',
+      humanOutcomeInput: 'Team xác nhận sau lượt 1: đã bổ sung người phụ trách, mục tiêu, phương án xử lý sự cố và vài chốt an toàn, nhưng vẫn còn điểm chưa chắc.',
       derivedLessons: [
-        'Brief thật thường thiếu owner và guardrail ngay ở dòng đầu.',
-        'AI enrich giúp lộ khoảng trống, nhưng không tự động biến case thật thành an toàn tuyệt đối.',
-        'Memory nên nhắc những phần hay thiếu lặp lại: rollback, CS, cảnh báo tải và outcome thực tế.'
+        'Brief thật thường thiếu người phụ trách và chốt an toàn ngay ở dòng đầu.',
+        'AI bổ sung giúp lộ khoảng trống, nhưng không tự động biến tình huống thật thành an toàn tuyệt đối.',
+        'Bộ nhớ hệ thống nên nhắc những phần hay thiếu lặp lại: phương án xử lý sự cố, CSKH, cảnh báo quá tải và kết quả thực tế.'
       ],
-      memoryLesson: 'Với brief thật, LaunchOps nhớ các lỗ hổng lặp lại để lượt sau hỏi rõ owner, KPI, rollback và outcome trước khi nâng mức tin cậy.',
+      memoryLesson: 'Với brief thật, hệ thống nhớ các lỗ hổng lặp lại để lượt sau hỏi rõ người phụ trách, mục tiêu, phương án xử lý sự cố và kết quả trước khi nâng mức tin cậy.',
       run1: {
         score: 6,
         maxScore: 12,
         readinessLabel: 'Vàng',
         readinessColor: 'warning',
-        summary: 'Case thật có tín hiệu tiềm năng nhưng brief còn mơ hồ; cần giữ mức Vàng để tránh quá tự tin.',
+        summary: 'Tình huống thật có tín hiệu tiềm năng nhưng brief còn mơ hồ; cần giữ mức Vàng để tránh quá tự tin.',
         risks: [
-          { title: 'Owner còn mờ', owner: 'Mission Control', note: 'Một số đầu việc có nói chung chung nhưng chưa chỉ rõ ai chốt.' },
-          { title: 'Rollback chưa đủ chi tiết', owner: 'LiveOps', note: 'Có nhắc rollback nhưng thiếu trigger và người chịu trách nhiệm.' },
-          { title: 'Outcome mong muốn chưa khóa', owner: 'PM / Biz', note: 'Chưa rõ tiêu chí thắng-thua của launch nên khó quyết định nhanh.' }
+          { title: 'Chưa rõ người phụ trách', owner: 'Điều phối', note: 'Một số đầu việc nói chung chung nhưng chưa chỉ rõ ai chốt.' },
+          { title: 'Phương án xử lý sự cố chưa đủ chi tiết', owner: 'Vận hành', note: 'Có nhắc nhưng thiếu điều kiện kích hoạt và người chịu trách nhiệm.' },
+          { title: 'Kết quả mong muốn chưa chốt', owner: 'PM / Kinh doanh', note: 'Chưa rõ tiêu chí thắng-thua của launch nên khó quyết định nhanh.' }
         ],
         checklist: [
-          { task: 'Bổ sung owner rõ cho từng đầu việc chính', owner: 'Mission Control', deadline: 'Ngay sau review 1', status: 'Mở' },
-          { task: 'Viết rollback trigger và người duyệt', owner: 'LiveOps / Tech', deadline: 'Trước launch 1 ngày', status: 'Mở' },
-          { task: 'Chốt outcome mong muốn và ngưỡng stop', owner: 'PM / Biz', deadline: 'Trước launch 1 ngày', status: 'Mở' }
+          { task: 'Bổ sung người phụ trách rõ cho từng đầu việc chính', owner: 'Điều phối', deadline: 'Ngay sau lượt 1', status: 'Mở' },
+          { task: 'Viết điều kiện kích hoạt phương án xử lý sự cố và người duyệt', owner: 'Vận hành / Kỹ thuật', deadline: 'Trước launch 1 ngày', status: 'Mở' },
+          { task: 'Chốt kết quả mong muốn và ngưỡng dừng', owner: 'PM / Kinh doanh', deadline: 'Trước launch 1 ngày', status: 'Mở' }
         ]
       },
       run2: {
@@ -1740,15 +1778,15 @@
         maxScore: 12,
         readinessLabel: 'Vàng tốt hơn',
         readinessColor: 'warning',
-        summary: 'Lượt 2 tốt hơn nhờ AI enrich và memory lesson, nhưng brief thật vẫn được giữ ở Vàng để phản ánh sự thận trọng cần có.',
+        summary: 'Lượt 2 tốt hơn nhờ AI bổ sung và bài học từ bộ nhớ, nhưng brief thật vẫn giữ mức Vàng để phản ánh sự thận trọng cần có.',
         risks: [
-          { title: 'Một số guardrail vẫn mới ở mức draft', owner: 'PM / Tech', note: 'Đã bổ sung nhưng chưa có đủ bằng chứng rehearsal hoặc dashboard.' },
-          { title: 'Outcome thực tế cần theo dõi sau launch', owner: 'Post-mortem', note: 'Memory đã ghi bài học, nhưng cần hậu kiểm để xác nhận quyết định.' }
+          { title: 'Vài chốt an toàn vẫn ở mức bản nháp', owner: 'PM / Kỹ thuật', note: 'Đã bổ sung nhưng chưa đủ bằng chứng diễn tập hoặc bảng theo dõi.' },
+          { title: 'Kết quả thực tế cần theo dõi sau launch', owner: 'Tổng kết', note: 'Bộ nhớ đã ghi bài học, nhưng cần hậu kiểm để xác nhận quyết định.' }
         ],
         checklist: [
-          { task: 'Xác nhận owner và outcome trên một bảng chung', owner: 'Mission Control', deadline: 'Trước launch 6 giờ', status: 'Đang chạy' },
-          { task: 'Dry-run rollback + cảnh báo tải', owner: 'Tech on-call', deadline: 'Trước launch 4 giờ', status: 'Đang chạy' },
-          { task: 'Chốt lesson seed cho lần launch tiếp theo', owner: 'Post-mortem', deadline: 'Sau launch 1 ngày', status: 'Mở' }
+          { task: 'Xác nhận người phụ trách và kết quả trên một bảng chung', owner: 'Điều phối', deadline: 'Trước launch 6 giờ', status: 'Đang làm' },
+          { task: 'Chạy thử phương án xử lý sự cố và cảnh báo quá tải', owner: 'Kỹ thuật trực', deadline: 'Trước launch 4 giờ', status: 'Đang làm' },
+          { task: 'Chốt bài học nền cho lần launch tiếp theo', owner: 'Tổng kết', deadline: 'Sau launch 1 ngày', status: 'Mở' }
         ]
       }
     }
@@ -1852,33 +1890,33 @@
     const outcome = normalizeText(DemoData.humanOutcomeInput) || source.humanOutcomeInput;
     nextStory.shortBrief = brief;
     nextStory.aiSuggestedBriefAdditions = [
-      'AI đề nghị ghi rõ KPI, guardrail và mốc quyết định cho brief: ' + brief.slice(0, 72) + (brief.length > 72 ? '...' : ''),
-      'AI đề nghị khóa owner cho rollback, CS và on-call để giảm vùng mơ hồ ngay sau lượt 1.',
-      'AI đề nghị thêm outcome thực tế ngắn để memory hiểu lần launch này đang cải thiện điều gì.'
+      'AI đề nghị ghi rõ mục tiêu, chốt an toàn và mốc quyết định cho brief: ' + brief.slice(0, 72) + (brief.length > 72 ? '...' : ''),
+      'AI đề nghị chỉ rõ người phụ trách cho phương án xử lý sự cố, CSKH và kỹ thuật trực để giảm vùng mơ hồ ngay sau lượt 1.',
+      'AI đề nghị thêm kết quả thực tế ngắn để bộ nhớ hiểu lần launch này đang cải thiện điều gì.'
     ];
     nextStory.humanOutcomeInput = outcome;
     nextStory.derivedLessons = [
-      'Brief thật nên có owner, guardrail và KPI ngay từ đầu để tránh suy đoán lan rộng.',
-      'Outcome thực tế từ human giúp memory phân biệt việc đã khóa được gì và điều gì vẫn còn phải theo dõi.',
-      'AI enrich chỉ đáng tin khi team bổ sung lại bằng ngôn ngữ vận hành cụ thể, không tô hồng kết quả.'
+      'Brief thật nên có người phụ trách, chốt an toàn và mục tiêu ngay từ đầu để tránh suy đoán lan rộng.',
+      'Kết quả thực tế từ team giúp bộ nhớ phân biệt việc đã khóa được gì và điều gì vẫn còn phải theo dõi.',
+      'AI bổ sung chỉ đáng tin khi team viết lại bằng ngôn ngữ vận hành cụ thể, không tô hồng kết quả.'
     ];
-    nextStory.memoryLesson = 'Memory ghi nhớ brief thật này còn thiếu owner, rollback và outcome rõ ràng; lần sau hệ thống sẽ hỏi thẳng 3 điểm đó từ lượt đầu.';
-    nextStory.run1.summary = 'Case thật được lấy trực tiếp từ brief vừa nhập nên hệ thống giữ mức Vàng, nhấn mạnh các khoảng trống cần làm rõ trước khi tăng độ tin cậy.';
-    nextStory.run2.summary = 'Lượt 2 phản ánh brief đã được enrich bằng gợi ý AI và outcome của human, tạo cảm giác memory thật hơn nhưng vẫn giữ đánh giá thận trọng.';
+    nextStory.memoryLesson = 'Bộ nhớ ghi nhớ brief thật này còn thiếu người phụ trách, phương án xử lý sự cố và kết quả rõ ràng; lần sau hệ thống sẽ hỏi thẳng 3 điểm đó từ lượt đầu.';
+    nextStory.run1.summary = 'Tình huống thật lấy trực tiếp từ brief vừa nhập nên hệ thống giữ mức Vàng, nhấn mạnh các khoảng trống cần làm rõ trước khi tăng độ tin cậy.';
+    nextStory.run2.summary = 'Lượt 2 phản ánh brief đã được AI bổ sung và kết quả team xác nhận, tạo cảm giác bộ nhớ thật hơn nhưng vẫn giữ đánh giá thận trọng.';
     nextStory.run2.checklist = [
-      { task: 'Xác nhận brief enrich đã chèn đúng owner và KPI', owner: 'Mission Control', deadline: 'Ngay sau lượt 1', status: 'Đang chạy' },
-      { task: 'Đối chiếu outcome human với rollback và guardrail', owner: 'Post-mortem / LiveOps', deadline: 'Trước launch 6 giờ', status: 'Đang chạy' },
-      { task: 'Ghim lesson seed cho lượt launch tiếp theo', owner: 'Post-mortem', deadline: 'Sau launch 1 ngày', status: 'Mở' }
+      { task: 'Xác nhận brief bổ sung đã chèn đúng người phụ trách và mục tiêu', owner: 'Điều phối', deadline: 'Ngay sau lượt 1', status: 'Đang làm' },
+      { task: 'Đối chiếu kết quả team với phương án xử lý sự cố và chốt an toàn', owner: 'Tổng kết / Vận hành', deadline: 'Trước launch 6 giờ', status: 'Đang làm' },
+      { task: 'Ghim bài học nền cho lượt launch tiếp theo', owner: 'Tổng kết', deadline: 'Sau launch 1 ngày', status: 'Mở' }
     ];
     return nextStory;
   }
 
   function getOutcomeFieldMarkup() {
     return '<div class="demo-outcome-capture">' +
-      '<div class="demo-story-subtitle">Human outcome ngắn</div>' +
-      '<label class="demo-outcome-label" for="demoOutcomeInput">Ví dụ: đã chốt rollback, KPI và FAQ CS; peak đầu ổn.</label>' +
-      '<textarea id="demoOutcomeInput" class="demo-brief-textarea demo-outcome-textarea" rows="3" placeholder="Nhập 1-2 câu ngắn về outcome thực tế sau khi team đã xử lý checklist..."></textarea>' +
-      '<div id="demoOutcomeHint" class="demo-muted demo-outcome-hint">Outcome này sẽ được feed sang lượt 2 để tạo cảm giác memory thật.</div>' +
+      '<div class="demo-story-subtitle">Team xác nhận sau checklist</div>' +
+      '<label class="demo-outcome-label" for="demoOutcomeInput">Ví dụ: đã diễn tập phương án sự cố, chốt mục tiêu và bàn giao kịch bản CSKH.</label>' +
+      '<textarea id="demoOutcomeInput" class="demo-brief-textarea demo-outcome-textarea" rows="3" placeholder="Nhập 1-2 câu ngắn về việc team đã làm sau khi xử lý checklist..."></textarea>' +
+      '<div id="demoOutcomeHint" class="demo-muted demo-outcome-hint">Nội dung này được đưa sang lượt 2 như memory của hệ thống.</div>' +
     '</div>';
   }
 
@@ -1905,9 +1943,9 @@
   function getOutcomeMemoryLine() {
     const outcome = normalizeText(DemoData.humanOutcomeInput);
     if (!outcome) {
-      return 'Memory đang chờ human chốt một outcome ngắn để làm ngữ cảnh cho lượt 2.';
+      return 'Memory đang chờ team xác nhận 1-2 câu để làm ngữ cảnh cho lượt 2.';
     }
-    return 'Memory kéo theo outcome human: ' + outcome;
+    return 'Memory ghi nhận từ team: ' + outcome;
   }
 
   function getActiveRunData() {
@@ -1950,7 +1988,7 @@
     const additions = (opts.aiSuggestedBriefAdditions && opts.aiSuggestedBriefAdditions.length ? opts.aiSuggestedBriefAdditions : (DemoData.aiSuggestedBriefAdditions || [])).slice(0, 3);
     const risks = (opts.risks && opts.risks.length ? opts.risks : (runData.risks || [])).slice(0, 3);
     const statusLabel = opts.statusLabel || (opts.source === 'api' ? 'API thật' : 'Fallback deterministic');
-    const decision = opts.decision || ('Giữ mức ' + (runData.readinessLabel || 'Vàng') + ' cho đến khi owner, guardrail và bước xác nhận cuối được chốt.');
+    const decision = opts.decision || ('Giữ mức ' + (runData.readinessLabel || 'Vàng') + ' cho đến khi người chịu trách nhiệm, chốt an toàn và bước xác nhận cuối được khóa.');
     const memoryLine = getOutcomeMemoryLine();
     return [
       {
@@ -1962,7 +2000,7 @@
       {
         step: '2',
         title: 'Dò thiếu sót',
-        summary: additions.length ? additions[0] : 'Agent kiểm tra xem brief đã có KPI, rollback, owner và playbook CS hay chưa.',
+        summary: additions.length ? additions[0] : 'Agent kiểm tra xem brief đã có mục tiêu đo được, phương án sự cố, người chịu trách nhiệm và kịch bản CSKH chưa.',
         status: additions.length > 1 ? additions[1] : 'Tập trung vào các khoảng trống ảnh hưởng quyết định launch.'
       },
       {
@@ -1981,7 +2019,7 @@
         step: '5',
         title: 'Tổng hợp quyết định',
         summary: decision,
-        status: 'Kết luận an toàn, không hiển thị suy luận thô'
+        status: 'Kết luận cuối để team ra quyết định Go/No-Go'
       }
     ];
   }
@@ -2070,7 +2108,7 @@
     const memoryMeta = getStoryStepMeta('memory');
 
     gauge.innerHTML =
-      '<div class="demo-card-title">Readiness</div>' +
+      '<div class="demo-card-title">Chấm điểm sẵn sàng</div>' +
       '<div class="demo-story-section demo-story-readiness">' +
         '<div class="demo-story-head">' +
           '<span class="demo-story-chip ' + run1Meta.state + '">' + run1Meta.label + '</span>' +
@@ -2079,25 +2117,33 @@
         '<div class="demo-story-placeholder">Chờ Launch Readiness Agent chấm điểm và mở câu chuyện lượt đầu.</div>' +
       '</div>';
 
+    const resolvedRun1Risks = (DemoData.activeRunKey === 'run2' && DemoData.run1 && (DemoData.run1.risks || []).length)
+      ? '<div class="demo-story-divider"></div>' +
+        '<div class="demo-story-subtitle">Rủi ro lượt 1 đã khóa</div>' +
+        '<div class="demo-list demo-list-risks-resolved">' + DemoData.run1.risks.map(function (risk) {
+          return '<div class="demo-risk-card is-resolved"><strong>' + escapeHtml(risk.title) + '</strong><em>Owner: ' + escapeHtml(risk.owner) + '</em></div>';
+        }).join('') + '</div>'
+      : '';
     risks.innerHTML =
-      '<div class="demo-card-title">Risk Review</div>' +
+      '<div class="demo-card-title">Phản biện rủi ro</div>' +
       '<div class="demo-story-section demo-story-risks">' +
         '<div class="demo-story-head">' +
           '<span class="demo-story-chip is-pending">Thẻ rủi ro</span>' +
-          '<div class="demo-story-copy"><strong>Red Team sẽ bóc từng rủi ro</strong><span>5 persona lần lượt mở risk cards để team biết phải khóa gì trước launch.</span></div>' +
+          '<div class="demo-story-copy"><strong>Red Team sẽ bóc từng rủi ro</strong><span>Hội đồng phản biện lần lượt nêu rủi ro để team biết phải khóa gì trước launch.</span></div>' +
         '</div>' +
         '<div class="demo-list demo-list-risks"></div>' +
+        resolvedRun1Risks +
       '</div>';
 
       checklist.innerHTML =
-      '<div class="demo-card-title">AI Enrich + Checklist</div>' +
+      '<div class="demo-card-title">AI bổ sung + Việc cần làm</div>' +
       '<div class="demo-story-section demo-story-checklist">' +
         '<div class="demo-story-head">' +
           '<span class="demo-story-chip ' + enrichMeta.state + '">' + enrichMeta.label + '</span>' +
           '<div class="demo-story-copy"><strong>' + enrichMeta.title + '</strong><span>' + enrichMeta.summary + '</span></div>' +
         '</div>' +
         '<div class="demo-brief-additions">' +
-          '<div class="demo-story-subtitle">Suggested brief additions</div>' +
+          '<div class="demo-story-subtitle">Gợi ý bổ sung brief</div>' +
           '<div class="demo-list demo-list-additions"></div>' +
         '</div>' +
         '<div class="demo-story-divider"></div>' +
@@ -2114,16 +2160,16 @@
       '</div>';
 
     lessons.innerHTML =
-      '<div class="demo-card-title">Lessons + Rerun</div>' +
+      '<div class="demo-card-title">Bài học + Lượt 2</div>' +
       '<div class="demo-story-section demo-story-lessons">' +
         '<div class="demo-story-head">' +
           '<span class="demo-story-chip ' + memoryMeta.state + '">' + memoryMeta.label + '</span>' +
           '<div class="demo-story-copy"><strong>' + memoryMeta.title + '</strong><span>' + memoryMeta.summary + '</span></div>' +
         '</div>' +
-        '<div class="demo-story-subtitle">Lessons learned</div>' +
+        '<div class="demo-story-subtitle">Bài học rút ra</div>' +
         '<div class="demo-list demo-list-lessons"></div>' +
         '<div class="demo-story-divider"></div>' +
-        '<div class="demo-story-subtitle">Rerun result</div>' +
+        '<div class="demo-story-subtitle">Kết quả lượt 2</div>' +
         '<div class="demo-rerun-box"><div class="demo-story-placeholder">Sau khi chốt lesson và enrich, kết quả lượt 2 sẽ hiện ở đây.</div></div>' +
       '</div>';
   }
@@ -2157,7 +2203,7 @@
         '<span class="demo-story-chip ' + (DemoData.activeRunKey === 'run2' ? 'is-active' : 'is-pending') + '">Lượt 2</span>' +
         '<strong>' + escapeHtml((run2.readinessLabel || 'Vàng') + ' · ' + (run2.score || 0) + '/' + (run2.maxScore || 12)) + '</strong>' +
       '</div>' +
-      '<div class="demo-rerun-outcome' + (outcome ? '' : ' is-empty') + '"><strong>Outcome human feed sang lượt 2</strong><span>' + escapeHtml(outcome || 'Chưa có outcome human. Sau checklist, nhập 1-2 câu ngắn để memory kéo sang lượt 2.') + '</span></div>' +
+      '<div class="demo-rerun-outcome' + (outcome ? '' : ' is-empty') + '"><strong>Xác nhận của team đưa sang lượt 2</strong><span>' + escapeHtml(outcome || 'Chưa có xác nhận từ team. Sau checklist, nhập 1-2 câu ngắn để memory kéo sang lượt 2.') + '</span></div>' +
       '<p>' + escapeHtml(run2.summary || '') + '</p>' +
       '<span>' + escapeHtml(note) + '</span>' +
       '<div class="demo-rerun-memory">' + escapeHtml(getOutcomeMemoryLine()) + '</div>' +
@@ -2434,7 +2480,7 @@
         // CHỈ Nick lên phòng họp, ngồi ghế trên nhìn xuống persona.
         return {
           zone: 'review',
-          point: { x: Room.MEETING.redSeat.x, y: Room.MEETING.redSeat.y, facing: 'down', state: 'alert', holdMin: 3200, holdMax: 4600 }
+          point: { x: Room.MEETING.redSeat.x, y: Room.MEETING.redSeat.y, facing: 'right', state: 'alert', holdMin: 3200, holdMax: 4600 }
         };
       }
       // Các agent khác KHÔNG tham gia phỏng vấn — ngồi tại bàn của mình theo dõi & làm việc.
@@ -2813,8 +2859,8 @@
         statusLabel: 'Sẵn sàng demo'
       }), {
         tone: 'idle',
-        statusText: 'Panel reasoning mức cao đã sẵn sàng',
-        fallbackText: 'Khi bấm Phân Tích AI, hệ thống chỉ hiện các bước tóm tắt an toàn cho booth.'
+        statusText: 'Các bước suy luận đã sẵn sàng',
+        fallbackText: 'Bấm Phân Tích AI để xem agent đọc brief, dò thiếu sót, soi rủi ro và chốt quyết định.'
       });
     }
 
@@ -2951,7 +2997,17 @@
       const dash = Math.round((score / max) * 283);
       const runData = getActiveRunData();
       const stepMeta = getStoryStepMeta(DemoData.activeRunKey === 'run2' ? 'run2' : 'run1');
-      el.innerHTML = '<div class="demo-card-title">Readiness</div>' +
+      const run1Data = DemoData.run1 || {};
+      const run2Data = DemoData.run2 || {};
+      const isRun2 = DemoData.activeRunKey === 'run2';
+      const compareBlock = '<div class="demo-gauge-compare">' +
+        '<span class="demo-compare-chip ' + (isRun2 ? 'is-done' : 'is-active') + '">Lượt 1 · ' + (run1Data.score || 0) + '/' + (run1Data.maxScore || 12) + ' ' + escapeHtml(run1Data.readinessLabel || '') + '</span>' +
+        '<span class="demo-compare-arrow" aria-hidden="true">&#8594;</span>' +
+        (isRun2
+          ? '<span class="demo-compare-chip is-active">Lượt 2 · ' + (run2Data.score || 0) + '/' + (run2Data.maxScore || 12) + ' ' + escapeHtml(run2Data.readinessLabel || '') + '</span>'
+          : '<span class="demo-compare-chip is-pending">Lượt 2 · sau khi bổ sung brief</span>') +
+      '</div>';
+      el.innerHTML = '<div class="demo-card-title">Chấm điểm sẵn sàng</div>' +
         '<div class="demo-story-section demo-story-readiness">' +
           '<div class="demo-story-head">' +
             '<span class="demo-story-chip ' + stepMeta.state + '">' + stepMeta.label + '</span>' +
@@ -2964,6 +3020,7 @@
             '</svg>' +
             '<div class="demo-gauge-score"><strong>' + score + '/' + max + '</strong><span>' + runData.readinessLabel + '</span></div>' +
           '</div>' +
+          compareBlock +
           '<div class="demo-card-copy">' + runData.summary + '</div>' +
         '</div>';
     }
@@ -3010,19 +3067,19 @@
         lessonItems.push('Memory lesson: ' + DemoData.memoryLesson);
       }
       const memoryMeta = getStoryStepMeta('memory');
-      el.innerHTML = '<div class="demo-card-title">Lessons + Rerun</div>' +
+      el.innerHTML = '<div class="demo-card-title">Bài học + Lượt 2</div>' +
         '<div class="demo-story-section demo-story-lessons">' +
           '<div class="demo-story-head">' +
             '<span class="demo-story-chip ' + memoryMeta.state + '">' + memoryMeta.label + '</span>' +
             '<div class="demo-story-copy"><strong>' + memoryMeta.title + '</strong><span>' + memoryMeta.summary + '</span></div>' +
           '</div>' +
-          '<div class="demo-story-subtitle">Lessons learned</div>' +
+          '<div class="demo-story-subtitle">Bài học rút ra</div>' +
           '<div class="demo-list demo-list-lessons">' + lessonItems.map(function (item) {
             return '<div class="demo-lesson-item">' + escapeHtml(item) + '</div>';
           }).join('') + '</div>' +
           '<div class="demo-memory-line">' + escapeHtml(getOutcomeMemoryLine()) + '</div>' +
           '<div class="demo-story-divider"></div>' +
-          '<div class="demo-story-subtitle">Rerun result</div>' +
+          '<div class="demo-story-subtitle">Kết quả lượt 2</div>' +
           '<div class="demo-rerun-box"></div>' +
         '</div>';
       renderRerunResult();
@@ -3231,10 +3288,10 @@
         phaseEndAt = performance.now();   // cho update() chuyển sang phase kế
       }
 
-      Stage.bubble('red_team', 'Tôi mời 5 persona vào phòng họp phản biện. Mời mọi người vào ghế.', 3200);
+      Stage.bubble('red_team', 'Tôi mời hội đồng phản biện vào phòng họp. Mời mọi người vào ghế.', 3200);
 
-      // (1) 5 persona vào SONG SONG nhưng lệch nhịp (xếp hàng từ cửa), mỗi người cách ~0.85s.
-      const STAGGER = 850;
+      // (1) 10 persona vào SONG SONG nhưng lệch nhịp (xếp hàng từ cửa), mỗi người cách ~0.7s.
+      const STAGGER = 700;
       personas.forEach(function (p, idx) {
         redTeamTimers.push(window.setTimeout(function () {
           const ch = PersonaCharacters[p.key];
@@ -3243,7 +3300,7 @@
           ch.behaviorLock = true;
           Stage.setPersonaLink(p.key, false);
           const seatArrive = function (self) {
-            self.facing = 'up';
+            self.facing = p.facing || 'up';
             self.setState('read');
             Stage.renderPersonaLinks();
           };
@@ -3255,15 +3312,17 @@
       const entryWindow = personas.length * STAGGER + 6500;
       redTeamTimers.push(window.setTimeout(function () { speakSeq(0); }, entryWindow));
 
-      // (2) Lần lượt phát biểu: alert + bong bóng + lộ risk card, rồi tới persona kế.
+      // (2) Chỉ các persona có bubble + riskIndex phát biểu chính (5 người hàng dưới);
+      // các persona còn lại ngồi nghe để phòng họp đông đủ.
+      const speakers = personas.filter(function (p) { return p.bubble && typeof p.riskIndex === 'number'; });
       function speakSeq(i) {
-        if (i >= personas.length) { wrapUp(); return; }
-        const p = personas[i];
+        if (i >= speakers.length) { wrapUp(); return; }
+        const p = speakers[i];
         const ch = PersonaCharacters[p.key];
         if (ch) {
           ch.behaviorLock = true;
           if (ch.moveTarget) { ch.path = []; ch.moveTarget = null; ch.gx = p.seat.x; ch.gy = p.seat.y; }
-          ch.facing = 'up';
+          ch.facing = p.facing || 'up';
           ch.setState('alert');
           Stage.setPersonaLink(p.key, true);
           Stage.bubble(p.key, p.bubble, 3000);
@@ -3276,7 +3335,7 @@
       }
 
       function wrapUp() {
-        Stage.bubble('red_team', 'Đủ 5 góc nhìn. Rocky, tôi chuyển risk cards sang checklist để khóa owner ngay.', 3200);
+        Stage.bubble('red_team', 'Đủ góc nhìn từ hội đồng. Rocky, tôi chuyển các thẻ rủi ro sang checklist để khóa việc ngay.', 3200);
         redTeamTimers.push(window.setTimeout(exitAll, 2800));
       }
 
@@ -3362,14 +3421,14 @@
           if (personaWalk) {
             personaWalk.behaviorLock = true;
             const canWalk = personaWalk.walkTo(evt.to.x, evt.to.y, function (self) {
-              self.facing = (self.gx >= Room.MEETING.tableTile.x + 1) ? 'left' : 'right';
+              self.facing = (self.gx >= Room.MEETING.tableTiles[0].x + 1) ? 'left' : 'right';
               self.setState('idle');
               Stage.renderPersonaLinks();
             });
             if (!canWalk) {
               personaWalk.gx = evt.to.x;
               personaWalk.gy = evt.to.y;
-              personaWalk.facing = (personaWalk.gx >= Room.MEETING.tableTile.x + 1) ? 'left' : 'right';
+              personaWalk.facing = (personaWalk.gx >= Room.MEETING.tableTiles[0].x + 1) ? 'left' : 'right';
               personaWalk.setState('idle');
               Stage.renderPersonaLinks();
             }
@@ -3380,7 +3439,7 @@
           const personaSeat = PersonaCharacters[evt.key];
           if (personaSeat) {
             personaSeat.behaviorLock = true;
-            personaSeat.facing = (personaSeat.gx >= Room.MEETING.tableTile.x + 1) ? 'left' : 'right';
+            personaSeat.facing = (personaSeat.gx >= Room.MEETING.tableTiles[0].x + 1) ? 'left' : 'right';
             personaSeat.setState('read');
             Stage.renderPersonaLinks();
           }
@@ -3787,7 +3846,7 @@
         }), {
           tone: 'fallback',
           statusText: 'API lỗi hoặc rule-mode đang tắt LLM',
-          fallbackText: 'Demo vẫn hiển thị reasoning ổn định dựa trên brief hiện tại, không chặn booth flow.'
+          fallbackText: 'Demo vẫn hiển thị các bước suy luận ổn định dựa trên brief hiện tại.'
         });
       })
       .finally(function () {
